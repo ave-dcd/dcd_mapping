@@ -10,7 +10,7 @@ jupyter = "*"
 jupyterlab = "*"
 bs4 = "*"
 requests = "*"
-biopyton = '*'
+biopython = '*'
 "biocommons.seqrepo" = "*"
 
 [requires]
