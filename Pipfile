@@ -12,6 +12,11 @@ bs4 = "*"
 requests = "*"
 biopython = '*'
 "biocommons.seqrepo" = "*"
+gene-normalizer = ">=0.1.23"
+uta-tools = ">=0.1.0"
+pandas = "*"
+nest_asyncio = "*"
+asyncio = "*"
 
 [requires]
 python_version = "3.8"
