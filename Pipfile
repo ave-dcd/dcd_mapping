@@ -17,6 +17,7 @@ uta-tools = ">=0.1.0"
 pandas = "*"
 nest_asyncio = "*"
 asyncio = "*"
+plotly = '*'
 
 [requires]
 python_version = "3.8"
