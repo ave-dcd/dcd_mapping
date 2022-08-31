@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "dcd-mapping"
+version = "0.1.0"
+description = ""
+authors = ["Alex Handler Wagner <Alex.Wagner@nationwidechildrens.org>"]
+readme = "README.md"
+packages = [{include = "dcd_mapping"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+jupyter = "*"
+jupyterlab = "*"
+bs4 = "*"
+requests = "*"
+biopython = '*'
+"biocommons.seqrepo" = "*"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
