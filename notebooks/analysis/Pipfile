@@ -1,0 +1,27 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+ipykernel = "*"
+jupyter = "*"
+
+[packages]
+jupyter = "*"
+jupyterlab = "*"
+bs4 = "*"
+requests = "*"
+gene-normalizer = "==0.1.27"
+biopython = '*'
+pysam = "==0.18.0"
+"biocommons.seqrepo" = "*"
+"ga4gh.vrsatile.pydantic" = "*"
+cool-seq-tool = ">=0.1.0"
+pandas = "*"
+nest_asyncio = "*"
+asyncio = "*"
+plotly = '*'
+
+[requires]
+python_version = "3.10"
