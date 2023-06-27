@@ -167,7 +167,7 @@ def mave_to_blat(dat):
                                   'coverage': coverage, 'identity': identity, 'hits': qh_dat}
 
     else:
-        qh_dat = {'query_ranges': list('NA'), 'hit_ranges': list('NA')}
+        qh_dat = {'query_ranges': ['NA'], 'hit_ranges': ['NA']}
         qh_dat = pd.DataFrame(data=qh_dat)
         mave_blat_dict[dat['urn']] = {'chrom': 'NA', 'strand': 'NA', 'target': 'NA', 'target_type': 'NA',
                                           'uniprot': 'NA', 'coverage': 'NA', 'identity': 'NA', 'hits': qh_dat}
