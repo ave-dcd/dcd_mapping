@@ -3,12 +3,11 @@ from gene.query import QueryHandler
 from Bio import SearchIO
 import pandas as pd
 import subprocess
-from class_for_qh import ConcreteClass
-abstract_database_obj = ConcreteClass()
+from gene.database import create_db
 
 
 def get_gene_data(blat_chr, return_chr, dat):
-    qh = QueryHandler(abstract_database_obj)
+    qh = QueryHandler(create_db())
     try:
         uniprot = dat['uniprot_id']
         gsymb = qh.normalize(str(f'uniprot:{uniprot}')).gene_descriptor.label
