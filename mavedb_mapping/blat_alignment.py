@@ -6,7 +6,7 @@ import subprocess
 from gene.database import create_db
 
 
-def get_gene_data(blat_chr, return_chr, dat):
+def get_gene_data(return_chr, dat):
     qh = QueryHandler(create_db())
     try:
         uniprot = dat['uniprot_id']
@@ -83,7 +83,7 @@ def get_query_and_hit_ranges(output, dat):
     query_ranges = hit_ranges = list()
 
     for c in range(len(output)):
-        correct_chr = get_gene_data(output[c].id.strip('chr'), dat=dat, return_chr = True)
+        correct_chr = get_gene_data(dat=dat, return_chr = True)
         if correct_chr == output[c].id.strip('chr'):
             use_chr = True
             break
@@ -100,7 +100,7 @@ def get_query_and_hit_ranges(output, dat):
     else:
         hit = c
 
-    loc_dict = get_gene_data(output[hit].id.strip('chr'), False, dat)
+    loc_dict = get_gene_data(False, dat)
     
     hit_starts = list()
     for n in range(len(output[hit])):
@@ -125,7 +125,7 @@ def get_query_and_hit_ranges(output, dat):
         hit_string = ''
         strand = hsp[0].query_strand
         coverage = 100 * (hsp.query_end - hsp.query_start) / output.seq_len
-        coverage = f"{hsp.query_end - hsp.query_start} / {output.seq_len}, {coverage}" 
+        #coverage = f"{hsp.query_end - hsp.query_start} / {output.seq_len}, {coverage}" 
         identity = hsp.ident_pct
 
         test_file = open('blat_output_test.txt', 'r')
@@ -147,32 +147,34 @@ def get_query_and_hit_ranges(output, dat):
 
     return chrom, strand, coverage, identity, query_ranges, hit_ranges
     
-def check_non_human():
-    # TODO
-    pass
+def check_non_human(mave_blat_dict):
+    cov = mave_blat_dict['coverage']
+    if cov == 'NA':
+        return 'Non human'
+    else:
+        if cov <70:
+            return 'Non human'
+        else:
+            return 'human'
 
 
 def mave_to_blat(dat):
-
-    mave_blat_dict = {}
 
     output = extract_blat_output(dat)
     if output is not None:
         chrom, strand, coverage, identity, query_ranges, hit_ranges = get_query_and_hit_ranges(output, dat)
         qh_dat = {'query_ranges': query_ranges, 'hit_ranges': hit_ranges}
         qh_dat = pd.DataFrame(data=qh_dat)
-        mave_blat_dict[dat['urn']] = {'chrom': chrom, 'strand': strand, 'target': dat['target'],
+        mave_blat_dict = {'urn':dat['urn'],'chrom': chrom, 'strand': strand, 'target': dat['target'],
                                   'target_type': dat['target_type'], 'uniprot': dat['uniprot_id'],
                                   'coverage': coverage, 'identity': identity, 'hits': qh_dat}
 
     else:
         qh_dat = {'query_ranges': ['NA'], 'hit_ranges': ['NA']}
         qh_dat = pd.DataFrame(data=qh_dat)
-        mave_blat_dict[dat['urn']] = {'chrom': 'NA', 'strand': 'NA', 'target': 'NA', 'target_type': 'NA',
+        mave_blat_dict = {'urn':dat['urn'] ,'chrom': 'NA', 'strand': 'NA', 'target': 'NA', 'target_type': 'NA',
                                           'uniprot': 'NA', 'coverage': 'NA', 'identity': 'NA', 'hits': qh_dat}
-
-
-    print(mave_blat_dict)
+        
     return mave_blat_dict
 
 
