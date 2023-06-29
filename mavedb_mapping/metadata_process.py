@@ -5,7 +5,6 @@ def metadata_obtain(scoreset_json):
     human_target_sequences = scoreset['targetGene']['wtSequence']['sequence']
     target_type = scoreset['targetGene']['wtSequence']['sequenceType']
     human_target = scoreset['targetGene']['name']
-    human_assembly = 0000
     if scoreset['targetGene']['externalIdentifiers']!=[]:
         uniprot = scoreset['targetGene']['externalIdentifiers'][0]['identifier']['identifier']
     else:
