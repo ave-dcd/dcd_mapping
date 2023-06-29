@@ -59,15 +59,16 @@ def extract_blat_output(dat):
 
     if dat['target_sequence_type'] == 'protein':
         command = 'blat hg38.2bit -q=prot -t=dnax -minScore=20 blat_query.fa blat_out.psl'
+        process = subprocess.run(command, shell=True)
     else:
         command = 'blat hg38.2bit -minScore=20 blat_query.fa blat_out.psl'
-        process = subprocess.Popen(command, shell=True)
+        process = subprocess.run(command, shell=True)
     try:
         output = SearchIO.read('blat_out.psl', 'blat-psl')
     except:
         try:
             command = 'blat hg38.2bit -q=dnax -t=dnax -minScore=20 blat_query.fa blat_out.psl'
-            process = subprocess.Popen(command, shell=True)
+            process = subprocess.run(command, shell=True)
             output = SearchIO.read('blat_out.psl', 'blat-psl')
         except:
             return None
