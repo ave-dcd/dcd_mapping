@@ -7,7 +7,7 @@ from gene.database import create_db
 
 
 def get_gene_data(return_chr, dat):
-    qh = QueryHandler(create_db())
+    qh = QueryHandler(create_db('postgresql://postgres@localhost:5432/gene_normalizer'))
     try:
         uniprot = dat['uniprot_id']
         gsymb = qh.normalize(str(f'uniprot:{uniprot}')).gene_descriptor.label
