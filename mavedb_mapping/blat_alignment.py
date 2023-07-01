@@ -7,6 +7,28 @@ from gene.database import create_db
 
 
 def get_gene_data(return_chr, dat):
+    """
+    
+    Parameters
+    ----------
+        return_chr :bool 
+           If True, returns chromosome information. 
+
+        dat: dict
+            Dictionary containing data required for mapping.
+            format: 
+
+
+    Returns:
+    --------
+        str:
+            If return_chr is True, returns the chromosome value as a string.
+            If gene symbol cannot be extracted, returns 'NA'.
+        OR
+        dict:
+            If gene symbol can be extracted and return_chr is False
+    
+    """
     qh = QueryHandler(create_db('postgresql://postgres@localhost:5432/gene_normalizer'))
     try:
         uniprot = dat['uniprot_id']
