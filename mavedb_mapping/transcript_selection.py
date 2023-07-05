@@ -17,7 +17,8 @@ utadb = UTADatabase(db_pwd="uta")
 mane = MANETranscriptMappings()
 qh = QueryHandler(create_db("postgres://postgres@localhost:5432/gene_normalizer"))
 dp = SeqRepoDataProxy(sr=sr)
-# TODO: make the returned objects structured and uniform
+
+
 nest_asyncio.apply()
 
 
@@ -53,7 +54,7 @@ def get_gsymb(dat):
     return gsymb
 
 
-def using_uniprot(dat):
+def using_uniprot(dat: dict):
     try:  # Look for transcripts using uniprot id
         url = "https://www.uniprot.org/uniprot/" + str(dat["uniprot_id"]) + ".xml"
         page = requests.get(url)
@@ -66,15 +67,13 @@ def using_uniprot(dat):
         else:
             full_match = False
         start = up.find(stri[:10])
-        mappings_list = [dat["uniprot_id"], start, dat["urn"], full_match]
-        return mappings_list
+        return start, full_match
     except:
         # print(dat['urn'], 'no transcripts found')
-        mappings_list = []
-        return mappings_list
+        return "NA", "NA"
 
 
-def get_status(mane_trans):
+def get_status(mane_trans: list):
     if len(mane_trans) == 1:
         np = mane_trans[0]["RefSeq_prot"]
         nm = mane_trans[0]["RefSeq_nuc"]
@@ -106,7 +105,7 @@ def from_mane_trans(dat, mane_trans):
         full_match = False
     start = str(sr[np]).find(stri[:10])
     mappings_list = [np, start, dat["urn"], full_match, nm, status]
-    return mappings_list
+    return np, start, full_match, nm, status
 
 
 async def np(nm):
@@ -142,8 +141,8 @@ def no_mane_trans(isect, dat):
         else:
             full_match = False
         start = str(sr[np]).find(stri[:10])
-        mappings_list = [np, start, dat["urn"], full_match, nm, "Longest Compatible"]
-        return mappings_list
+        status = "Longest Compatible"
+        return np, start, full_match, nm, status
 
 
 def main(mave_blat_dict, dat):
@@ -157,13 +156,35 @@ def main(mave_blat_dict, dat):
         try:
             isect = list(set.intersection(*map(set, ts)))
         except:
-            mappings_list = using_uniprot(dat)
-            return mappings_list + [gsymb]
+            start, full_match = using_uniprot(dat)
+            np = nm = status = "NA"
+            mappings_dict = {
+                "urn": dat["urn"],
+                "uniprot_id": dat["uniprot_id"],
+                "start": start,
+                "full_match": full_match,
+                "RefSeq_prot": "NA",
+                "RefSeq_nuc": "NA",
+                "status": "NA",
+                "gsymb": gsymb,
+            }
+            return mappings_dict
 
         mane_trans = mane.get_mane_from_transcripts(isect)
         if mane_trans != []:
-            mappings_list = from_mane_trans(dat, mane_trans)
+            np, start, full_match, nm, status = from_mane_trans(dat, mane_trans)
         else:
-            mappings_list = no_mane_trans(isect, dat)
+            np, start, full_match, nm, status = no_mane_trans(isect, dat)
 
-        return mappings_list + [gsymb]
+        mappings_dict = {
+            "urn": dat["urn"],
+            "uniprot_id": dat["uniprot_id"],
+            "start": start,
+            "full_match": full_match,
+            "RefSeq_prot": np,
+            "RefSeq_nuc": nm,
+            "status": status,
+            "gsymb": gsymb,
+            "uniprot_id": dat["uniprot_id"],
+        }
+        return mappings_dict

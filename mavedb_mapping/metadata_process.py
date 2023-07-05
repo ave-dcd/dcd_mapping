@@ -3,6 +3,7 @@ import json
 
 def metadata_obtain(scoreset_json) -> dict:
     """
+    Extracts relevant metadata from a scoreset JSON object
     Parameters
     ----------
         scoreset_json: json object
@@ -11,8 +12,7 @@ def metadata_obtain(scoreset_json) -> dict:
     Returns:
     ----------
         dat: dict
-            Metadata extracted from the scoreset JSON.
-
+            Dictionary containing extracted metadata
     """
     scoreset = json.load(scoreset_json)
     urn = scoreset["urn"]

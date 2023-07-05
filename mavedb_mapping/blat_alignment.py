@@ -13,10 +13,10 @@ def get_gene_data(return_chr: bool, dat: dict):
     ----------
         return_chr :bool
            If True, returns chromosome information.
+           If False, returns locations list.
 
         dat: dict
             Dictionary containing data required for mapping.
-            format:
 
 
     Returns:
@@ -26,7 +26,7 @@ def get_gene_data(return_chr: bool, dat: dict):
             If gene symbol cannot be extracted, returns 'NA'.
         OR
         dict:
-            If gene symbol can be extracted and return_chr is False
+            If gene symbol can be extracted and return_chr is False.
 
     """
     qh = QueryHandler(create_db("postgresql://postgres@localhost:5432/gene_normalizer"))
@@ -78,7 +78,21 @@ def get_gene_data(return_chr: bool, dat: dict):
     return "NA"
 
 
-def extract_blat_output(dat):
+def extract_blat_output(dat: dict):
+    """
+    Function to run a BLAT query and return it's output.
+
+
+    Parameters
+    ----------
+        dat: dict
+            Dictionary containing data required for mapping.
+
+    Returns:
+    --------
+        Output from BLAT query.
+    """
+
     blat_file = open("blat_query.fa", "w")
     blat_file.write(">" + dat["target"] + "\n")
     blat_file.write(dat["target_sequence"] + "\n")
@@ -106,7 +120,21 @@ def extract_blat_output(dat):
     return output
 
 
-def get_query_and_hit_ranges(output, dat):
+def get_query_and_hit_ranges(output, dat: dict):
+    """
+    Extracts query and hit ranges from the BLAT output.
+
+    Parameters
+    ----------
+        output:
+            Output from the BLAT query.
+        dat: dict
+            Dictionary containing data required for mapping.
+
+    Returns
+    -------
+        Tuple containing the chromosome, strand, coverage, identity, query ranges, and hit ranges.
+    """
     hit_scores = list()
     hit_dict = {}
     use_chr = False
@@ -184,18 +212,49 @@ def get_query_and_hit_ranges(output, dat):
     return chrom, strand, coverage, identity, query_ranges, hit_ranges
 
 
-def check_non_human(mave_blat_dict):
+def check_non_human(mave_blat_dict: dict, min_percent: int = 80) -> str:
+    """
+    Checks if a sample is human or non-human based on the Mave-BLAT dictionary.
+
+    Parameters
+    ----------
+        mave_blat_dict: dict
+            Dicitionary containing data after doing BLAT Alignment
+
+        min_percent: int
+            Minimum percentage coverage to consider a sample as human.
+
+    Returns
+    -------
+        str: "human" if the sample is human, "Non human" otherwise.
+
+    """
+
     cov = mave_blat_dict["coverage"]
     if cov == "NA":
         return "Non human"
     else:
-        if cov < 70:
+        if cov < min_percent:
             return "Non human"
         else:
             return "human"
 
 
-def mave_to_blat(dat):
+def mave_to_blat(dat: dict) -> dict:
+    """
+    Performs BLAT Alignment on MaveDB scoreset data.
+
+    Parameters
+    ----------
+        dat: dict
+            Dictionary containing data from MaveDB scoresets
+
+    Returns
+    -------
+        mave_blat_dict: dict
+            Dicitionary containing data after doing BLAT Alignment
+
+    """
     output = extract_blat_output(dat)
     if output is not None:
         (
