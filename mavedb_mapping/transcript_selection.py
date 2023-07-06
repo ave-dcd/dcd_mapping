@@ -15,7 +15,7 @@ sr = SeqRepo("/usr/local/share/seqrepo/latest", writeable=True)
 environ["UTA_DB_URL"] = "postgresql://uta_admin:uta@localhost:5432/uta/uta_20210129"
 utadb = UTADatabase(db_pwd="uta")
 mane = MANETranscriptMappings()
-qh = QueryHandler(create_db("postgres://postgres@localhost:5432/gene_normalizer"))
+qh = QueryHandler(create_db())
 dp = SeqRepoDataProxy(sr=sr)
 
 
