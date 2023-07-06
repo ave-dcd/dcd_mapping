@@ -48,7 +48,7 @@ def get_gene_data(return_chr: bool, dat: dict):
     if "HGNC" in source_dict and return_chr == True:
         chrom = temp[source_dict["HGNC"]].records[0].locations[0].chr
         return chrom
-    # maybe i can see how to code this better?
+
     if (
         "Ensembl" in source_dict
         and return_chr == False
@@ -56,12 +56,26 @@ def get_gene_data(return_chr: bool, dat: dict):
     ):
         for j in range(len(temp[source_dict["Ensembl"]].records)):
             for k in range(len(temp[source_dict["Ensembl"]].records[j].locations)):
-                start = temp[source_dict["Ensembl"]].records[j].locations[k].start.value
-                end = temp[source_dict["Ensembl"]].records[j].locations[k].end.value
-                loc_list = {}
-                loc_list["start"] = start
-                loc_list["end"] = end
-                return loc_list
+                if (
+                    temp[source_dict["Ensembl"]].records[j].locations[k].interval.type
+                    == "SequenceInterval"
+                ):  # Multiple records per source
+                    start = (
+                        temp[source_dict["Ensembl"]]
+                        .records[j]
+                        .locations[k]
+                        .interval.start.value
+                    )
+                    end = (
+                        temp[source_dict["Ensembl"]]
+                        .records[j]
+                        .locations[k]
+                        .interval.end.value
+                    )
+                    loc_list = {}
+                    loc_list["start"] = start
+                    loc_list["end"] = end
+                    return loc_list
     if (
         "NCBI" in source_dict
         and return_chr == False
@@ -69,12 +83,26 @@ def get_gene_data(return_chr: bool, dat: dict):
     ):
         for j in range(len(temp[source_dict["NCBI"]].records)):
             for k in range(len(temp[source_dict["NCBI"]].records[j].locations)):
-                start = temp[source_dict["NCBI"]].records[j].locations[k].start.value
-                end = temp[source_dict["NCBI"]].records[j].locations[k].end.value
-                loc_list = {}
-                loc_list["start"] = start
-                loc_list["end"] = end
-                return loc_list
+                if (
+                    temp[source_dict["NCBI"]].records[j].locations[k].interval.type
+                    == "SequenceInterval"
+                ):
+                    start = (
+                        temp[source_dict["NCBI"]]
+                        .records[j]
+                        .locations[k]
+                        .interval.start.value
+                    )
+                    end = (
+                        temp[source_dict["NCBI"]]
+                        .records[j]
+                        .locations[k]
+                        .interval.end.value
+                    )
+                    loc_list = {}
+                    loc_list["start"] = start
+                    loc_list["end"] = end
+                    return loc_list
     return "NA"
 
 

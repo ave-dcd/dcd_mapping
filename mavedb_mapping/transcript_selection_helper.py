@@ -10,9 +10,7 @@ from ga4gh.vrs import models
 
 sr = SeqRepo("/usr/local/share/seqrepo/latest", writeable=True)
 environ["UTA_DB_URL"] = "postgresql://uta_admin:uta@localhost:5432/uta/uta_20210129"
-qh = QueryHandler(create_db)
-
-# TODO: add function to get gene symbol as per notation
+qh = QueryHandler(create_db())
 
 
 def get_start(string):
