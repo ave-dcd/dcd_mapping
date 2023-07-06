@@ -29,7 +29,7 @@ def get_gene_data(return_chr: bool, dat: dict):
             If gene symbol can be extracted and return_chr is False.
 
     """
-    qh = QueryHandler(create_db("postgresql://postgres@localhost:5432/gene_normalizer"))
+    qh = QueryHandler(create_db())
     try:
         uniprot = dat["uniprot_id"]
         gsymb = qh.normalize(str(f"uniprot:{uniprot}")).gene_descriptor.label
