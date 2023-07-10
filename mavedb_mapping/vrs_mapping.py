@@ -204,7 +204,7 @@ def process_nt_data(ntlist, ref, ts, tr, dp, ranges, hits, scores, accessions, s
                         ranges,
                         hits,
                         strand,
-                    ).as_dict()
+                    )
                 )
                 var_ids_post_map.append(
                     get_haplotype_allele(
@@ -219,7 +219,7 @@ def process_nt_data(ntlist, ref, ts, tr, dp, ranges, hits, scores, accessions, s
                         ranges,
                         hits,
                         strand,
-                    ).as_dict()
+                    )
                 )
                 sn.append(scores[j])
                 accn.append(accessions[j])
