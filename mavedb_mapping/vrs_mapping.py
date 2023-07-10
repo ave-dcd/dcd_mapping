@@ -1,4 +1,4 @@
-# VRS Variant Mapping - Coding Scoresets
+import requests
 import io
 from ga4gh.vrs.dataproxy import SeqRepoDataProxy
 from gene.query import QueryHandler
@@ -30,7 +30,6 @@ def get_haplotype_allele(var, ref, offset, l, tr, dp, ts, mapped, ranges, hits, 
     else:
         varlist = list()
         varlist.append(var)
-    locs = {}
     alleles = []
     for i in range(len(varlist)):
         hgvs_string = ref + ":" + l + "." + varlist[i]
@@ -177,8 +176,8 @@ def process_protein_coding_data(
                     accpro.append(accessions[j])
             except:
                 continue
-
-    return var_ids_pre_map, var_ids_post_map, spro, accpro
+    tempdat = pd.DataFrame({"pre_mapping": var_ids_pre_map, "mapped": var_ids_post_map})
+    return tempdat, spro, accpro
 
 
 def process_nt_data(ntlist, ref, ts, tr, dp, ranges, hits, scores, accessions, strand):
@@ -188,7 +187,7 @@ def process_nt_data(ntlist, ref, ts, tr, dp, ranges, hits, scores, accessions, s
     accn = []
 
     for j in range(len(ntlist)):
-        if type(ntlist[j]) != str or ntlist[j] == "_wt" or ntlist[j] == "_sy":
+        if ntlist[j] == "_wt" or ntlist[j] == "_sy":
             continue
         else:
             try:
@@ -226,66 +225,105 @@ def process_nt_data(ntlist, ref, ts, tr, dp, ranges, hits, scores, accessions, s
                 accn.append(accessions[j])
             except:
                 continue
+    tempdat = pd.DataFrame({"pre_mapping": var_ids_pre_map, "mapped": var_ids_post_map})
+    return tempdat, sn, accn
 
-    return var_ids_pre_map, var_ids_post_map, sn, accn
+
+def get_scores_data(scores_csv):
+    vardat = pd.read_csv(io.StringIO(scores_csv.decode("utf-8")))
+    scores = vardat["score"].to_list()
+    accessions = vardat["accession"].to_list()
+    varm = vardat["hgvs_pro"]
+    ntlist = vardat["hgvs_nt"]
+    return scores, accessions, varm, ntlist
 
 
-def vrs_mapping_for_coding(dat, mappings_dict, mave_blat_dict, scores_csv):
+def vrs_mapping_for_protein_coding(
+    dat, mappings_dict, mave_blat_dict, ref, ranges, hits, scores_csv
+):
+    scores, accessions, varm, ntlist = get_scores_data(scores_csv)
+    np = mappings_dict["RefSeq_prot"]
+    offset = mappings_dict["start"]
+
+    ts = dat["target_sequence"]
+    ts = Seq(ts)
+    ts = str(ts.translate(table=1)).replace("*", "")
+    digest = "SQ." + sha512t24u(ts.encode("ascii"))
+    alias_dict_list = [{"namespace": "ga4gh", "alias": digest}]
+    sr.store(ts, nsaliases=alias_dict_list)
+
+    mappings_list = list()
+    scores_list = list()
+    accessions_list = list()
+
+    tempdat, spro, accpro = process_protein_coding_data(
+        varm, np, offset, tr, dp, ts, ranges, hits, scores, accessions
+    )
+
+    mappings_list.append(tempdat)
+    scores_list.append(spro)
+    accessions_list.append(accpro)
+
+    if ntlist.isnull().values.all() == False and "97" not in dat["urn"]:
+        strand = mave_blat_dict["strand"]
+        tempdat, sn, accn = process_nt_data(
+            ntlist, ref, ts, tr, dp, ranges, hits, scores, accessions, strand
+        )
+
+        mappings_list.append(tempdat)
+        scores_list.append(sn)
+        accessions_list.append(accn)
+
+    vrs_mappings_dict[dat["urn"]] = mappings_list
+    scores_dict_coding[dat["urn"]] = scores_list
+    mavedb_ids_coding[dat["urn"]] = accessions_list
+
+    return vrs_mappings_dict
+
+
+def vrs_mapping_for_non_coding(
+    dat, mappings_dict, mave_blat_dict, ref, ranges, hits, scores_csv
+):
+    mappings_list = list()
+    scores_list = list()
+    accessions_list = list()
+    ts = dat["target_sequence"]
+    scores, accessions, varm, ntlist = get_scores_data(scores_csv)
+    ts = dat["target_sequence"]
+    ts = Seq(ts)
+    ts = str(ts.translate(table=1)).replace("*", "")
+    digest = "SQ." + sha512t24u(ts.encode("ascii"))
+    alias_dict_list = [{"namespace": "ga4gh", "alias": digest}]
+    sr.store(ts, nsaliases=alias_dict_list)
+
+    strand = mave_blat_dict["strand"]
+    tempdat, sn, accn = process_nt_data(
+        ntlist, ref, ts, tr, dp, ranges, hits, scores, accessions, strand
+    )
+
+    mappings_list.append(tempdat)
+    scores_list.append(sn)
+    accessions_list.append(accn)
+
+    vrs_mappings_dict[dat["urn"]] = mappings_list
+    scores_dict_coding[dat["urn"]] = scores_list
+    mavedb_ids_coding[dat["urn"]] = accessions_list
+
+    return vrs_mappings_dict
+
+
+def vrs_mapping(dat, mappings_dict, mave_blat_dict, scores_csv):
     ranges = get_locs_list(mave_blat_dict["hits"])
     hits = get_hits_list(mave_blat_dict["hits"])
     ref = get_chr(dp, mave_blat_dict["chrom"])
-    ts = dat["target_sequence"]
-    if dat["target_type"] == "Protein coding" or dat["target_type"] == "protein_coding":
-        item = mappings_dict
-        vardat = pd.read_csv(io.StringIO(scores_csv.decode("utf-8")))
-        scores = vardat["score"].to_list()
-        accessions = vardat["accession"].to_list()
-        varm = vardat["hgvs_pro"]
 
-        mappings_list = []
-        scores_list = []
-        accessions_list = []
-
-        np = mappings_dict["RefSeq_prot"]
-        offset = mappings_dict["start"]
-        ts = dat["target_sequence"]
-        if len(set(str(ts))) > 4:
-            stri = str(ts)
-        else:
-            ts = Seq(ts)
-            ts = str(ts.translate(table=1)).replace("*", "")
-        digest = "SQ." + sha512t24u(ts.encode("ascii"))
-        alias_dict_list = [{"namespace": "ga4gh", "alias": digest}]
-        sr.store(ts, nsaliases=alias_dict_list)
-
-        var_ids_pre_map, var_ids_post_map, spro, accpro = process_protein_coding_data(
-            varm, np, offset, tr, dp, ts, ranges, hits, scores, accessions
+    if dat["target_type"] == "Protein coding" and dat["target_sequence_type"] == "dna":
+        mapping = vrs_mapping_for_protein_coding(
+            dat, mappings_dict, mave_blat_dict, ref, ranges, hits, scores_csv
+        )
+    else:
+        mapping = vrs_mapping_for_non_coding(
+            dat, mappings_dict, mave_blat_dict, ref, ranges, hits, scores_csv
         )
 
-        tempdat = pd.DataFrame(
-            {"pre_mapping": var_ids_pre_map, "mapped": var_ids_post_map}
-        )
-        mappings_list.append(tempdat)
-        scores_list.append(spro)
-        accessions_list.append(accpro)
-
-        if vardat["hgvs_nt"].isnull().values.all() == False and "97" not in dat["urn"]:
-            ntlist = vardat["hgvs_nt"]
-            varm = vardat["hgvs_pro"]
-            strand = mave_blat_dict["strand"]
-            var_ids_pre_map, var_ids_post_map, sn, accn = process_nt_data(
-                ntlist, ref, ts, tr, dp, ranges, hits, scores, accessions, strand
-            )
-
-            tempdat = pd.DataFrame(
-                {"pre_mapping": var_ids_pre_map, "mapped": var_ids_post_map}
-            )
-            mappings_list.append(tempdat)
-            scores_list.append(sn)
-            accessions_list.append(accn)
-
-        vrs_mappings_dict[dat["urn"]] = mappings_list
-        scores_dict_coding[dat["urn"]] = scores_list
-        mavedb_ids_coding[dat["urn"]] = accessions_list
-
-    return vrs_mappings_dict
+    return mapping
