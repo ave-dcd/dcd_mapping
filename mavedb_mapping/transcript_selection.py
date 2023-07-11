@@ -22,7 +22,27 @@ dp = SeqRepoDataProxy(sr=sr)
 nest_asyncio.apply()
 
 
-async def mapq(locs, chrom, gsymb):
+async def mapq(locs: list, chrom: str, gsymb: str):
+    """
+    Runs a query on UTADB to obtain transcripts
+    Parameters
+    ----------
+        locs: list
+           Locations list
+
+        chrom: str
+            Chromosome
+
+        gsymb: str
+            Gene symbol.
+
+
+    Returns:
+    --------
+        list:
+            List of transcripts from UTADB
+
+    """
     transcript_lists = []
     for i in range(len(locs)):
         testquery = f"""select *
@@ -54,14 +74,33 @@ def get_gsymb(dat):
     return gsymb
 
 
-def using_uniprot(dat: dict):
-    try:  # Look for transcripts using uniprot id
-        url = "https://www.uniprot.org/uniprot/" + str(dat["uniprot_id"]) + ".xml"
+def using_uniprot(uniprot: str, ts: str):
+    """
+    Looks for transcripts using Uniprot ID
+
+    Parameters
+    ----------
+        uniprot: str
+            Uniprot ID
+
+        ts: str
+            Target Sequence
+
+
+    Returns:
+    --------
+        start: str
+
+        full_match:bool
+
+    """
+    try:
+        url = "https://www.uniprot.org/uniprot/" + uniprot + ".xml"
         page = requests.get(url)
         page = BeautifulSoup(page.text)
         page = page.find_all("sequence")
         up = page[1].get_text()
-        stri = str(dat["target_sequence"])
+        stri = str(ts)
         if up.find(stri) != -1:
             full_match = True
         else:
@@ -74,6 +113,28 @@ def using_uniprot(dat: dict):
 
 
 def get_status(mane_trans: list):
+    """
+    Obtains status, RefSeq protein ID, and RefSeq nucleotide ID
+
+    Parameters
+    ----------
+        mane_trans: list
+            Transcripts obtained from MANE
+
+
+    Returns:
+    --------
+        status: str
+            status
+
+        np: str
+            RefSeq protein ID,
+
+        nm: str
+            RefSeq nucleotide ID
+
+
+    """
     if len(mane_trans) == 1:
         np = mane_trans[0]["RefSeq_prot"]
         nm = mane_trans[0]["RefSeq_nuc"]
@@ -90,7 +151,35 @@ def get_status(mane_trans: list):
     return status, np, nm
 
 
-def from_mane_trans(dat, mane_trans):
+def from_mane_trans(dat: dict, mane_trans: list):
+    """
+    Obtains data for mapping using transcripts obtained from MANE
+
+    Parameters
+    ----------
+        dat: dict
+            Dictionary containing data from MaveDB scoresets
+
+        mane_trans: list
+            Transcripts obtained from MANE
+
+
+    Returns:
+    --------
+        np: str
+            RefSeq protein ID
+
+        start: int
+
+        full_match: bool
+
+        nm: str
+            RefSeq nucleotide ID
+
+        status: str
+            status
+
+    """
     oseq = dat["target_sequence"]
     status, np, nm = get_status(mane_trans)
     if len(set(str(oseq))) > 4:
@@ -120,6 +209,34 @@ async def np(nm):
 
 
 def no_mane_trans(isect, dat):
+    """
+    Obtains data for mapping if transcripts were not found using MANE
+
+    Parameters
+    ----------
+        isect: list
+            List with Refseq nucleotide identifiers
+
+        dat: dict
+            Dictionary containing data from MaveDB scoresets
+
+
+    Returns:
+    --------
+        np: str
+            RefSeq protein ID
+
+        start: int
+
+        full_match: bool
+
+        nm: str
+            RefSeq nucleotide ID
+
+        status: str
+            status
+
+    """
     trans_lens = []
     for i in range(len(isect)):
         trans_lens.append(len(str(sr[isect[i]])))
@@ -145,7 +262,23 @@ def no_mane_trans(isect, dat):
         return np, start, full_match, nm, status
 
 
-def main(mave_blat_dict, dat):
+def main(mave_blat_dict: dict, dat: dict) -> dict:
+    """
+    Returns dictionary after trancsript selection
+
+    Parameters
+    ----------
+
+        mave_blat_dict: dict
+            Dictionary obtained after BLAT Alignment
+
+        dat: dict
+            Dictionary containing data from MaveDB scoresets
+
+    Returns
+    -------
+        mappings_dict:
+            Dictionary after transcript selections"""
     if dat["target_type"] == "Protein coding" or dat["target_type"] == "protein_coding":
         if mave_blat_dict["chrom"] == "NA":
             return "NA"
@@ -156,7 +289,7 @@ def main(mave_blat_dict, dat):
         try:
             isect = list(set.intersection(*map(set, ts)))
         except:
-            start, full_match = using_uniprot(dat)
+            start, full_match = using_uniprot(dat["uniprot_id"], dat["target_sequence"])
             np = nm = status = "NA"
             mappings_dict = {
                 "urn": dat["urn"],
