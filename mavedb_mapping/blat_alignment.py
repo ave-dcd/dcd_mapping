@@ -5,18 +5,35 @@ import pandas as pd
 import subprocess
 from gene.database import create_db
 
+qh = QueryHandler(create_db())
 
-def get_gene_data(return_chr: bool, dat: dict):
+
+def get_gene_symb(dat):
+    try:
+        uniprot = dat["uniprot_id"]
+        gsymb = qh.normalize(str(f"uniprot:{uniprot}")).gene_descriptor.label
+    except:
+        try:
+            target = dat["target"].split(" ")[0]
+            gsymb = qh.normalize(target).gene_descriptor.label
+        except:
+            return "NA"
+    return gsymb
+
+
+def get_gene_data(return_chr: bool, dat: dict, gsymb: str):
     """
 
     Parameters
     ----------
         return_chr :bool
            If True, returns chromosome information.
-           If False, returns locations list.
 
         dat: dict
             Dictionary containing data required for mapping.
+
+        gsymb: str
+            Gene symbol.
 
 
     Returns:
@@ -26,20 +43,11 @@ def get_gene_data(return_chr: bool, dat: dict):
             If gene symbol cannot be extracted, returns 'NA'.
         OR
         dict:
-            If gene symbol can be extracted and return_chr is False.
+            If gene symbol can be extracted and return_chr is False
 
     """
-    qh = QueryHandler(create_db())
-    try:
-        uniprot = dat["uniprot_id"]
-        gsymb = qh.normalize(str(f"uniprot:{uniprot}")).gene_descriptor.label
-    except:
-        try:
-            target = dat["target"].split(" ")[0]
-            gsymb = qh.normalize(target).gene_descriptor.label
-        except:
-            return "NA"  # if gsymb cannot be extracted
-
+    if gsymb == "NA":
+        return "NA"
     temp = qh.search(gsymb).source_matches
     source_dict = {}
     for i in range(len(temp)):
@@ -108,24 +116,31 @@ def get_gene_data(return_chr: bool, dat: dict):
 
 def extract_blat_output(dat: dict):
     """
-    Function to run a BLAT query and return it's output.
 
 
     Parameters
     ----------
+        return_chr :bool
+           If True, returns chromosome information.
+
         dat: dict
             Dictionary containing data required for mapping.
+            format:
+
 
     Returns:
     --------
-        Output from BLAT query.
+        str:
+            If return_chr is True, returns the chromosome value as a string.
+            If gene symbol cannot be extracted, returns 'NA'.
+        OR
+        dict:
+            If gene symbol can be extracted and return_chr is False
     """
-
     blat_file = open("blat_query.fa", "w")
     blat_file.write(">" + dat["target"] + "\n")
     blat_file.write(dat["target_sequence"] + "\n")
     blat_file.close()
-
     if dat["target_sequence_type"] == "protein":
         command = (
             "blat hg38.2bit -q=prot -t=dnax -minScore=20 blat_query.fa blat_out.psl"
@@ -148,30 +163,17 @@ def extract_blat_output(dat: dict):
     return output
 
 
-def get_query_and_hit_ranges(output, dat: dict):
-    """
-    Extracts query and hit ranges from the BLAT output.
-
-    Parameters
-    ----------
-        output:
-            Output from the BLAT query.
-        dat: dict
-            Dictionary containing data required for mapping.
-
-    Returns
-    -------
-        Tuple containing the chromosome, strand, coverage, identity, query ranges, and hit ranges.
-    """
+def get_query_and_hit_ranges(output, dat):
     hit_scores = list()
     hit_dict = {}
     use_chr = False
     chrom = strand = ""
     coverage = identity = None
     query_ranges = hit_ranges = list()
-
+    gsymb = get_gene_symb(dat)
+    print("gsymb", gsymb)
     for c in range(len(output)):
-        correct_chr = get_gene_data(dat=dat, return_chr=True)
+        correct_chr = get_gene_data(dat=dat, return_chr=True, gsymb=gsymb)
         if correct_chr == output[c].id.strip("chr"):
             use_chr = True
             break
@@ -182,7 +184,7 @@ def get_query_and_hit_ranges(output, dat: dict):
             for e in range(len(output[c])):
                 hit_scores.append(output[c][e].score)
             hit_dict[c] = hit_scores
-
+    print(hit_dict)
     if use_chr == False:
         for key in hit_dict:
             hit_dict[key] = max(hit_dict[key])
@@ -190,7 +192,7 @@ def get_query_and_hit_ranges(output, dat: dict):
     else:
         hit = c
 
-    loc_dict = get_gene_data(False, dat)
+    loc_dict = get_gene_data(False, dat, gsymb)
 
     hit_starts = list()
     for n in range(len(output[hit])):
@@ -237,52 +239,25 @@ def get_query_and_hit_ranges(output, dat: dict):
         query_ranges.append(query_string[2])
         hit_ranges.append(hit_string[4])
 
-    return chrom, strand, coverage, identity, query_ranges, hit_ranges
+    return chrom, strand, coverage, identity, query_ranges, hit_ranges, gsymb
 
 
-def check_non_human(mave_blat_dict: dict, min_percent: int = 80) -> str:
-    """
-    Checks if a sample is human or non-human based on the Mave-BLAT dictionary.
-
-    Parameters
-    ----------
-        mave_blat_dict: dict
-            Dicitionary containing data after doing BLAT Alignment
-
-        min_percent: int
-            Minimum percentage coverage to consider a sample as human.
-
-    Returns
-    -------
-        str: "human" if the sample is human, "Non human" otherwise.
-
-    """
+def check_non_human(mave_blat_dict, min_percentage=80):
+    # for dna min % = 95
+    # for prot min % = 80
+    # as per BLAT website: "BLAT on DNA is designed to quickly find sequences of 95% and grent or shorter sequence alignments. BLAT on proteins finds sequences of 80% and greater similarity of length 20 amino acids or more.
 
     cov = mave_blat_dict["coverage"]
     if cov == "NA":
         return "Non human"
     else:
-        if cov < min_percent:
+        if cov < min_percentage:
             return "Non human"
         else:
             return "human"
 
 
-def mave_to_blat(dat: dict) -> dict:
-    """
-    Performs BLAT Alignment on MaveDB scoreset data.
-
-    Parameters
-    ----------
-        dat: dict
-            Dictionary containing data from MaveDB scoresets
-
-    Returns
-    -------
-        mave_blat_dict: dict
-            Dicitionary containing data after doing BLAT Alignment
-
-    """
+def mave_to_blat(dat):
     output = extract_blat_output(dat)
     if output is not None:
         (
@@ -292,6 +267,7 @@ def mave_to_blat(dat: dict) -> dict:
             identity,
             query_ranges,
             hit_ranges,
+            gsymb,
         ) = get_query_and_hit_ranges(output, dat)
         qh_dat = {"query_ranges": query_ranges, "hit_ranges": hit_ranges}
         qh_dat = pd.DataFrame(data=qh_dat)
@@ -305,6 +281,7 @@ def mave_to_blat(dat: dict) -> dict:
             "coverage": coverage,
             "identity": identity,
             "hits": qh_dat,
+            "gsymb": gsymb,
         }
 
     else:
@@ -320,6 +297,7 @@ def mave_to_blat(dat: dict) -> dict:
             "coverage": "NA",
             "identity": "NA",
             "hits": qh_dat,
+            "gsymb": "NA",
         }
 
     return mave_blat_dict
