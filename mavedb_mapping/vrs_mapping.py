@@ -20,7 +20,60 @@ scores_dict_coding = {}
 mavedb_ids_coding = {}
 
 
-def get_haplotype_allele(var, ref, offset, l, tr, dp, ts, mapped, ranges, hits, strand):
+def get_haplotype_allele(
+    var: str,
+    ref: str,
+    offset: int,
+    l: str,
+    tr,
+    dp,
+    ts: str,
+    mapped: str,
+    ranges,
+    hits,
+    strand,
+):
+    """
+    Retrieves allele, and normalizes it
+
+    Parameters
+    ----------
+        var: str
+            Variant String.
+
+        ref:str
+            RefSeq Identifier.
+
+        offset: int
+            Offset Value.
+
+        l:str
+
+        tr: GA4GH Translator.
+
+        dp: Data proxy.
+
+        ts:str
+            Target Sequence.
+
+        mapped: str
+            Mapping state: premapping/ postmapping.
+
+        ranges: list
+            List of ranges
+
+        hits: list
+
+        strand: int
+
+
+    Returns:
+    --------
+        allele: dict
+            Normalized Allele
+
+    """
+
     var = var.lstrip(f"{l}.")
 
     if "[" in var:
@@ -116,8 +169,63 @@ def get_haplotype_allele(var, ref, offset, l, tr, dp, ts, mapped, ranges, hits, 
 
 
 def process_protein_coding_data(
-    varm, np, offset, tr, dp, ts, ranges, hits, scores, accessions
+    varm: list,
+    np: str,
+    offset: int,
+    tr,
+    dp,
+    ts,
+    ranges,
+    hits,
+    scores: list,
+    accessions: list,
 ):
+    """
+    Uses HGVS protein data to map alleles
+
+    Parameters
+    ----------
+        varm: list
+            HGVS protein list from MaveDB scores
+
+        np:str
+            RefSeq Protein Identifier.
+
+        offset: int
+            Offset value.
+
+        tr: GA4GH Translator
+
+        dp: Data proxy
+
+        ts: str
+            Target Sequence
+
+        ranges: list
+            List of ranges
+
+        hits: list
+            List of hits
+
+        scores: list
+            List of scores from MaveDB
+
+        accessions: list
+            List of accessions from MaveDB scores
+
+
+    Returns
+    -------
+        tempdat: DataFrame
+            Contains premapped and postmapped alleles
+
+        spro: list
+            Scores List
+
+        accpro: list
+            Accessions List
+
+    """
     var_ids_pre_map = []
     var_ids_post_map = []
     spro = []
@@ -181,6 +289,49 @@ def process_protein_coding_data(
 
 
 def process_nt_data(ntlist, ref, ts, tr, dp, ranges, hits, scores, accessions, strand):
+    """
+    Uses HGVS nucleotide data to map alleles
+
+    Parameters
+    ----------
+        ntlist: list
+            HGVS nucleotide list from MaveDB scores
+
+        ref: str
+            reference sequence accession number (NCBI)
+
+        ts: str
+            Target Sequence
+
+        tr: GA4GH Translator
+
+        dp: Data proxy
+
+        ranges: list
+            List of ranges
+
+        hits: list
+            List of hits
+
+        scores: list
+            List of scores from MaveDB
+
+        accessions: list
+            List of accessions from MaveDB scores
+
+
+    Returns
+    -------
+        tempdat: DataFrame
+            Contains premapped and postmapped alleles
+
+        sn: list
+            Scores List
+
+        accn: list
+            Accessions List
+
+    """
     var_ids_pre_map = []
     var_ids_post_map = []
     sn = []
@@ -230,6 +381,30 @@ def process_nt_data(ntlist, ref, ts, tr, dp, ranges, hits, scores, accessions, s
 
 
 def get_scores_data(scores_csv):
+    """
+    Retrieve scores and accessions from scores from MaveDB
+
+    Parameters
+    ----------
+        scores_csv: csv
+            Scores from MaveDB
+
+
+    Returns
+    -------
+        scores: list
+            List of scores.
+
+        accessions: list
+            List of accessions.
+
+        varm: list
+            List of variant strings.
+
+        ntlist: list
+            List of nucleotide variant strings.
+
+    """
     vardat = pd.read_csv(io.StringIO(scores_csv.decode("utf-8")))
     scores = vardat["score"].to_list()
     accessions = vardat["accession"].to_list()
@@ -241,6 +416,37 @@ def get_scores_data(scores_csv):
 def vrs_mapping_for_protein_coding(
     dat, mappings_dict, mave_blat_dict, ref, ranges, hits, scores_csv
 ):
+    """
+    Perform VRS mapping for protein coding scoresets.
+
+    Parameters
+    ----------
+        dat: dict
+            Dictionary containing data required for mapping.
+
+        mappings_dict: dict
+            Dictionary after transcript selection.
+
+        mave_blat_dict: dict
+            Dicitionary containing data after doing BLAT Alignment
+
+        ref: str
+            reference sequence accession number (NCBI)
+
+        ranges: list
+            List of ranges.
+
+        hits: list
+            List of hits.
+
+        scores_csv: csv
+            Scores from MaveDB.
+
+    Returns
+    -------
+        vrs_mappings_dict: dict
+            VRS mappings dictionary.
+    """
     scores, accessions, varm, ntlist = get_scores_data(scores_csv)
     np = mappings_dict["RefSeq_prot"]
     offset = mappings_dict["start"]
@@ -284,6 +490,37 @@ def vrs_mapping_for_protein_coding(
 def vrs_mapping_for_non_coding(
     dat, mappings_dict, mave_blat_dict, ref, ranges, hits, scores_csv
 ):
+    """
+    Perform VRS mapping for protein coding scoresets.
+
+    Parameters
+    ----------
+        dat: dict
+            Dictionary containing data required for mapping.
+
+        mappings_dict: dict
+            Dictionary after transcript selection.
+
+        mave_blat_dict: dict
+            Dicitionary containing data after doing BLAT Alignment
+
+        ref: str
+            reference sequence accession number (NCBI)
+
+        ranges: list
+            List of ranges.
+
+        hits: list
+            List of hits.
+
+        scores_csv: csv
+            Scores from MaveDB.
+
+    Returns
+    -------
+        vrs_mappings_dict: dict
+            VRS mappings dictionary.
+    """
     mappings_list = list()
     scores_list = list()
     accessions_list = list()
@@ -313,6 +550,28 @@ def vrs_mapping_for_non_coding(
 
 
 def vrs_mapping(dat, mappings_dict, mave_blat_dict, scores_csv):
+    """
+    Perform VRS mapping for protein coding scoresets.
+
+    Parameters
+    ----------
+        dat: dict
+            Dictionary containing data required for mapping.
+
+        mappings_dict: dict
+            Dictionary after transcript selection.
+
+        mave_blat_dict: dict
+            Dicitionary containing data after doing BLAT Alignment
+
+        scores_csv: csv
+            Scores from MaveDB.
+
+    Returns
+    -------
+        mapping: dict
+            VRS mappings dictionary.
+    """
     ranges = get_locs_list(mave_blat_dict["hits"])
     hits = get_hits_list(mave_blat_dict["hits"])
     ref = get_chr(dp, mave_blat_dict["chrom"])

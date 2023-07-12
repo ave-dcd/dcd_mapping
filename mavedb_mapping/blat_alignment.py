@@ -23,7 +23,6 @@ def get_gene_symb(dat):
 
 def get_gene_data(return_chr: bool, dat: dict, gsymb: str):
     """
-
     Parameters
     ----------
         return_chr :bool
@@ -116,8 +115,6 @@ def get_gene_data(return_chr: bool, dat: dict, gsymb: str):
 
 def extract_blat_output(dat: dict):
     """
-
-
     Parameters
     ----------
         return_chr :bool
@@ -125,7 +122,6 @@ def extract_blat_output(dat: dict):
 
         dat: dict
             Dictionary containing data required for mapping.
-            format:
 
 
     Returns:
@@ -164,6 +160,20 @@ def extract_blat_output(dat: dict):
 
 
 def get_query_and_hit_ranges(output, dat):
+    """
+    Extracts query and hit ranges from the BLAT output.
+
+    Parameters
+    ----------
+        output:
+            Output from the BLAT query.
+        dat: dict
+            Dictionary containing data required for mapping.
+
+    Returns
+    -------
+        Tuple containing the chromosome, strand, coverage, identity, query ranges, hit ranges, and gene symbol.
+    """
     hit_scores = list()
     hit_dict = {}
     use_chr = False
@@ -246,7 +256,22 @@ def check_non_human(mave_blat_dict, min_percentage=80):
     # for dna min % = 95
     # for prot min % = 80
     # as per BLAT website: "BLAT on DNA is designed to quickly find sequences of 95% and grent or shorter sequence alignments. BLAT on proteins finds sequences of 80% and greater similarity of length 20 amino acids or more.
+    """
+    Checks if a sample is human or non-human based on the Mave-BLAT dictionary.
 
+    Parameters
+    ----------
+
+        mave_blat_dict: dict
+            Dicitionary containing data after doing BLAT Alignment
+
+        min_percent: int
+            Minimum percentage coverage to consider a sample as human.
+
+    Returns
+    -------
+        str: "human" if the sample is human, "Non human" otherwise.
+    """
     cov = mave_blat_dict["coverage"]
     if cov == "NA":
         return "Non human"
@@ -258,6 +283,21 @@ def check_non_human(mave_blat_dict, min_percentage=80):
 
 
 def mave_to_blat(dat):
+    """
+
+    Performs BLAT Alignment on MaveDB scoreset data.
+
+    Parameters
+    ----------
+        dat: dict
+            Dictionary containing data from MaveDB scoresets.
+
+    Returns
+    -------
+        mave_blat_dict: dict
+            Dicitionary containing data after doing BLAT Alignment
+
+    """
     output = extract_blat_output(dat)
     if output is not None:
         (
