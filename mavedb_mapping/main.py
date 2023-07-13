@@ -4,9 +4,10 @@ from transcript_selection import main
 from vrs_mapping import vrs_mapping
 from time import time
 
+
 def main_map(urn):
     dat = metadata_obtain(urn)
     blat_dict = mave_to_blat(dat)
-    tra = main(blat_dict,dat)
-    vrs = vrs_mapping(dat,tra,blat_dict,"")
+    tra = main(blat_dict, dat)
+    vrs = vrs_mapping(dat, tra, blat_dict, "")
     return vrs
