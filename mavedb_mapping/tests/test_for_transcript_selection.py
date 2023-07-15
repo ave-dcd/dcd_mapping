@@ -10,7 +10,7 @@ file.close()
 
 
 def test_for_refseq_prot():
-    with open("urn:mavedb:00000041-b-1") as scoreset:
+    with open("tests/data/urn:mavedb:00000041-b-1") as scoreset:
         mave_dat = metadata_obtain(scoreset)
     mave = mave_to_blat(mave_dat)
     tr = main(mave, mave_dat)
@@ -19,7 +19,7 @@ def test_for_refseq_prot():
 
 
 def test_for_refseq_nuc():
-    with open("urn:mavedb:00000060-a-1") as scoreset:
+    with open("tests/data/urn:mavedb:00000060-a-1") as scoreset:
         mave_dat = metadata_obtain(scoreset)
     mave = mave_to_blat(mave_dat)
     tr = main(mave, mave_dat)

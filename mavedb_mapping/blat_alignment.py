@@ -181,7 +181,6 @@ def get_query_and_hit_ranges(output, dat):
     coverage = identity = None
     query_ranges = hit_ranges = list()
     gsymb = get_gene_symb(dat)
-    print("gsymb", gsymb)
     for c in range(len(output)):
         correct_chr = get_gene_data(dat=dat, return_chr=True, gsymb=gsymb)
         if correct_chr == output[c].id.strip("chr"):
@@ -194,7 +193,6 @@ def get_query_and_hit_ranges(output, dat):
             for e in range(len(output[c])):
                 hit_scores.append(output[c][e].score)
             hit_dict[c] = hit_scores
-    print(hit_dict)
     if use_chr == False:
         for key in hit_dict:
             hit_dict[key] = max(hit_dict[key])
