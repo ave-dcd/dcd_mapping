@@ -380,7 +380,7 @@ def process_nt_data(ntlist, ref, ts, tr, dp, ranges, hits, scores, accessions, s
     return tempdat, sn, accn
 
 
-def get_scores_data(scores_csv):
+def get_scores_data(dat):
     """
     Retrieve scores and accessions from scores from MaveDB
 
@@ -405,7 +405,14 @@ def get_scores_data(scores_csv):
             List of nucleotide variant strings.
 
     """
-    vardat = pd.read_csv(io.StringIO(scores_csv.decode("utf-8")))
+    string = (
+        "https://api.mavedb.org/api/v1/score-sets/urn%3Amavedb%3A"
+        + dat["urn"][11::]
+        + "/scores"
+    )
+    origdat = requests.get(string).content
+    vardat = pd.read_csv(io.StringIO(origdat.decode("utf-8")))
+    # vardat = pd.read_csv(io.StringIO(scores_csv.decode('utf-8')))
     scores = vardat["score"].to_list()
     accessions = vardat["accession"].to_list()
     varm = vardat["hgvs_pro"]
@@ -414,7 +421,7 @@ def get_scores_data(scores_csv):
 
 
 def vrs_mapping_for_protein_coding(
-    dat, mappings_dict, mave_blat_dict, ref, ranges, hits, scores_csv
+    dat, mappings_dict, mave_blat_dict, ref, ranges, hits
 ):
     """
     Perform VRS mapping for protein coding scoresets.
@@ -447,7 +454,7 @@ def vrs_mapping_for_protein_coding(
         vrs_mappings_dict: dict
             VRS mappings dictionary.
     """
-    scores, accessions, varm, ntlist = get_scores_data(scores_csv)
+    scores, accessions, varm, ntlist = get_scores_data(dat)
     np = mappings_dict["RefSeq_prot"]
     offset = mappings_dict["start"]
 
@@ -487,9 +494,7 @@ def vrs_mapping_for_protein_coding(
     return vrs_mappings_dict
 
 
-def vrs_mapping_for_non_coding(
-    dat, mappings_dict, mave_blat_dict, ref, ranges, hits, scores_csv
-):
+def vrs_mapping_for_non_coding(dat, mappings_dict, mave_blat_dict, ref, ranges, hits):
     """
     Perform VRS mapping for protein coding scoresets.
 
@@ -525,7 +530,7 @@ def vrs_mapping_for_non_coding(
     scores_list = list()
     accessions_list = list()
     ts = dat["target_sequence"]
-    scores, accessions, varm, ntlist = get_scores_data(scores_csv)
+    scores, accessions, varm, ntlist = get_scores_data(dat)
     ts = dat["target_sequence"]
     ts = Seq(ts)
     ts = str(ts.translate(table=1)).replace("*", "")
@@ -549,7 +554,7 @@ def vrs_mapping_for_non_coding(
     return vrs_mappings_dict
 
 
-def vrs_mapping(dat, mappings_dict, mave_blat_dict, scores_csv):
+def vrs_mapping(dat, mappings_dict, mave_blat_dict):
     """
     Perform VRS mapping for protein coding scoresets.
 
@@ -578,11 +583,11 @@ def vrs_mapping(dat, mappings_dict, mave_blat_dict, scores_csv):
 
     if dat["target_type"] == "Protein coding" and dat["target_sequence_type"] == "dna":
         mapping = vrs_mapping_for_protein_coding(
-            dat, mappings_dict, mave_blat_dict, ref, ranges, hits, scores_csv
+            dat, mappings_dict, mave_blat_dict, ref, ranges, hits
         )
     else:
         mapping = vrs_mapping_for_non_coding(
-            dat, mappings_dict, mave_blat_dict, ref, ranges, hits, scores_csv
+            dat, mappings_dict, mave_blat_dict, ref, ranges, hits
         )
 
     return mapping

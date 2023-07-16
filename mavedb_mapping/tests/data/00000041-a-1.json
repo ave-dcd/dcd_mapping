@@ -1,0 +1,614 @@
+{
+    "creation_date": "2019-08-08",
+    "modification_date": "2019-08-09",
+    "urn": "urn:mavedb:00000041-a-1",
+    "publish_date": "2019-08-08",
+    "created_by": "0000-0003-1474-605X",
+    "modified_by": "0000-0003-1474-605X",
+    "extra_metadata": {},
+    "abstract_text": "This study infers the activity of variants in Src kinases's catalytic domain by measuring their effects on yeast growth, and therefore phosphotransferase activity. The resulting dataset includes variants classified as gain of function, loss of function. or neutral.",
+    "method_text": "Variant scores were calculated using Enrich2 weighted least squares regression and wild-type normalization. The `activity_score` is `-1 * score`, because negative scores indicate depletion in the population, which is associated with higher kinase activity.\r\n\r\nVariants were classified as \"gain of function\" \"neutral\" or \"loss of function\" based on whether they were within +/- 2 standard deviations of the mean score of synonymous variants (variants with wild type amino acid sequence). These categories are denoted by 1, 0, or -1 in the table respectively.",
+    "short_description": "Amino acid scores for deep mutational scan of the Src kinase catalytic domain.",
+    "title": "Amino acid scores for Src CD",
+    "keywords": [
+        {
+            "text": "kinase"
+        },
+        {
+            "text": "NNK mutagenesis"
+        },
+        {
+            "text": "Enrich2"
+        },
+        {
+            "text": "growth assay"
+        },
+        {
+            "text": "regression"
+        },
+        {
+            "text": "barcode sequencing"
+        },
+        {
+            "text": "subassembly"
+        }
+    ],
+    "doi_ids": [],
+    "pubmed_ids": [
+        {
+            "identifier": "30956043",
+            "url": "http://www.ncbi.nlm.nih.gov/pubmed/30956043",
+            "dbversion": null,
+            "dbname": "PubMed"
+        }
+    ],
+    "contributors": [
+        "0000-0003-1474-605X"
+    ],
+    "licence": {
+        "long_name": "CC BY-NC-SA 4.0 (Attribution-NonCommercial-ShareAlike)",
+        "short_name": "CC BY-NC-SA 4.0",
+        "link": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+        "version": "4.0"
+    },
+    "target": {
+        "name": "Src catalytic domain",
+        "reference_sequence": {
+            "sequence": "CTGCGGCTGGAGGTCAAGCTGGGCCAGGGCTGCTTTGGCGAGGTGTGGATGGGGACCTGGAACGGTACCACCAGGGTGGCCATCAAAACCCTGAAGCCTGGCACGATGTCTCCAGAGGCCTTCCTGCAGGAGGCCCAGGTCATGAAGAAGCTGAGGCATGAGAAGCTGGTGCAGTTGTATGCTGTGGTTTCAGAGGAGCCCATTTACATCGTCACGGAGTACATGAGCAAGGGGAGTTTGCTGGACTTTCTCAAGGGGGAGACAGGCAAGTACCTGCGGCTGCCTCAGCTGGTGGACATGGCTGCTCAGATCGCCTCAGGCATGGCGTACGTGGAGCGGATGAACTACGTCCACCGGGACCTTCGTGCAGCCAACATCCTGGTGGGAGAGAACCTGGTGTGCAAAGTGGCCGACTTTGGGCTGGCTCGGCTCATTGAAGACAATGAGTACACGGCGCGGCAAGGTGCCAAATTCCCCATCAAGTGGACGGCTCCAGAAGCTGCCCTCTATGGCCGCTTCACCATCAAGTCGGACGTGTGGTCCTTCGGGATCCTGCTGACTGAGCTCACCACAAAGGGACGGGTGCCCTACCCTGGGATGGTGAACCGCGAGGTGCTGGACCAGGTGGAGCGGGGCTACCGGATGCCCTGCCCGCCGGAGTGTCCCGAGTCCCTGCACGACCTCATGTGCCAGTGCTGGCGGAAGGAGCCTGAGGAGCGGCCCACCTTCGAGTACCTGCAGGCCTTCCTG",
+            "sequence_type": "dna"
+        },
+        "uniprot": {
+            "offset": 269,
+            "identifier": "P12931",
+            "url": "http://purl.uniprot.org/uniprot/P12931",
+            "dbversion": null,
+            "dbname": "UniProt"
+        },
+        "ensembl": null,
+        "refseq": null,
+        "reference_maps": [
+            {
+                "genome": {
+                    "short_name": "hg38",
+                    "organism_name": "Homo sapiens",
+                    "assembly_identifier": {
+                        "identifier": "GCF_000001405.26",
+                        "url": "http://www.ncbi.nlm.nih.gov/assembly/GCF_000001405.26",
+                        "dbversion": null,
+                        "dbname": "GenomeAssembly"
+                    }
+                }
+            }
+        ],
+        "scoreset": "urn:mavedb:00000041-a-1",
+        "type": "Protein coding",
+        "computed_reference_sequence": {
+            "sequence": "LRLEVKLGQGCFGEVWMGTWNGTTRVAIKTLKPGTMSPEAFLQEAQVMKKLRHEKLVQLYAVVSEEPIYIVTEYMSKGSLLDFLKGETGKYLRLPQLVDMAAQIASGMAYVERMNYVHRDLRAANILVGENLVCKVADFGLARLIEDNEYTARQGAKFPIKWTAPEAALYGRFTIKSDVWSFGILLTELTTKGRVPYPGMVNREVLDQVERGYRMPCPPECPESLHDLMCQCWRKEPEERPTFEYLQAFL",
+            "sequence_type": "protein",
+            "sequence_id": "ga4gh:SQ.PyX9IDu95_tYLg1Jz9JpW5xpQkwn6bpB"
+        }
+    },
+    "score_columns": [
+        "hgvs_nt",
+        "hgvs_splice",
+        "hgvs_pro",
+        "score",
+        "std",
+        "epsilon",
+        "activity_score"
+    ],
+    "count_columns": [
+        "hgvs_nt",
+        "hgvs_splice",
+        "hgvs_pro"
+    ],
+    "previous_version": null,
+    "next_version": null,
+    "current_version": "urn:mavedb:00000041-a-1",
+    "variant_count": 3506,
+    "experiment": "urn:mavedb:00000041-a",
+    "is_meta_analysis": false,
+    "data_usage_policy": "",
+    "mapped_scores": [
+        {
+            "pre_mapped": {
+                "_id": "ga4gh:VA.mEeUxPTsYR3nv2HatnR0fVPAN4whv_Vw",
+                "type": "Allele",
+                "location": {
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.PyX9IDu95_tYLg1Jz9JpW5xpQkwn6bpB",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {
+                            "type": "Number",
+                            "value": 14
+                        },
+                        "end": {
+                            "type": "Number",
+                            "value": 15
+                        }
+                    }
+                },
+                "state": {
+                    "type": "LiteralSequenceExpression",
+                    "sequence": "H"
+                }
+            },
+            "post_mapped": {
+                "_id": "ga4gh:VA.NXnq2B9h0OLVbKfqGRoDLkf4Mqc0tKOP",
+                "type": "Allele",
+                "location": {
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {
+                            "type": "Number",
+                            "value": 283
+                        },
+                        "end": {
+                            "type": "Number",
+                            "value": 284
+                        }
+                    }
+                },
+                "state": {
+                    "type": "LiteralSequenceExpression",
+                    "sequence": "H"
+                }
+            },
+            "relation": "SO:is_homologous_to",
+            "score": 1.549447217
+        },
+        {
+            "pre_mapped": {
+                "_id": "ga4gh:VA.FXAraUEJO3xdWq83lg9L_XgSwkNKsmS1",
+                "type": "Allele",
+                "location": {
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.PyX9IDu95_tYLg1Jz9JpW5xpQkwn6bpB",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {
+                            "type": "Number",
+                            "value": 14
+                        },
+                        "end": {
+                            "type": "Number",
+                            "value": 15
+                        }
+                    }
+                },
+                "state": {
+                    "type": "LiteralSequenceExpression",
+                    "sequence": "G"
+                }
+            },
+            "post_mapped": {
+                "_id": "ga4gh:VA.DK5FkiArURtrxy1ub-2CuUt_95UvI85j",
+                "type": "Allele",
+                "location": {
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {
+                            "type": "Number",
+                            "value": 283
+                        },
+                        "end": {
+                            "type": "Number",
+                            "value": 284
+                        }
+                    }
+                },
+                "state": {
+                    "type": "LiteralSequenceExpression",
+                    "sequence": "G"
+                }
+            },
+            "relation": "SO:is_homologous_to",
+            "score": 1.266378019
+        },
+        {
+            "pre_mapped": {
+                "_id": "ga4gh:VA.FU1r-YnZOUngFiqwOjnttxkS_UWCtPaF",
+                "type": "Allele",
+                "location": {
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.PyX9IDu95_tYLg1Jz9JpW5xpQkwn6bpB",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {
+                            "type": "Number",
+                            "value": 14
+                        },
+                        "end": {
+                            "type": "Number",
+                            "value": 15
+                        }
+                    }
+                },
+                "state": {
+                    "type": "LiteralSequenceExpression",
+                    "sequence": "E"
+                }
+            },
+            "post_mapped": {
+                "_id": "ga4gh:VA.EP5yJ0IeCjo8r3GCTaxEXDiGO_HCDXZ6",
+                "type": "Allele",
+                "location": {
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {
+                            "type": "Number",
+                            "value": 283
+                        },
+                        "end": {
+                            "type": "Number",
+                            "value": 284
+                        }
+                    }
+                },
+                "state": {
+                    "type": "LiteralSequenceExpression",
+                    "sequence": "E"
+                }
+            },
+            "relation": "SO:is_homologous_to",
+            "score": 1.481809819
+        },
+        {
+            "pre_mapped": {
+                "_id": "ga4gh:VA.4IqIvzuRDc1_dbZERqoMcO2owJI_ag1d",
+                "type": "Allele",
+                "location": {
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.PyX9IDu95_tYLg1Jz9JpW5xpQkwn6bpB",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {
+                            "type": "Number",
+                            "value": 14
+                        },
+                        "end": {
+                            "type": "Number",
+                            "value": 15
+                        }
+                    }
+                },
+                "state": {
+                    "type": "LiteralSequenceExpression",
+                    "sequence": "Q"
+                }
+            },
+            "post_mapped": {
+                "_id": "ga4gh:VA.jna7JeTdLf2vuMyGbLw6wIImcz5qIftq",
+                "type": "Allele",
+                "location": {
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {
+                            "type": "Number",
+                            "value": 283
+                        },
+                        "end": {
+                            "type": "Number",
+                            "value": 284
+                        }
+                    }
+                },
+                "state": {
+                    "type": "LiteralSequenceExpression",
+                    "sequence": "Q"
+                }
+            },
+            "relation": "SO:is_homologous_to",
+            "score": 1.372176194
+        },
+        {
+            "pre_mapped": {
+                "_id": "ga4gh:VA.mLrgCANFaxaL_w5H-HOqGOXxdHAN12Q1",
+                "type": "Allele",
+                "location": {
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.PyX9IDu95_tYLg1Jz9JpW5xpQkwn6bpB",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {
+                            "type": "Number",
+                            "value": 14
+                        },
+                        "end": {
+                            "type": "Number",
+                            "value": 15
+                        }
+                    }
+                },
+                "state": {
+                    "type": "LiteralSequenceExpression",
+                    "sequence": "C"
+                }
+            },
+            "post_mapped": {
+                "_id": "ga4gh:VA.TrNWSwlq7325A5nlNzZFy4iAH76S4b3M",
+                "type": "Allele",
+                "location": {
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {
+                            "type": "Number",
+                            "value": 283
+                        },
+                        "end": {
+                            "type": "Number",
+                            "value": 284
+                        }
+                    }
+                },
+                "state": {
+                    "type": "LiteralSequenceExpression",
+                    "sequence": "C"
+                }
+            },
+            "relation": "SO:is_homologous_to",
+            "score": 1.013862994
+        },
+        {
+            "pre_mapped": {
+                "_id": "ga4gh:VA.HGhfTXLja4bTc_gbtGDR9cFgvzYq7XIz",
+                "type": "Allele",
+                "location": {
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.PyX9IDu95_tYLg1Jz9JpW5xpQkwn6bpB",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {
+                            "type": "Number",
+                            "value": 14
+                        },
+                        "end": {
+                            "type": "Number",
+                            "value": 15
+                        }
+                    }
+                },
+                "state": {
+                    "type": "LiteralSequenceExpression",
+                    "sequence": "D"
+                }
+            },
+            "post_mapped": {
+                "_id": "ga4gh:VA.hk5jyEKc2zS0Ni2fZ79b-ZIMNNt9q3RR",
+                "type": "Allele",
+                "location": {
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {
+                            "type": "Number",
+                            "value": 283
+                        },
+                        "end": {
+                            "type": "Number",
+                            "value": 284
+                        }
+                    }
+                },
+                "state": {
+                    "type": "LiteralSequenceExpression",
+                    "sequence": "D"
+                }
+            },
+            "relation": "SO:is_homologous_to",
+            "score": 1.551066156
+        },
+        {
+            "pre_mapped": {
+                "_id": "ga4gh:VA.0mDlfslvv5GR25IzWXB5hCh4GvzTQ6Q5",
+                "type": "Allele",
+                "location": {
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.PyX9IDu95_tYLg1Jz9JpW5xpQkwn6bpB",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {
+                            "type": "Number",
+                            "value": 14
+                        },
+                        "end": {
+                            "type": "Number",
+                            "value": 15
+                        }
+                    }
+                },
+                "state": {
+                    "type": "LiteralSequenceExpression",
+                    "sequence": "N"
+                }
+            },
+            "post_mapped": {
+                "_id": "ga4gh:VA.WJzsjQffAnUCA3PcDgB_uNTkpeoS4Bb-",
+                "type": "Allele",
+                "location": {
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {
+                            "type": "Number",
+                            "value": 283
+                        },
+                        "end": {
+                            "type": "Number",
+                            "value": 284
+                        }
+                    }
+                },
+                "state": {
+                    "type": "LiteralSequenceExpression",
+                    "sequence": "N"
+                }
+            },
+            "relation": "SO:is_homologous_to",
+            "score": 1.568905117
+        },
+        {
+            "pre_mapped": {
+                "_id": "ga4gh:VA.l8gqhgSe1dd7CHu84bZ1NentINrhjzDz",
+                "type": "Allele",
+                "location": {
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.PyX9IDu95_tYLg1Jz9JpW5xpQkwn6bpB",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {
+                            "type": "Number",
+                            "value": 14
+                        },
+                        "end": {
+                            "type": "Number",
+                            "value": 15
+                        }
+                    }
+                },
+                "state": {
+                    "type": "LiteralSequenceExpression",
+                    "sequence": "R"
+                }
+            },
+            "post_mapped": {
+                "_id": "ga4gh:VA.1ZkgGewy-qijLiQhoCrgI_gR9h7TQgUc",
+                "type": "Allele",
+                "location": {
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {
+                            "type": "Number",
+                            "value": 283
+                        },
+                        "end": {
+                            "type": "Number",
+                            "value": 284
+                        }
+                    }
+                },
+                "state": {
+                    "type": "LiteralSequenceExpression",
+                    "sequence": "R"
+                }
+            },
+            "relation": "SO:is_homologous_to",
+            "score": 1.5312235180000002
+        },
+        {
+            "pre_mapped": {
+                "_id": "ga4gh:VA.Yrrej2vbTu-Bf4D2DaXLEZUg37nT8EV_",
+                "type": "Allele",
+                "location": {
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.PyX9IDu95_tYLg1Jz9JpW5xpQkwn6bpB",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {
+                            "type": "Number",
+                            "value": 14
+                        },
+                        "end": {
+                            "type": "Number",
+                            "value": 15
+                        }
+                    }
+                },
+                "state": {
+                    "type": "LiteralSequenceExpression",
+                    "sequence": "A"
+                }
+            },
+            "post_mapped": {
+                "_id": "ga4gh:VA.eh6P1ZZucT4oFEIpV_lz_ZRrKTLf4cud",
+                "type": "Allele",
+                "location": {
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {
+                            "type": "Number",
+                            "value": 283
+                        },
+                        "end": {
+                            "type": "Number",
+                            "value": 284
+                        }
+                    }
+                },
+                "state": {
+                    "type": "LiteralSequenceExpression",
+                    "sequence": "A"
+                }
+            },
+            "relation": "SO:is_homologous_to",
+            "score": 0.757230463
+        },
+        {
+            "pre_mapped": {
+                "_id": "ga4gh:VA.gtTPBw9d5cCtRHQCs8nMyH3OnG-DN4U2",
+                "type": "Allele",
+                "location": {
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.PyX9IDu95_tYLg1Jz9JpW5xpQkwn6bpB",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {
+                            "type": "Number",
+                            "value": 4
+                        },
+                        "end": {
+                            "type": "Number",
+                            "value": 5
+                        }
+                    }
+                },
+                "state": {
+                    "type": "LiteralSequenceExpression",
+                    "sequence": "*"
+                }
+            },
+            "post_mapped": {
+                "_id": "ga4gh:VA.GGenxCBZFvPaSitRoYpgIrVtSZe1fG2q",
+                "type": "Allele",
+                "location": {
+                    "type": "SequenceLocation",
+                    "sequence_id": "ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye",
+                    "interval": {
+                        "type": "SequenceInterval",
+                        "start": {
+                            "type": "Number",
+                            "value": 273
+                        },
+                        "end": {
+                            "type": "Number",
+                            "value": 274
+                        }
+                    }
+                },
+                "state": {
+                    "type": "LiteralSequenceExpression",
+                    "sequence": "*"
+                }
+            },
+            "relation": "SO:is_homologous_to",
+            "score": 1.54934292
+        }
+    ]
+}
