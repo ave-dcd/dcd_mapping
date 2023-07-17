@@ -6,6 +6,7 @@ from metadata_process import metadata_obtain
 
 @pytest.fixture
 def scoreset_organism(request):
+    """Fixture to return dictionary after BLAT Alignment"""
     scoreset_path = request.param
     with open(scoreset_path) as scoreset:
         mave_dat = metadata_obtain(scoreset)
@@ -19,6 +20,7 @@ def scoreset_organism(request):
     indirect=True,
 )
 def test_human_organism(scoreset_organism):
+    """Test to check if input scoreset organism is Human"""
     organism = check_non_human(scoreset_organism)
     assert organism == "human"
 
@@ -32,5 +34,6 @@ def test_human_organism(scoreset_organism):
     indirect=True,
 )
 def test_non_human_organism(scoreset_organism):
+    """Test to check if input scoreset organism is Non human"""
     organism = check_non_human(scoreset_organism)
     assert organism == "Non human"
