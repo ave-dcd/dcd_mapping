@@ -8,7 +8,6 @@ import io
 from Bio.SeqUtils import seq1
 from Bio.Seq import Seq
 
-
 offset_within_ts = {}
 
 
