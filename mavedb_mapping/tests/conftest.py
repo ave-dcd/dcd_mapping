@@ -1,11 +1,13 @@
 import pytest
-from blat_alignment import mave_to_blat, check_non_human
+from blat_alignment import mave_to_blat
 from metadata_process import metadata_obtain
 from transcript_selection import main
 from vrs_mapping import vrs_mapping
 
 
-@pytest.fixture(scope="package", params=["urn:mavedb:00000041-a-1"])
+@pytest.fixture(
+    scope="package", params=["urn:mavedb:00000041-a-1", "urn:mavedb:00000001-a-4"]
+)
 def full_mapping(request):
     scoreset_path = f"tests/data/{request.param}"
     with open(scoreset_path) as scoreset:

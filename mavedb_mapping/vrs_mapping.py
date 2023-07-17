@@ -12,9 +12,10 @@ from ga4gh.vrs import models
 from ga4gh.core import ga4gh_identify, sha512t24u
 
 sr = SeqRepo("/usr/local/share/seqrepo/latest", writeable=True)
+qh = QueryHandler(create_db())
 dp = SeqRepoDataProxy(sr=sr)
 tr = Translator(data_proxy=dp, normalize=False)
-qh = QueryHandler(create_db())
+
 vrs_mappings_dict = {}
 scores_dict_coding = {}
 mavedb_ids_coding = {}

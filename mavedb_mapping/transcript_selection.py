@@ -12,10 +12,11 @@ from bs4 import BeautifulSoup
 from transcript_selection_helper import *
 
 sr = SeqRepo("/usr/local/share/seqrepo/latest", writeable=True)
+qh = QueryHandler(create_db())
+
 environ["UTA_DB_URL"] = "postgresql://uta_admin:uta@localhost:5432/uta/uta_20210129"
 utadb = UTADatabase(db_pwd="uta")
 mane = MANETranscriptMappings()
-qh = QueryHandler(create_db())
 dp = SeqRepoDataProxy(sr=sr)
 
 

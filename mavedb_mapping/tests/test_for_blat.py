@@ -1,7 +1,8 @@
-# TODO: create a separate directory for test
 import pytest
 from blat_alignment import mave_to_blat, check_non_human
 from metadata_process import metadata_obtain
+
+"""Tests that run check_non_human function after BLAT Alignment to determine if scoreset is Human"""
 
 
 @pytest.fixture

@@ -8,8 +8,8 @@ from ga4gh.vrs.normalize import normalize
 from Bio.Seq import Seq
 from ga4gh.vrs import models
 
-sr = SeqRepo("/usr/local/share/seqrepo/latest", writeable=True)
 environ["UTA_DB_URL"] = "postgresql://uta_admin:uta@localhost:5432/uta/uta_20210129"
+sr = SeqRepo("/usr/local/share/seqrepo/latest", writeable=True)
 qh = QueryHandler(create_db())
 
 

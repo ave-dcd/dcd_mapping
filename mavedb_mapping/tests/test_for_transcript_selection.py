@@ -28,7 +28,7 @@ def transcript_selection_dict(request):
     return tr
 
 
-def test_for_refseq_prot(transcript_selection_dict):
+def test_for_refseq_id(transcript_selection_dict):
     """Test to compare computed values of RefSeq Protein and Nucleotide ID with those obtained by the notebooks"""
 
     mappings_dict = transcript_selection_dict
