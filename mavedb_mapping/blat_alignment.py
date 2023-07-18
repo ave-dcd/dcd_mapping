@@ -5,7 +5,7 @@ import pandas as pd
 import subprocess
 from gene.database import create_db
 
-qh = QueryHandler(create_db("postgres://postgres@localhost:5432/gene_normalizer"))
+qh = QueryHandler(create_db())
 
 
 def get_gene_symb(dat):
