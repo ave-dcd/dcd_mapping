@@ -10,7 +10,7 @@ class TestForNonHumanScoresets:
 
     def test_for_scoreset_if_blat_successful(self):
         """Test to check for non human scoreset where BLAT Alignment is successful, and gives low coverage.
-        The mapping raises a ValueError"""
+        The mapping raises an Exception"""
 
         scoreset = open("tests/data/urn:mavedb:00000010-a-1", "r")
         with pytest.raises(Exception):
