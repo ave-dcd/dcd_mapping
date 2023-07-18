@@ -13,7 +13,7 @@ class TestForNonHumanScoresets:
         The mapping raises a ValueError"""
 
         scoreset = open("tests/data/urn:mavedb:00000010-a-1", "r")
-        with pytest.raises(ValueError):
+        with pytest.raises(Exception):
             main_map(scoreset)
 
     def test_for_scoreset_if_blat_not_successful(self):

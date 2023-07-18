@@ -97,3 +97,33 @@ def get_clingen_id(hgvs):
         return page.split("/")[4]
     except:
         return "NA"
+
+
+def check_non_human(mave_blat_dict, min_percentage=80):
+    # for dna min % = 95
+    # for prot min % = 80
+    # as per BLAT website: "BLAT on DNA is designed to quickly find sequences of 95% and grent or shorter sequence alignments. BLAT on proteins finds sequences of 80% and greater similarity of length 20 amino acids or more.
+    """
+    Checks if a sample is human or non-human based on the Mave-BLAT dictionary.
+
+    Parameters
+    ----------
+
+        mave_blat_dict: dict
+            Dicitionary containing data after doing BLAT Alignment
+
+        min_percent: int
+            Minimum percentage coverage to consider a sample as human.
+
+    Returns
+    -------
+        str: "human" if the sample is human, "Non human" otherwise.
+    """
+    cov = mave_blat_dict["coverage"]
+    if cov == "NA":
+        return "Non human"
+    else:
+        if cov < min_percentage:
+            return "Non human"
+        else:
+            return "human"

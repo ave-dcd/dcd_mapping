@@ -282,7 +282,7 @@ def main(mave_blat_dict: dict, dat: dict) -> dict:
             Dictionary after transcript selections"""
     if dat["target_type"] == "Protein coding" or dat["target_type"] == "protein_coding":
         if mave_blat_dict["chrom"] == "NA":
-            return "NA"
+            raise Exception("No BLAT output")
         locs = get_locs_list(mave_blat_dict["hits"])
         chrom = get_chr(dp, mave_blat_dict["chrom"])
         gsymb = get_gsymb(dat)

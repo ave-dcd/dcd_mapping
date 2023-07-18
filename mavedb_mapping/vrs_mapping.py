@@ -495,6 +495,11 @@ def vrs_mapping_for_protein_coding(
     return vrs_mappings_dict
 
 
+def check_for_transcripts(mappings_dict):
+    if mappings_dict["status"] == "NA":
+        raise Exception("No transcripts found")
+
+
 def vrs_mapping_for_non_coding(dat, mappings_dict, mave_blat_dict, ref, ranges, hits):
     """
     Perform VRS mapping for protein coding scoresets.
@@ -527,6 +532,7 @@ def vrs_mapping_for_non_coding(dat, mappings_dict, mave_blat_dict, ref, ranges, 
         vrs_mappings_dict: dict
             VRS mappings dictionary.
     """
+
     mappings_list = list()
     scores_list = list()
     accessions_list = list()
@@ -583,6 +589,7 @@ def vrs_mapping(dat, mappings_dict, mave_blat_dict):
     ref = get_chr(dp, mave_blat_dict["chrom"])
 
     if dat["target_type"] == "Protein coding" and dat["target_sequence_type"] == "dna":
+        check_for_transcripts(mappings_dict)
         mapping = vrs_mapping_for_protein_coding(
             dat, mappings_dict, mave_blat_dict, ref, ranges, hits
         )
