@@ -21,7 +21,22 @@ def get_gene_symb(dat):
     return gsymb
 
 
-def get_gene_data(return_chr: bool, dat: dict, gsymb: str):
+def get_gene_data(gsymb: str):
+    if gsymb == "NA":
+        return "NA"
+    temp = qh.search(gsymb).source_matches
+    source_dict = {}
+    for i in range(len(temp)):
+        source_dict[temp[i].source] = i
+    return temp, source_dict
+
+
+def get_hgnc_accession(temp, source_dict):
+    accession = temp[source_dict["HGNC"]].records[0].concept_id
+    return accession
+
+
+def return_gene_data(return_chr: bool, temp, source_dict):
     """
     Parameters
     ----------
@@ -45,12 +60,8 @@ def get_gene_data(return_chr: bool, dat: dict, gsymb: str):
             If gene symbol can be extracted and return_chr is False
 
     """
-    if gsymb == "NA":
+    if temp == "NA":
         return "NA"
-    temp = qh.search(gsymb).source_matches
-    source_dict = {}
-    for i in range(len(temp)):
-        source_dict[temp[i].source] = i
 
     if "HGNC" in source_dict and return_chr == True:
         chrom = temp[source_dict["HGNC"]].records[0].locations[0].chr
@@ -180,9 +191,13 @@ def get_query_and_hit_ranges(output, dat):
     chrom = strand = ""
     coverage = identity = None
     query_ranges = hit_ranges = list()
+
     gsymb = get_gene_symb(dat)
+    temp, source_dict = get_gene_data(gsymb)
+    accession = get_hgnc_accession(temp, source_dict)
+
     for c in range(len(output)):
-        correct_chr = get_gene_data(dat=dat, return_chr=True, gsymb=gsymb)
+        correct_chr = return_gene_data(True, temp, source_dict)
         if correct_chr == output[c].id.strip("chr"):
             use_chr = True
             break
@@ -200,7 +215,7 @@ def get_query_and_hit_ranges(output, dat):
     else:
         hit = c
 
-    loc_dict = get_gene_data(False, dat, gsymb)
+    loc_dict = return_gene_data(False, temp, source_dict)
 
     hit_starts = list()
     for n in range(len(output[hit])):
@@ -247,37 +262,7 @@ def get_query_and_hit_ranges(output, dat):
         query_ranges.append(query_string[2])
         hit_ranges.append(hit_string[4])
 
-    return chrom, strand, coverage, identity, query_ranges, hit_ranges, gsymb
-
-
-def check_non_human(mave_blat_dict, min_percentage=80):
-    # for dna min % = 95
-    # for prot min % = 80
-    # as per BLAT website: "BLAT on DNA is designed to quickly find sequences of 95% and grent or shorter sequence alignments. BLAT on proteins finds sequences of 80% and greater similarity of length 20 amino acids or more.
-    """
-    Checks if a sample is human or non-human based on the Mave-BLAT dictionary.
-
-    Parameters
-    ----------
-
-        mave_blat_dict: dict
-            Dicitionary containing data after doing BLAT Alignment
-
-        min_percent: int
-            Minimum percentage coverage to consider a sample as human.
-
-    Returns
-    -------
-        str: "human" if the sample is human, "Non human" otherwise.
-    """
-    cov = mave_blat_dict["coverage"]
-    if cov == "NA":
-        return "Non human"
-    else:
-        if cov < min_percentage:
-            return "Non human"
-        else:
-            return "human"
+    return chrom, strand, coverage, identity, query_ranges, hit_ranges, gsymb, accession
 
 
 def mave_to_blat(dat):
@@ -306,6 +291,7 @@ def mave_to_blat(dat):
             query_ranges,
             hit_ranges,
             gsymb,
+            accession,
         ) = get_query_and_hit_ranges(output, dat)
         qh_dat = {"query_ranges": query_ranges, "hit_ranges": hit_ranges}
         qh_dat = pd.DataFrame(data=qh_dat)
@@ -320,6 +306,7 @@ def mave_to_blat(dat):
             "identity": identity,
             "hits": qh_dat,
             "gsymb": gsymb,
+            "accession": accession,
         }
 
     else:
@@ -336,6 +323,7 @@ def mave_to_blat(dat):
             "identity": "NA",
             "hits": qh_dat,
             "gsymb": "NA",
+            "accession": "NA",
         }
 
     return mave_blat_dict
