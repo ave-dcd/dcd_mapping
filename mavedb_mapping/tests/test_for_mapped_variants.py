@@ -1,13 +1,13 @@
 # prot and non prot
 import pytest
 import json
-
+from mavedb_mapping import data_file_path
 
 def get_sample_mapping_data(urn):
     """Function to obtain data from sample mapping"""
 
     # Sample Mapping file
-    mapped_file = open(f"tests/data/{urn[11:]}.json")
+    mapped_file = open(f"{data_file_path}{urn[11:]}.json")
     mapped_example = json.load(mapped_file)
     print(mapped_example.keys())
 

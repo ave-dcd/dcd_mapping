@@ -1,23 +1,12 @@
 import requests
-from ga4gh.vrs.dataproxy import SeqRepoDataProxy
-from gene.query import QueryHandler
 import nest_asyncio
 import asyncio
-from cool_seq_tool.data_sources.uta_database import UTADatabase
 from cool_seq_tool.data_sources.mane_transcript_mappings import MANETranscriptMappings
-from os import environ
 from Bio.Seq import Seq
-from biocommons.seqrepo import SeqRepo
 from bs4 import BeautifulSoup
-from transcript_selection_helper import *
-
-sr = SeqRepo("/usr/local/share/seqrepo/latest", writeable=True)
-qh = QueryHandler(create_db())
-
-environ["UTA_DB_URL"] = "postgresql://uta_admin:uta@localhost:5432/uta/uta_20210129"
-utadb = UTADatabase(db_pwd="uta")
+from mavedb_mapping.transcript_selection_helper import get_locs_list, check_non_human, get_chr
+from mavedb_mapping import sr, qh, dp, utadb
 mane = MANETranscriptMappings()
-dp = SeqRepoDataProxy(sr=sr)
 
 
 nest_asyncio.apply()
@@ -283,6 +272,9 @@ def main(mave_blat_dict: dict, dat: dict) -> dict:
     if dat["target_type"] == "Protein coding" or dat["target_type"] == "protein_coding":
         if mave_blat_dict["chrom"] == "NA":
             raise Exception("No BLAT output")
+        if check_non_human(mave_blat_dict) == "Non human":
+            raise ValueError("Non Human Scoreset")
+
         locs = get_locs_list(mave_blat_dict["hits"])
         chrom = get_chr(dp, mave_blat_dict["chrom"])
         gsymb = get_gsymb(dat)

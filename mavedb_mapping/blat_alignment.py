@@ -1,12 +1,8 @@
 from Bio import SearchIO
-from gene.query import QueryHandler
-from Bio import SearchIO
 import pandas as pd
 import subprocess
-from gene.database import create_db
-
-qh = QueryHandler(create_db("postgres://postgres@localhost:5432/gene_normalizer"))
-
+from mavedb_mapping import qh
+from mavedb_mapping import path_to_hg38_file
 
 def get_gene_symb(dat):
     try:
@@ -21,7 +17,32 @@ def get_gene_symb(dat):
     return gsymb
 
 
-def get_gene_data(return_chr: bool, dat: dict, gsymb: str):
+def get_gene_data(gsymb: str):
+    if gsymb == "NA":
+        return "NA"
+    temp = qh.search(gsymb).source_matches
+    source_dict = {}
+    for i in range(len(temp)):
+        source_dict[temp[i].source] = i
+    return temp, source_dict
+
+
+def get_hgnc_accession(temp, source_dict):
+    accession = temp[source_dict["HGNC"]].records[0].concept_id
+    return accession
+
+
+def get_sequence_interval(records):
+    for record in records:
+        for location in record.locations:
+            if location.interval.type == "SequenceInterval":
+                start = location.interval.start.value
+                end = location.interval.end.value
+                loc_list = {"start": start, "end": end}
+                return loc_list
+    return None
+
+def return_gene_data(return_chr: bool, temp, source_dict):
     """
     Parameters
     ----------
@@ -45,72 +66,24 @@ def get_gene_data(return_chr: bool, dat: dict, gsymb: str):
             If gene symbol can be extracted and return_chr is False
 
     """
-    if gsymb == "NA":
+    if temp == "NA":
         return "NA"
-    temp = qh.search(gsymb).source_matches
-    source_dict = {}
-    for i in range(len(temp)):
-        source_dict[temp[i].source] = i
 
     if "HGNC" in source_dict and return_chr == True:
         chrom = temp[source_dict["HGNC"]].records[0].locations[0].chr
         return chrom
+    if source_dict.get("Ensembl") is not None and return_chr == False and len(temp[source_dict["Ensembl"]].records) != 0:
+        loc_list = get_sequence_interval(temp[source_dict["Ensembl"]].records)
+        if loc_list:
+            return loc_list
 
-    if (
-        "Ensembl" in source_dict
-        and return_chr == False
-        and len(temp[source_dict["Ensembl"]].records) != 0
-    ):
-        for j in range(len(temp[source_dict["Ensembl"]].records)):
-            for k in range(len(temp[source_dict["Ensembl"]].records[j].locations)):
-                if (
-                    temp[source_dict["Ensembl"]].records[j].locations[k].interval.type
-                    == "SequenceInterval"
-                ):  # Multiple records per source
-                    start = (
-                        temp[source_dict["Ensembl"]]
-                        .records[j]
-                        .locations[k]
-                        .interval.start.value
-                    )
-                    end = (
-                        temp[source_dict["Ensembl"]]
-                        .records[j]
-                        .locations[k]
-                        .interval.end.value
-                    )
-                    loc_list = {}
-                    loc_list["start"] = start
-                    loc_list["end"] = end
-                    return loc_list
-    if (
-        "NCBI" in source_dict
-        and return_chr == False
-        and len(temp[source_dict["NCBI"]].records) != 0
-    ):
-        for j in range(len(temp[source_dict["NCBI"]].records)):
-            for k in range(len(temp[source_dict["NCBI"]].records[j].locations)):
-                if (
-                    temp[source_dict["NCBI"]].records[j].locations[k].interval.type
-                    == "SequenceInterval"
-                ):
-                    start = (
-                        temp[source_dict["NCBI"]]
-                        .records[j]
-                        .locations[k]
-                        .interval.start.value
-                    )
-                    end = (
-                        temp[source_dict["NCBI"]]
-                        .records[j]
-                        .locations[k]
-                        .interval.end.value
-                    )
-                    loc_list = {}
-                    loc_list["start"] = start
-                    loc_list["end"] = end
-                    return loc_list
+    if source_dict.get("NCBI") is not None and return_chr == False and len(temp[source_dict["NCBI"]].records) != 0:
+        loc_list = get_sequence_interval(temp[source_dict["NCBI"]].records)
+        if loc_list:
+            return loc_list
+
     return "NA"
+
 
 
 def extract_blat_output(dat: dict):
@@ -139,18 +112,18 @@ def extract_blat_output(dat: dict):
     blat_file.close()
     if dat["target_sequence_type"] == "protein":
         command = (
-            "blat hg38.2bit -q=prot -t=dnax -minScore=20 blat_query.fa blat_out.psl"
+            f"blat {path_to_hg38_file} -q=prot -t=dnax -minScore=20 blat_query.fa blat_out.psl"
         )
         process = subprocess.run(command, shell=True)
     else:
-        command = "blat hg38.2bit -minScore=20 blat_query.fa blat_out.psl"
+        command = f"blat {path_to_hg38_file} -minScore=20 blat_query.fa blat_out.psl"
         process = subprocess.run(command, shell=True)
     try:
         output = SearchIO.read("blat_out.psl", "blat-psl")
     except:
         try:
             command = (
-                "blat hg38.2bit -q=dnax -t=dnax -minScore=20 blat_query.fa blat_out.psl"
+                f"blat {path_to_hg38_file} -q=dnax -t=dnax -minScore=20 blat_query.fa blat_out.psl"
             )
             process = subprocess.run(command, shell=True)
             output = SearchIO.read("blat_out.psl", "blat-psl")
@@ -180,9 +153,13 @@ def get_query_and_hit_ranges(output, dat):
     chrom = strand = ""
     coverage = identity = None
     query_ranges = hit_ranges = list()
+
     gsymb = get_gene_symb(dat)
+    temp, source_dict = get_gene_data(gsymb)
+    accession = get_hgnc_accession(temp, source_dict)
+
     for c in range(len(output)):
-        correct_chr = get_gene_data(dat=dat, return_chr=True, gsymb=gsymb)
+        correct_chr = return_gene_data(True, temp, source_dict)
         if correct_chr == output[c].id.strip("chr"):
             use_chr = True
             break
@@ -200,7 +177,7 @@ def get_query_and_hit_ranges(output, dat):
     else:
         hit = c
 
-    loc_dict = get_gene_data(False, dat, gsymb)
+    loc_dict = return_gene_data(False, temp, source_dict)
 
     hit_starts = list()
     for n in range(len(output[hit])):
@@ -247,37 +224,7 @@ def get_query_and_hit_ranges(output, dat):
         query_ranges.append(query_string[2])
         hit_ranges.append(hit_string[4])
 
-    return chrom, strand, coverage, identity, query_ranges, hit_ranges, gsymb
-
-
-def check_non_human(mave_blat_dict, min_percentage=80):
-    # for dna min % = 95
-    # for prot min % = 80
-    # as per BLAT website: "BLAT on DNA is designed to quickly find sequences of 95% and grent or shorter sequence alignments. BLAT on proteins finds sequences of 80% and greater similarity of length 20 amino acids or more.
-    """
-    Checks if a sample is human or non-human based on the Mave-BLAT dictionary.
-
-    Parameters
-    ----------
-
-        mave_blat_dict: dict
-            Dicitionary containing data after doing BLAT Alignment
-
-        min_percent: int
-            Minimum percentage coverage to consider a sample as human.
-
-    Returns
-    -------
-        str: "human" if the sample is human, "Non human" otherwise.
-    """
-    cov = mave_blat_dict["coverage"]
-    if cov == "NA":
-        return "Non human"
-    else:
-        if cov < min_percentage:
-            return "Non human"
-        else:
-            return "human"
+    return chrom, strand, coverage, identity, query_ranges, hit_ranges, gsymb, accession
 
 
 def mave_to_blat(dat):
@@ -306,6 +253,7 @@ def mave_to_blat(dat):
             query_ranges,
             hit_ranges,
             gsymb,
+            accession,
         ) = get_query_and_hit_ranges(output, dat)
         qh_dat = {"query_ranges": query_ranges, "hit_ranges": hit_ranges}
         qh_dat = pd.DataFrame(data=qh_dat)
@@ -320,6 +268,7 @@ def mave_to_blat(dat):
             "identity": identity,
             "hits": qh_dat,
             "gsymb": gsymb,
+            "accession": accession,
         }
 
     else:
@@ -336,6 +285,7 @@ def mave_to_blat(dat):
             "identity": "NA",
             "hits": qh_dat,
             "gsymb": "NA",
+            "accession": "NA",
         }
 
     return mave_blat_dict

@@ -1,19 +1,13 @@
 import requests
 import io
-from ga4gh.vrs.dataproxy import SeqRepoDataProxy
-from gene.query import QueryHandler
-from gene.database import create_db
 from ga4gh.vrs.extras.translator import Translator
 from Bio.Seq import Seq
-from biocommons.seqrepo import SeqRepo
-from transcript_selection_helper import *
+from mavedb_mapping.transcript_selection_helper import get_locs_list,get_hits_list, get_chr
 import pandas as pd
 from ga4gh.vrs import models
 from ga4gh.core import ga4gh_identify, sha512t24u
-
-sr = SeqRepo("/usr/local/share/seqrepo/latest", writeable=True)
-qh = QueryHandler(create_db())
-dp = SeqRepoDataProxy(sr=sr)
+from ga4gh.vrs.normalize import normalize
+from mavedb_mapping import sr, dp
 tr = Translator(data_proxy=dp, normalize=False)
 
 vrs_mappings_dict = {}
