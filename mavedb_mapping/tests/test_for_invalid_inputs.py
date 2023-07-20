@@ -1,6 +1,7 @@
 from mavedb_mapping.main import main_map
 import pytest
 from mavedb_mapping import data_file_path
+
 """Tests for scoresets that raise errors/unsuccessful mappings."""
 
 

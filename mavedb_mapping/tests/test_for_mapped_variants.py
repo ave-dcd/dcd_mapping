@@ -3,6 +3,7 @@ import pytest
 import json
 from mavedb_mapping import data_file_path
 
+
 def get_sample_mapping_data(urn):
     """Function to obtain data from sample mapping"""
 

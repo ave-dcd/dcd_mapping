@@ -1,6 +1,7 @@
 import requests
 from mavedb_mapping import qh
 
+
 def get_start(string):
     return int(string.split(":")[0].strip("["))
 
@@ -63,9 +64,8 @@ def check_non_human(mave_blat_dict, min_percentage=80):
             return "human"
 
 
-
-#functions not used but were there in the notebooks
-#TODO:remove (?)
+# functions not used but were there in the notebooks
+# TODO:remove (?)
 def modify_hgvs(var, ref, off, hp):
     if len(var) == 3 or var == "_wt" or var == "_sy" or "[" in var:
         return var
@@ -100,10 +100,12 @@ def get_clingen_id(hgvs):
     except:
         return "NA"
 
+
 def get_ga4gh(dp, ref):
     aliases = dp.get_metadata(ref)["aliases"]
     f = filter(lambda x: "ga4gh" in x, aliases)
     return "ga4gh:" + list(f)[0].split(":")[1]
+
 
 def get_query_hits(dat):
     query_list = []

@@ -4,6 +4,7 @@ import subprocess
 from mavedb_mapping import qh
 from mavedb_mapping import path_to_hg38_file
 
+
 def get_gene_symb(dat):
     try:
         uniprot = dat["uniprot_id"]
@@ -42,6 +43,7 @@ def get_sequence_interval(records):
                 return loc_list
     return None
 
+
 def return_gene_data(return_chr: bool, temp, source_dict):
     """
     Parameters
@@ -72,18 +74,25 @@ def return_gene_data(return_chr: bool, temp, source_dict):
     if "HGNC" in source_dict and return_chr == True:
         chrom = temp[source_dict["HGNC"]].records[0].locations[0].chr
         return chrom
-    if source_dict.get("Ensembl") is not None and return_chr == False and len(temp[source_dict["Ensembl"]].records) != 0:
+    if (
+        source_dict.get("Ensembl") is not None
+        and return_chr == False
+        and len(temp[source_dict["Ensembl"]].records) != 0
+    ):
         loc_list = get_sequence_interval(temp[source_dict["Ensembl"]].records)
         if loc_list:
             return loc_list
 
-    if source_dict.get("NCBI") is not None and return_chr == False and len(temp[source_dict["NCBI"]].records) != 0:
+    if (
+        source_dict.get("NCBI") is not None
+        and return_chr == False
+        and len(temp[source_dict["NCBI"]].records) != 0
+    ):
         loc_list = get_sequence_interval(temp[source_dict["NCBI"]].records)
         if loc_list:
             return loc_list
 
     return "NA"
-
 
 
 def extract_blat_output(dat: dict):
@@ -111,9 +120,7 @@ def extract_blat_output(dat: dict):
     blat_file.write(dat["target_sequence"] + "\n")
     blat_file.close()
     if dat["target_sequence_type"] == "protein":
-        command = (
-            f"blat {path_to_hg38_file} -q=prot -t=dnax -minScore=20 blat_query.fa blat_out.psl"
-        )
+        command = f"blat {path_to_hg38_file} -q=prot -t=dnax -minScore=20 blat_query.fa blat_out.psl"
         process = subprocess.run(command, shell=True)
     else:
         command = f"blat {path_to_hg38_file} -minScore=20 blat_query.fa blat_out.psl"
@@ -122,9 +129,7 @@ def extract_blat_output(dat: dict):
         output = SearchIO.read("blat_out.psl", "blat-psl")
     except:
         try:
-            command = (
-                f"blat {path_to_hg38_file} -q=dnax -t=dnax -minScore=20 blat_query.fa blat_out.psl"
-            )
+            command = f"blat {path_to_hg38_file} -q=dnax -t=dnax -minScore=20 blat_query.fa blat_out.psl"
             process = subprocess.run(command, shell=True)
             output = SearchIO.read("blat_out.psl", "blat-psl")
         except:

@@ -5,6 +5,7 @@ from mavedb_mapping.transcript_selection import main
 from mavedb_mapping.vrs_mapping import vrs_mapping
 from mavedb_mapping import data_file_path
 
+
 @pytest.fixture(
     scope="package", params=["urn:mavedb:00000041-a-1", "urn:mavedb:00000001-a-4"]
 )

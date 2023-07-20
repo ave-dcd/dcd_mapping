@@ -4,6 +4,7 @@ from mavedb_mapping.transcript_selection import main
 from mavedb_mapping.vrs_mapping import vrs_mapping
 from mavedb_mapping import data_file_path
 
+
 def main_map(urn):
     dat = metadata_obtain(urn)
     blat_dict = mave_to_blat(dat)

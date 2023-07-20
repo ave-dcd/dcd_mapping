@@ -4,8 +4,13 @@ import asyncio
 from cool_seq_tool.data_sources.mane_transcript_mappings import MANETranscriptMappings
 from Bio.Seq import Seq
 from bs4 import BeautifulSoup
-from mavedb_mapping.transcript_selection_helper import get_locs_list, check_non_human, get_chr
+from mavedb_mapping.transcript_selection_helper import (
+    get_locs_list,
+    check_non_human,
+    get_chr,
+)
 from mavedb_mapping import sr, qh, dp, utadb
+
 mane = MANETranscriptMappings()
 
 

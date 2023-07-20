@@ -6,6 +6,8 @@ from mavedb_mapping.transcript_selection_helper import check_non_human
 """Tests that run check_non_human function after BLAT Alignment to determine if scoreset is Human"""
 
 data_file_path = "mavedb_mapping/tests/data/"
+
+
 @pytest.fixture
 def scoreset_blat(request):
     """Fixture to return dictionary after BLAT Alignment"""
@@ -39,4 +41,3 @@ def test_non_human_organism(scoreset_blat):
     """Test to check if input scoreset organism is Non human"""
     organism = check_non_human(scoreset_blat)
     assert organism == "Non human"
-
