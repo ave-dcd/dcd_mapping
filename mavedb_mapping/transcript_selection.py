@@ -6,7 +6,7 @@ from Bio.Seq import Seq
 from bs4 import BeautifulSoup
 from mavedb_mapping.transcript_selection_helper import (
     get_locs_list,
-    check_non_human,
+    is_human,
     get_chr,
 )
 from mavedb_mapping import sr, qh, dp, utadb
@@ -277,7 +277,7 @@ def main(mave_blat_dict: dict, dat: dict) -> dict:
     if dat["target_type"] == "Protein coding" or dat["target_type"] == "protein_coding":
         if mave_blat_dict["chrom"] == "NA":
             raise Exception("No BLAT output")
-        if check_non_human(mave_blat_dict) == "Non human":
+        if not is_human(mave_blat_dict):
             raise ValueError("Non Human Scoreset")
 
         locs = get_locs_list(mave_blat_dict["hits"])

@@ -163,8 +163,8 @@ def get_query_and_hit_ranges(output, dat):
     temp, source_dict = get_gene_data(gsymb)
     accession = get_hgnc_accession(temp, source_dict)
 
+    correct_chr = return_gene_data(True, temp, source_dict)
     for c in range(len(output)):
-        correct_chr = return_gene_data(True, temp, source_dict)
         if correct_chr == output[c].id.strip("chr"):
             use_chr = True
             break
