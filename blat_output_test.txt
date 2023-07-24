@@ -1,0 +1,5 @@
+      Query: Src <unknown description>
+        Hit: chr20 <unknown description>
+Query range: [595:750] (1)
+  Hit range: [37403170:37403325] (1)
+  Fragments: 1 (? columns)

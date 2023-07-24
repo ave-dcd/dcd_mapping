@@ -5,6 +5,7 @@ from mavedb_mapping import qh
 from mavedb_mapping import path_to_hg38_file
 
 
+# TODO: edit docstrings
 def get_gene_symb(dat):
     try:
         uniprot = dat["uniprot_id"]
@@ -20,7 +21,7 @@ def get_gene_symb(dat):
 
 def get_gene_data(gsymb: str):
     if gsymb == "NA":
-        return "NA"
+        return "NA", "NA"
     temp = qh.search(gsymb).source_matches
     source_dict = {}
     for i in range(len(temp)):
@@ -29,6 +30,8 @@ def get_gene_data(gsymb: str):
 
 
 def get_hgnc_accession(temp, source_dict):
+    if temp == "NA":
+        return "NA"
     accession = temp[source_dict["HGNC"]].records[0].concept_id
     return accession
 

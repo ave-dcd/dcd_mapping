@@ -2,11 +2,7 @@ import requests
 import io
 from ga4gh.vrs.extras.translator import Translator
 from Bio.Seq import Seq
-from mavedb_mapping.transcript_selection_helper import (
-    get_locs_list,
-    get_hits_list,
-    get_chr,
-)
+from mavedb_mapping.transcript_selection_helper import HelperFunctionsForBLATOutput
 import pandas as pd
 from ga4gh.vrs import models
 from ga4gh.core import ga4gh_identify, sha512t24u
@@ -583,9 +579,10 @@ def vrs_mapping(dat, mappings_dict, mave_blat_dict):
         mapping: dict
             VRS mappings dictionary.
     """
-    ranges = get_locs_list(mave_blat_dict["hits"])
-    hits = get_hits_list(mave_blat_dict["hits"])
-    ref = get_chr(dp, mave_blat_dict["chrom"])
+    helper = HelperFunctionsForBLATOutput(mave_blat_dict)
+    ranges = helper.get_locs_list()
+    hits = helper.get_hits_list()
+    ref = helper.get_chr(dp)
 
     if dat["target_type"] == "Protein coding" and dat["target_sequence_type"] == "dna":
         check_for_transcripts(mappings_dict)

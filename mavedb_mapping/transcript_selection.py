@@ -2,15 +2,13 @@ import requests
 import nest_asyncio
 import asyncio
 from cool_seq_tool.data_sources.mane_transcript_mappings import MANETranscriptMappings
+from cool_seq_tool.data_sources.uta_database import UTADatabase
 from Bio.Seq import Seq
 from bs4 import BeautifulSoup
-from mavedb_mapping.transcript_selection_helper import (
-    get_locs_list,
-    is_human,
-    get_chr,
-)
-from mavedb_mapping import sr, qh, dp, utadb
+from mavedb_mapping.transcript_selection_helper import HelperFunctionsForBLATOutput
+from mavedb_mapping import sr, qh, dp
 
+utadb = UTADatabase()
 mane = MANETranscriptMappings()
 
 
@@ -274,16 +272,18 @@ def main(mave_blat_dict: dict, dat: dict) -> dict:
     -------
         mappings_dict:
             Dictionary after transcript selections"""
-    if dat["target_type"] == "Protein coding" or dat["target_type"] == "protein_coding":
-        if mave_blat_dict["chrom"] == "NA":
-            raise Exception("No BLAT output")
-        if not is_human(mave_blat_dict):
-            raise ValueError("Non Human Scoreset")
 
-        locs = get_locs_list(mave_blat_dict["hits"])
-        chrom = get_chr(dp, mave_blat_dict["chrom"])
+    helper = HelperFunctionsForBLATOutput(mave_blat_dict)
+
+    if dat["target_type"] == "Protein coding" or dat["target_type"] == "protein_coding":
+        if not helper.is_human():
+            raise ValueError("Invalid Scoreset")
+
+        locs = helper.get_locs_list()
+        chrom = helper.get_chr(dp)
         gsymb = get_gsymb(dat)
         ts = asyncio.run(mapq(locs, chrom, gsymb))
+
         try:
             isect = list(set.intersection(*map(set, ts)))
         except:
@@ -302,6 +302,7 @@ def main(mave_blat_dict: dict, dat: dict) -> dict:
             return mappings_dict
 
         mane_trans = mane.get_mane_from_transcripts(isect)
+
         if mane_trans != []:
             np, start, full_match, nm, status = from_mane_trans(dat, mane_trans)
         else:
