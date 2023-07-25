@@ -15,5 +15,7 @@ def full_mapping(request):
         mave_dat = metadata_obtain(scoreset)
     mave_blat = mave_to_blat(mave_dat)
     mappings_dict = main(mave_blat, mave_dat)
-    vrs_mapped = vrs_mapping(mave_dat, mappings_dict, mave_blat)
+    scores_path = f"{data_file_path}scores-{(request.param)[11:]}"
+    scores_csv = open(scores_path)
+    vrs_mapped = vrs_mapping(mave_dat, mappings_dict, mave_blat, scores_csv)
     return vrs_mapped, mave_dat["urn"]
