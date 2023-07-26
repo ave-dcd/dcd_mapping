@@ -6,7 +6,6 @@ from mavedb_mapping import qh
 from mavedb_mapping import path_to_hg38_file
 
 
-
 # TODO: edit docstrings
 def get_gene_symb(dat):
     try:
@@ -37,7 +36,6 @@ def get_hgnc_accession(temp, source_dict):
         return "NA"
     accession = temp[source_dict["HGNC"]].records[0].concept_id
     return accession
-
 
 
 def get_sequence_interval(records):
@@ -144,69 +142,49 @@ def extract_blat_output(dat: dict):
     return output
 
 
-def get_query_and_hit_ranges(output, dat):
-    """
-    Extracts query and hit ranges from the BLAT output.
-
-    Parameters
-    ----------
-        output:
-            Output from the BLAT query.
-        dat: dict
-            Dictionary containing data required for mapping.
-
-    Returns
-    -------
-        Tuple containing the chromosome, strand, coverage, identity, query ranges, hit ranges, and gene symbol.
-    """
-    hit_scores = list()
-    hit_dict = {}
-    use_chr = False
-    chrom = strand = ""
-    coverage = identity = None
-    query_ranges = hit_ranges = list()
-
-    gsymb = get_gene_symb(dat)
-    temp, source_dict = get_gene_data(gsymb)
-    accession = get_hgnc_accession(temp, source_dict)
-
-    correct_chr = return_gene_data(True, temp, source_dict)
-    for c in range(len(output)):
-        if correct_chr == output[c].id.strip("chr"):
-            use_chr = True
-            break
-        if (
-            correct_chr == "NA"
-        ):  # Take top scoring hit if target not found using gene normalizer
-            hit_scores = list()
-            for e in range(len(output[c])):
-                hit_scores.append(output[c][e].score)
-            hit_dict[c] = hit_scores
-    if use_chr == False:
-        for key in hit_dict:
-            hit_dict[key] = max(hit_dict[key])
-        hit = max(hit_dict, key=hit_dict.get)
-    else:
-        hit = c
-
-    loc_dict = return_gene_data(False, temp, source_dict)
-
+def obtain_hit_starts(output, hit):
     hit_starts = list()
     for n in range(len(output[hit])):
         hit_starts.append(output[hit][n].hit_start)
+    return hit_starts
 
-    sub_scores = list()
-    for n in range(len(output[hit])):
-        sub_scores.append(output[hit][n].score)
 
-    if loc_dict == "NA":
-        hsp = output[hit][
-            sub_scores.index(max(sub_scores))
-        ]  # Take top score if no match found
-    else:
-        hsp = output[hit][
-            hit_starts.index(min(hit_starts, key=lambda x: abs(x - loc_dict["start"])))
-        ]
+def using_gene_normalizer(output, correct_chr, temp, source_dict):
+    for c in range(len(output)):
+        if correct_chr == output[c].id.strip("chr"):
+            hit = c
+            break
+    loc_dict = return_gene_data(False, temp, source_dict)
+    hit_starts = obtain_hit_starts(output, hit)
+    hsp = output[hit][
+        hit_starts.index(min(hit_starts, key=lambda x: abs(x - loc_dict["start"])))
+    ]
+    return hsp
+
+
+def obtain_hsp(output):
+    hit_dict = {}
+    for c in range(
+        len(output)
+    ):  # Take top scoring hit if target not found using gene normalizer
+        hit_scores = list()
+        for e in range(len(output[c])):
+            hit_scores.append(output[c][e].score)
+        hit_dict[c] = hit_scores
+    # maybe can include in above for loop
+    for key in hit_dict:
+        hit_dict[key] = max(hit_dict[key])
+    hit = max(hit_dict, key=hit_dict.get)
+    hit_starts = obtain_hit_starts(output, hit)
+    hsp = output[hit][hit_starts.index(max(hit_starts))]
+    return hsp
+
+
+def from_hsp_output(hsp, output, gsymb):
+    query_ranges = hit_ranges = []
+    strand = hsp[0].query_strand
+    coverage = 100 * (hsp.query_end - hsp.query_start) / output.seq_len
+    identity = hsp.ident_pct
 
     for j in range(len(hsp)):
         test_file = open("blat_output_test.txt", "w")
@@ -215,10 +193,6 @@ def get_query_and_hit_ranges(output, dat):
 
         query_string = ""
         hit_string = ""
-        strand = hsp[0].query_strand
-        coverage = 100 * (hsp.query_end - hsp.query_start) / output.seq_len
-        # coverage = f"{hsp.query_end - hsp.query_start} / {output.seq_len}, {coverage}"
-        identity = hsp.ident_pct
 
         test_file = open("blat_output_test.txt", "r")
         for k, line in enumerate(test_file):
@@ -235,8 +209,38 @@ def get_query_and_hit_ranges(output, dat):
         hit_string = hit_string.split(" ")
         query_ranges.append(query_string[2])
         hit_ranges.append(hit_string[4])
+    return chrom, strand, coverage, identity, query_ranges, hit_ranges, gsymb, None
 
-    return chrom, strand, coverage, identity, query_ranges, hit_ranges, gsymb, accession
+
+def get_query_and_hit_ranges(output, dat):
+    """
+    Extracts query and hit ranges from the BLAT output.
+
+    Parameters
+    ----------
+        output:
+            Output from the BLAT query.
+        dat: dict
+            Dictionary containing data required for mapping.
+
+    Returns
+    -------
+        Tuple containing the chromosome, strand, coverage, identity, query ranges, hit ranges, and gene symbol.
+    """
+    gsymb = get_gene_symb(dat)
+    temp, source_dict = get_gene_data(gsymb)
+
+    if "HGNC" in source_dict and (
+        source_dict.get("Ensembl") is not None or source_dict.get("NCBI") is not None
+    ):
+        # TODO: remove these conditions from return_gene_data
+        correct_chr = return_gene_data(True, temp, source_dict)
+        hsp = using_gene_normalizer(output, correct_chr, temp, source_dict)
+    else:
+        hsp = obtain_hsp(output)
+
+    data_tuple = from_hsp_output(hsp, output, gsymb)
+    return data_tuple
 
 
 def mave_to_blat(dat):
