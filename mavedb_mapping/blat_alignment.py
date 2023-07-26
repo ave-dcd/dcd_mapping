@@ -1,13 +1,13 @@
 from Bio import SearchIO
-from gene.query import QueryHandler
-from Bio import SearchIO
 import pandas as pd
 import subprocess
-from gene.database import create_db
 
-qh = QueryHandler(create_db())
+from mavedb_mapping import qh
+from mavedb_mapping import path_to_hg38_file
 
 
+
+# TODO: edit docstrings
 def get_gene_symb(dat):
     try:
         uniprot = dat["uniprot_id"]
@@ -23,7 +23,8 @@ def get_gene_symb(dat):
 
 def get_gene_data(gsymb: str):
     if gsymb == "NA":
-        return "NA"
+        return "NA", "NA"
+
     temp = qh.search(gsymb).source_matches
     source_dict = {}
     for i in range(len(temp)):
@@ -32,8 +33,22 @@ def get_gene_data(gsymb: str):
 
 
 def get_hgnc_accession(temp, source_dict):
+    if temp == "NA":
+        return "NA"
     accession = temp[source_dict["HGNC"]].records[0].concept_id
     return accession
+
+
+
+def get_sequence_interval(records):
+    for record in records:
+        for location in record.locations:
+            if location.interval.type == "SequenceInterval":
+                start = location.interval.start.value
+                end = location.interval.end.value
+                loc_list = {"start": start, "end": end}
+                return loc_list
+    return None
 
 
 def return_gene_data(return_chr: bool, temp, source_dict):
@@ -66,61 +81,24 @@ def return_gene_data(return_chr: bool, temp, source_dict):
     if "HGNC" in source_dict and return_chr == True:
         chrom = temp[source_dict["HGNC"]].records[0].locations[0].chr
         return chrom
-
     if (
-        "Ensembl" in source_dict
+        source_dict.get("Ensembl") is not None
         and return_chr == False
         and len(temp[source_dict["Ensembl"]].records) != 0
     ):
-        for j in range(len(temp[source_dict["Ensembl"]].records)):
-            for k in range(len(temp[source_dict["Ensembl"]].records[j].locations)):
-                if (
-                    temp[source_dict["Ensembl"]].records[j].locations[k].interval.type
-                    == "SequenceInterval"
-                ):  # Multiple records per source
-                    start = (
-                        temp[source_dict["Ensembl"]]
-                        .records[j]
-                        .locations[k]
-                        .interval.start.value
-                    )
-                    end = (
-                        temp[source_dict["Ensembl"]]
-                        .records[j]
-                        .locations[k]
-                        .interval.end.value
-                    )
-                    loc_list = {}
-                    loc_list["start"] = start
-                    loc_list["end"] = end
-                    return loc_list
+        loc_list = get_sequence_interval(temp[source_dict["Ensembl"]].records)
+        if loc_list:
+            return loc_list
+
     if (
-        "NCBI" in source_dict
+        source_dict.get("NCBI") is not None
         and return_chr == False
         and len(temp[source_dict["NCBI"]].records) != 0
     ):
-        for j in range(len(temp[source_dict["NCBI"]].records)):
-            for k in range(len(temp[source_dict["NCBI"]].records[j].locations)):
-                if (
-                    temp[source_dict["NCBI"]].records[j].locations[k].interval.type
-                    == "SequenceInterval"
-                ):
-                    start = (
-                        temp[source_dict["NCBI"]]
-                        .records[j]
-                        .locations[k]
-                        .interval.start.value
-                    )
-                    end = (
-                        temp[source_dict["NCBI"]]
-                        .records[j]
-                        .locations[k]
-                        .interval.end.value
-                    )
-                    loc_list = {}
-                    loc_list["start"] = start
-                    loc_list["end"] = end
-                    return loc_list
+        loc_list = get_sequence_interval(temp[source_dict["NCBI"]].records)
+        if loc_list:
+            return loc_list
+
     return "NA"
 
 
@@ -149,20 +127,16 @@ def extract_blat_output(dat: dict):
     blat_file.write(dat["target_sequence"] + "\n")
     blat_file.close()
     if dat["target_sequence_type"] == "protein":
-        command = (
-            "blat hg38.2bit -q=prot -t=dnax -minScore=20 blat_query.fa blat_out.psl"
-        )
+        command = f"blat {path_to_hg38_file} -q=prot -t=dnax -minScore=20 blat_query.fa blat_out.psl"
         process = subprocess.run(command, shell=True)
     else:
-        command = "blat hg38.2bit -minScore=20 blat_query.fa blat_out.psl"
+        command = f"blat {path_to_hg38_file} -minScore=20 blat_query.fa blat_out.psl"
         process = subprocess.run(command, shell=True)
     try:
         output = SearchIO.read("blat_out.psl", "blat-psl")
     except:
         try:
-            command = (
-                "blat hg38.2bit -q=dnax -t=dnax -minScore=20 blat_query.fa blat_out.psl"
-            )
+            command = f"blat {path_to_hg38_file} -q=dnax -t=dnax -minScore=20 blat_query.fa blat_out.psl"
             process = subprocess.run(command, shell=True)
             output = SearchIO.read("blat_out.psl", "blat-psl")
         except:
@@ -196,8 +170,8 @@ def get_query_and_hit_ranges(output, dat):
     temp, source_dict = get_gene_data(gsymb)
     accession = get_hgnc_accession(temp, source_dict)
 
+    correct_chr = return_gene_data(True, temp, source_dict)
     for c in range(len(output)):
-        correct_chr = return_gene_data(True, temp, source_dict)
         if correct_chr == output[c].id.strip("chr"):
             use_chr = True
             break

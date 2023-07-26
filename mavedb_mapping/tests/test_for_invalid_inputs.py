@@ -1,5 +1,6 @@
-from main import main_map
+from mavedb_mapping.main import main_map
 import pytest
+from mavedb_mapping import data_file_path
 
 """Tests for scoresets that raise errors/unsuccessful mappings."""
 
@@ -12,7 +13,7 @@ class TestForNonHumanScoresets:
         """Test to check for non human scoreset where BLAT Alignment is successful, and gives low coverage.
         The mapping raises an Exception"""
 
-        scoreset = open("tests/data/urn:mavedb:00000010-a-1", "r")
+        scoreset = open(f"{data_file_path}urn:mavedb:00000010-a-1", "r")
         with pytest.raises(Exception):
             main_map(scoreset)
 
@@ -20,7 +21,7 @@ class TestForNonHumanScoresets:
         """Test to check for non human scoreset where BLAT Alignment is not successful, and gives no output.
         The mapping raises a ValueError"""
 
-        scoreset = open("tests/data/urn:mavedb:00000004-a-1", "r")
+        scoreset = open(f"{data_file_path}urn:mavedb:00000004-a-1", "r")
         with pytest.raises(ValueError):
             main_map(scoreset)
 
@@ -32,6 +33,6 @@ class TestForUnsuccessfulMappingScoresets:
     def test_for_no_transcripts_found(self):
         """Testing for a scoreset for which transcripts could not be found"""
         # TODO: create test for 53
-        scoreset = open("tests/data/urn:mavedb:00000097-c-1", "r")
+        scoreset = open(f"{data_file_path}urn:mavedb:00000097-c-1", "r")
         with pytest.raises(Exception):
             main_map(scoreset)
