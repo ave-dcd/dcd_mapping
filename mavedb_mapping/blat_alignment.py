@@ -8,6 +8,23 @@ from mavedb_mapping import path_to_hg38_file
 
 # TODO: edit docstrings
 def get_gene_symb(dat):
+    """
+    Obtains gene symbol using gene normalizer
+
+    Parameters
+    ----------
+        dat: dict
+            Dictionary containing data required for mapping from MAVEDB scoreset.
+
+
+    Returns:
+    --------
+        str:
+            Gene symbol
+
+        If gene symbol cannot be extracted, returns None.
+
+    """
     try:
         uniprot = dat["uniprot_id"]
         gsymb = qh.normalize(str(f"uniprot:{uniprot}")).gene_descriptor.label
@@ -16,7 +33,7 @@ def get_gene_symb(dat):
             target = dat["target"].split(" ")[0]
             gsymb = qh.normalize(target).gene_descriptor.label
         except:
-            return "NA"
+            return None
     return gsymb
 
 
@@ -39,6 +56,10 @@ def get_hgnc_accession(temp, source_dict):
 
 
 def get_sequence_interval(records):
+    """
+    Helper function to obtain gene data
+
+    """
     for record in records:
         for location in record.locations:
             if location.interval.type == "SequenceInterval":
@@ -56,11 +77,10 @@ def return_gene_data(return_chr: bool, temp, source_dict):
         return_chr :bool
            If True, returns chromosome information.
 
-        dat: dict
-            Dictionary containing data required for mapping.
+        temp: data obtained from gene normalizer
 
-        gsymb: str
-            Gene symbol.
+        source_dict: dict
+            Dictionary of sources (NCBI, HGNC, Ensembl)
 
 
     Returns:
@@ -102,10 +122,10 @@ def return_gene_data(return_chr: bool, temp, source_dict):
 
 def extract_blat_output(dat: dict):
     """
+    Runs a BLAT Query and returns the output
+
     Parameters
     ----------
-        return_chr :bool
-           If True, returns chromosome information.
 
         dat: dict
             Dictionary containing data required for mapping.
@@ -113,12 +133,7 @@ def extract_blat_output(dat: dict):
 
     Returns:
     --------
-        str:
-            If return_chr is True, returns the chromosome value as a string.
-            If gene symbol cannot be extracted, returns 'NA'.
-        OR
-        dict:
-            If gene symbol can be extracted and return_chr is False
+        BLAT Output
     """
     blat_file = open("blat_query.fa", "w")
     blat_file.write(">" + dat["target"] + "\n")
