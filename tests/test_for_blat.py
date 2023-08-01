@@ -2,10 +2,10 @@ import pytest
 from mavedb_mapping.blat_alignment import mave_to_blat
 from mavedb_mapping.metadata_process import metadata_obtain
 from mavedb_mapping.transcript_selection_helper import HelperFunctionsForBLATOutput
-
+from mavedb_mapping import data_file_path
 """Tests that run check_non_human function after BLAT Alignment to determine if scoreset is Human"""
 
-data_file_path = "mavedb_mapping/tests/data/"
+
 
 
 @pytest.fixture
