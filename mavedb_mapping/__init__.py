@@ -1,9 +1,13 @@
+
 import os
+from biocommons.seqrepo import SeqRepo
+
+from cool_seq_tool.data_sources.uta_database import UTADatabase
+
+from ga4gh.vrs.dataproxy import SeqRepoDataProxy
+
 from gene.query import QueryHandler
 from gene.database import create_db
-from biocommons.seqrepo import SeqRepo
-from ga4gh.vrs.dataproxy import SeqRepoDataProxy
-from cool_seq_tool.data_sources.uta_database import UTADatabase
 
 path_to_seqrepo = os.getenv("PATH_TO_SEQREPO", "/usr/local/share/seqrepo/latest")
 path_to_hg38_file = os.getenv("HG38_FILE", "hg38.2bit")  # default- in current directory

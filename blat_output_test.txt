@@ -1,5 +1,5 @@
-      Query: UBE2I <unknown description>
-        Hit: chr16 <unknown description>
-Query range: [413:477] (1)
-  Hit range: [1324729:1324793] (1)
+      Query: E4B <unknown description>
+        Hit: chr1 <unknown description>
+Query range: [247:295] (1)
+  Hit range: [10179894:10179942] (1)
   Fragments: 1 (? columns)

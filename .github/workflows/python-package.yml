@@ -12,7 +12,6 @@ jobs:
     env:
         PATH_TO_SEQREPO: ./tests/data/seqrepo/latest
         HG38_FILE: ./tests/data/hg38.2bit
-        GENE_NORM_DB_URL: postgres://postgres@localhost:5432/gene_normalizer
         
     steps:
       - uses: actions/checkout@v3
@@ -24,7 +23,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
       - name: Test with pytest
+        env:
+          PATH_TO_SEQREPO: ./tests/data/seqrepo/latest
+          HG38_FILE: ./tests/data/hg38.2bit
+          GENE_NORM_DB_URL: postgres://postgres@localhost:5432/gene_normalizer
+      
         run: |
           export PYTHONPATH="${PYTHONPATH}:$(pwd)"
           pytest
