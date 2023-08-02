@@ -6,7 +6,7 @@ from cool_seq_tool.data_sources.uta_database import UTADatabase
 from Bio.Seq import Seq
 from bs4 import BeautifulSoup
 from mavedb_mapping.transcript_selection_helper import HelperFunctionsForBLATOutput
-from mavedb_mapping import sr, qh, dp
+from mavedb_mapping import sr, dp
 
 utadb = UTADatabase()
 mane = MANETranscriptMappings()
@@ -15,7 +15,7 @@ mane = MANETranscriptMappings()
 nest_asyncio.apply()
 
 
-async def mapq(locs: list, chrom: str, gsymb: str):
+async def mapq(locs: list, chrom: str):
     """
     Runs a query on UTADB to obtain transcripts
     Parameters
@@ -40,8 +40,7 @@ async def mapq(locs: list, chrom: str, gsymb: str):
     for i in range(len(locs)):
         testquery = f"""select *
                             from uta_20210129.tx_exon_aln_v
-                            where hgnc = '{gsymb}'
-                            and {locs[i][0]} between alt_start_i and alt_end_i
+                            where {locs[i][0]} between alt_start_i and alt_end_i
                             or {locs[i][1]} between alt_start_i and alt_end_i
                             and alt_ac = '{chrom}'"""
 
@@ -53,19 +52,6 @@ async def mapq(locs: list, chrom: str, gsymb: str):
         if tl != []:
             transcript_lists.append(tl)
     return transcript_lists
-
-
-def get_gsymb(dat):
-    try:
-        uniprot = dat["uniprot_id"]
-        gsymb = qh.normalize(str(f"uniprot:{uniprot}")).gene_descriptor.label
-    except:
-        temp = dat["target"].split(" ")
-        if temp[0] == "JAK":
-            temp[0] = "JAK1"
-        gsymb = qh.normalize(temp[0]).gene_descriptor.label
-    return gsymb
-
 
 def using_uniprot(uniprot: str, ts: str):
     """
@@ -101,7 +87,7 @@ def using_uniprot(uniprot: str, ts: str):
         start = up.find(stri[:10])
         return start, full_match
     except:
-        # print(dat['urn'], 'no transcripts found')
+        #no transcripts foundś
         return "NA", "NA"
 
 
@@ -282,11 +268,14 @@ def main(mave_blat_dict: dict, dat: dict) -> dict:
 
         locs = helper.get_locs_list()
         chrom = helper.get_chr(dp)
-        gsymb = get_gsymb(dat)
-        ts = asyncio.run(mapq(locs, chrom, gsymb))
+        ts = asyncio.run(mapq(locs, chrom))
 
         try:
-            isect = list(set.intersection(*map(set, ts)))
+            for i in ts:
+                i = set(i)
+            intersection_set = set.intersection(set(i))
+            isect = list(intersection_set)
+
         except:
             start, full_match = using_uniprot(dat["uniprot_id"], dat["target_sequence"])
             np = nm = status = "NA"
@@ -298,13 +287,20 @@ def main(mave_blat_dict: dict, dat: dict) -> dict:
                 "RefSeq_prot": "NA",
                 "RefSeq_nuc": "NA",
                 "status": "NA",
-                "gsymb": gsymb,
+                "gsymb": "NA",
             }
             return mappings_dict
 
         mane_trans = mane.get_mane_from_transcripts(isect)
-
+        
+        
         if mane_trans != []:
+            #selecting correct transcript using chrom from transcripts obtained
+            for i in mane_trans:
+                if i['GRCh38_chr'] == chrom:
+                    mane_trans = [i]
+            gsymb = mane_trans[0]["symbol"]
+            
             np, start, full_match, nm, status = from_mane_trans(dat, mane_trans)
         else:
             np, start, full_match, nm, status = no_mane_trans(isect, dat)

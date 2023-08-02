@@ -1,5 +1,0 @@
-      Query: E4B <unknown description>
-        Hit: chr1 <unknown description>
-Query range: [247:295] (1)
-  Hit range: [10179894:10179942] (1)
-  Fragments: 1 (? columns)
