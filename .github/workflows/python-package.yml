@@ -1,0 +1,35 @@
+name: Python package
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+        
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Test with pytest
+        env:
+          PATH_TO_SEQREPO: ./tests/data/seqrepo/latest
+          HG38_FILE: ./tests/data/hg38.2bit
+          GENE_NORM_DB_URL: postgres://postgres@localhost:5432/gene_normalizer
+      
+        run: |
+          export UTA_PASSWORD=uta
+          export LRG_REFSEQGENE_PATH=./tests/data/LRG_RefSeqGene
+          export MANE_SUMMARY_PATH=./tests/data/MANE.GRCh38.v1.1.summary.txt.gz 
+          export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+          pytest
