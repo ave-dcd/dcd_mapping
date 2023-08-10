@@ -10,7 +10,6 @@ def get_sample_mapping_data(urn):
     # Sample Mapping file
     mapped_file = open(f"{data_file_path}{urn[11:]}.json")
     mapped_example = json.load(mapped_file)
-    print(mapped_example.keys())
 
     # Sequence id from sample mapping file
     sample_sequence_id = mapped_example["mapped_scores"][0]["pre_mapped"]["location"][

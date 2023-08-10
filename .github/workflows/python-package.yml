@@ -25,7 +25,6 @@ jobs:
         env:
           PATH_TO_SEQREPO: ./tests/data/seqrepo/latest
           HG38_FILE: ./tests/data/hg38.2bit
-          GENE_NORM_DB_URL: postgres://postgres@localhost:5432/gene_normalizer
       
         run: |
           export UTA_PASSWORD=uta
