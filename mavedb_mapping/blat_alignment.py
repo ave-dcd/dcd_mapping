@@ -134,7 +134,7 @@ def return_gene_data(return_chr: bool, temp, source_dict:dict):
     return "NA"
 
 
-def extract_blat_output(dat: dict):
+def extract_blat_output(dat: dict, query_filename: str = "blat_query.fa"):
     """
     Runs a BLAT Query and returns the output
 
@@ -142,12 +142,14 @@ def extract_blat_output(dat: dict):
     ----------
         dat: dict
             Dictionary containing data required for mapping.
+        blat_query: str
+            Filename for BLAT query file to save
 
     Returns:
     --------
         BLAT Output
     """
-    blat_file = open("blat_query.fa", "w")
+    blat_file = open(query_filename, "w")
     blat_file.write(">" + dat["target"] + "\n")
     blat_file.write(dat["target_sequence"] + "\n")
     blat_file.close()
