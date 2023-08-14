@@ -1,19 +1,29 @@
 import json
 import pandas as pd
 
+"""Function that specifies input format"""
 
 def metadata_obtain(scoreset_json, scores_csv) -> dict:
     """
-    Extracts relevant metadata from a scoreset JSON object
+    Extract data from MaveDB scoresets and convert them into an input format that imitates
+    the expected inputs of the package.
+
+
     Parameters
     ----------
         scoreset_json: json object
             Scoreset JSON object
+        
+        scores_csv
 
     Returns:
     ----------
         dat: dict
             Dictionary containing extracted metadata
+        
+        variant_data: dict
+            Dictionary containing variants
+
     """
     scoreset = json.load(scoreset_json)
 
