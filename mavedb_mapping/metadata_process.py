@@ -46,8 +46,10 @@ def metadata_obtain(scoreset_json, scores_csv) -> dict:
 
     varm = vardat["hgvs_pro"]
     ntlist = vardat["hgvs_nt"]
+    scores = vardat["score"].to_list()
+    accessions = vardat["accession"].to_list()
 
-    variant_data = {"hgvs_pro": varm, "hgvs_nt":ntlist}
+    variant_data = {"hgvs_pro": varm, "hgvs_nt":ntlist, "scores":scores, "accessions":accessions}
     return dat, variant_data
 
 #TODO: change other things according to these changes

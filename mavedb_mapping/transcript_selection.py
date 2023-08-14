@@ -55,10 +55,7 @@ async def mapq(locs: list, chrom: str):
     return transcript_lists
 
 
-# uses gene symb here to get transcripts
-
-
-def using_uniprot(uniprot: str, ts: str):
+def using_uniprot(uniprot: str, ts: str):  #remove
     """
     Looks for transcripts using Uniprot ID
 
