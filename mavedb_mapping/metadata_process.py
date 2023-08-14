@@ -1,7 +1,8 @@
 import json
+import pandas as pd
 
 
-def metadata_obtain(scoreset_json) -> dict:
+def metadata_obtain(scoreset_json, scores_csv) -> dict:
     """
     Extracts relevant metadata from a scoreset JSON object
     Parameters
@@ -15,7 +16,6 @@ def metadata_obtain(scoreset_json) -> dict:
             Dictionary containing extracted metadata
     """
     scoreset = json.load(scoreset_json)
-    urn = scoreset["urn"]
 
     # Sequence
     human_target_sequences = scoreset["targetGene"]["wtSequence"]["sequence"]
@@ -23,22 +23,21 @@ def metadata_obtain(scoreset_json) -> dict:
     # Sequence type
     target_type = scoreset["targetGene"]["wtSequence"]["sequenceType"]
 
-    # Uniprot ID
-    if scoreset["targetGene"]["externalIdentifiers"] != []:
-        uniprot = scoreset["targetGene"]["externalIdentifiers"][0]["identifier"][
-            "identifier"
-        ]
-    else:
-        uniprot = None
-
     # Target type
     target = scoreset["targetGene"]["category"]
 
     dat = {
-        "urn": urn,
         "target_sequence": human_target_sequences,
         "target_sequence_type": target_type,
-        "uniprot_id": uniprot,
         "target_type": target,
     }
-    return dat
+    
+    vardat = pd.read_csv(scores_csv)
+
+    varm = vardat["hgvs_pro"]
+    ntlist = vardat["hgvs_nt"]
+
+    variant_data = {"hgvs_pro": varm, "hgvs_nt":ntlist}
+    return dat, variant_data
+
+#TODO: change other things according to these changes
