@@ -440,9 +440,9 @@ def vrs_mapping_for_protein_coding(
         scores_list.append(sn)
         accessions_list.append(accn)
 
-    vrs_mappings_dict[dat["urn"]] = mappings_list
-    scores_dict_coding[dat["urn"]] = scores_list
-    mavedb_ids_coding[dat["urn"]] = accessions_list
+    vrs_mappings_dict = mappings_list
+    scores_dict_coding = scores_list
+    mavedb_ids_coding = accessions_list
 
     return vrs_mappings_dict
 
@@ -453,7 +453,7 @@ def check_for_transcripts(mappings_dict):
 
 
 def vrs_mapping_for_non_coding(
-    dat, mappings_dict, mave_blat_dict, ref, ranges, hits, variant_data
+    dat, mave_blat_dict, ref, ranges, hits, variant_data
 ):
     """
     Perform VRS mapping for protein coding scoresets.
@@ -508,9 +508,9 @@ def vrs_mapping_for_non_coding(
     scores_list.append(sn)
     accessions_list.append(accn)
 
-    vrs_mappings_dict[dat["urn"]] = mappings_list
-    scores_dict_coding[dat["urn"]] = scores_list
-    mavedb_ids_coding[dat["urn"]] = accessions_list
+    vrs_mappings_dict = mappings_list
+    scores_dict_coding = scores_list
+    mavedb_ids_coding = accessions_list
 
     return vrs_mappings_dict
 
@@ -550,7 +550,7 @@ def vrs_mapping(dat, mappings_dict, mave_blat_dict, variant_data):
         )
     else:
         mapping = vrs_mapping_for_non_coding(
-            dat, mappings_dict, mave_blat_dict, ref, ranges, hits, variant_data
+            dat, mave_blat_dict, ref, ranges, hits, variant_data
         )
 
     return mapping

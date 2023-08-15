@@ -49,7 +49,6 @@ def blat_for_tests(dat):
     chr = hsp[13].replace("chr", "")
 
     mave_blat_dict = {
-        "urn": dat["urn"],
         "chrom": chr,
         "strand": strand,
         "hits": result_df,
@@ -68,21 +67,23 @@ def mock_fun1(monkeypatch):
 )
 def full_mapping(request):
     scoreset_path = f"{data_file_path}{request.param}"
-    with open(scoreset_path) as scoreset:
-        mave_dat = metadata_obtain(scoreset)
-    mave_blat = mave_to_blat(mave_dat)
-    mappings_dict = main(mave_blat, mave_dat)
     scores_path = f"{data_file_path}scores-{(request.param)[11:]}"
     scores_csv = open(scores_path)
-    vrs_mapped = vrs_mapping(mave_dat, mappings_dict, mave_blat, scores_csv)
+    with open(scoreset_path) as scoreset:
+        mave_dat,scores = metadata_obtain(scoreset,scores_csv)
+    mave_blat = blat_for_tests(mave_dat)
+    mappings_dict = main(mave_blat, mave_dat)
+    vrs_mapped = vrs_mapping(mave_dat, mappings_dict, mave_blat, scores)
     return vrs_mapped, mave_dat["urn"]
 
 
 @pytest.fixture()
 def obtain_transcripts(request):
     scoreset_path = f"{data_file_path}{request.param}"
+    scores_path = f"{data_file_path}scores-{(request.param)[11:]}"
+    scores_csv = open(scores_path)
     with open(scoreset_path) as scoreset:
-        mave_dat = metadata_obtain(scoreset)
-    mave_blat = mave_to_blat(mave_dat)
+        mave_dat,scores = metadata_obtain(scoreset,scores_csv)
+    mave_blat = blat_for_tests(mave_dat)
     mappings_dict = main(mave_blat, mave_dat)
     return mappings_dict
