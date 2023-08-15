@@ -275,7 +275,7 @@ def process_protein_coding_data(
                     accpro.append(accessions[j])
             except:
                 continue
-    tempdat = pd.DataFrame({"pre_mapping": var_ids_pre_map, "mapped": var_ids_post_map})
+    tempdat = {"pre_mapping": var_ids_pre_map, "mapped": var_ids_post_map}
     return tempdat, spro, accpro
 
 
@@ -405,7 +405,7 @@ def vrs_mapping_for_protein_coding(
     """
     scores = variant_data["scores"]
     accessions = variant_data["accessions"]
-    varm = variant_data["hgvs_pro"] #TODO: change variable name l
+    varm = variant_data["hgvs_pro"]  # TODO: change variable name l
     ntlist = variant_data["hgvs_nt"]
 
     np = mappings_dict["RefSeq_prot"]
@@ -452,9 +452,7 @@ def check_for_transcripts(mappings_dict):
         raise Exception("No transcripts found")
 
 
-def vrs_mapping_for_non_coding(
-    dat, mave_blat_dict, ref, ranges, hits, variant_data
-):
+def vrs_mapping_for_non_coding(dat, mave_blat_dict, ref, ranges, hits, variant_data):
     """
     Perform VRS mapping for protein coding scoresets.
 

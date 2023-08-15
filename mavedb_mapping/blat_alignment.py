@@ -19,7 +19,7 @@ def extract_blat_output(dat: dict):
         BLAT Output
     """
     blat_file = open("blat_query.fa", "w")
-    blat_file.write(">" + dat["urn"] + "\n")
+    blat_file.write(">" + "query" + "\n")
     blat_file.write(dat["target_sequence"] + "\n")
     blat_file.close()
     if dat["target_sequence_type"] == "protein":
@@ -80,7 +80,7 @@ def obtain_hsp(output):
     return hsp
 
 
-def from_hsp_output(hsp, output, gsymb):
+def from_hsp_output(hsp, output):
     """
 
     Parameters
@@ -97,11 +97,8 @@ def from_hsp_output(hsp, output, gsymb):
         Tuple with data used for mapping
 
     """
-    query_ranges = hit_ranges = []
-    strand = hsp[0].query_strand
-    coverage = 100 * (hsp.query_end - hsp.query_start) / output.seq_len
-    identity = hsp.ident_pct
-
+    query_ranges = []
+    hit_ranges = []
     for j in range(len(hsp)):
         test_file = open("blat_output_test.txt", "w")
         test_file.write(str(hsp[j]))
@@ -109,6 +106,8 @@ def from_hsp_output(hsp, output, gsymb):
 
         query_string = ""
         hit_string = ""
+        strand = hsp[0].query_strand
+        coverage = 100 * (hsp.query_end - hsp.query_start) / output.seq_len
 
         test_file = open("blat_output_test.txt", "r")
         for k, line in enumerate(test_file):
@@ -123,17 +122,13 @@ def from_hsp_output(hsp, output, gsymb):
         chrom = chrom.split(" ")[9].strip("chr")
         query_string = query_string.split(" ")
         hit_string = hit_string.split(" ")
-
-        # Range in query sequence that aligned with hit sequence
         query_ranges.append(query_string[2])
-
-        # Range in hit sequence that aligned with hquery sequence
         hit_ranges.append(hit_string[4])
 
-    return chrom, strand, coverage, identity, query_ranges, hit_ranges, gsymb, None
+    return chrom, strand, coverage, query_ranges, hit_ranges
 
 
-def get_query_and_hit_ranges(output, dat: dict) -> tuple:
+def get_query_and_hit_ranges(output) -> tuple:
     """
     Extracts query and hit ranges from the BLAT output.
 
@@ -151,7 +146,7 @@ def get_query_and_hit_ranges(output, dat: dict) -> tuple:
 
     hsp = obtain_hsp(output)
 
-    data_tuple = from_hsp_output(hsp, output, None)
+    data_tuple = from_hsp_output(hsp, output)
     return data_tuple
 
 
@@ -177,42 +172,28 @@ def mave_to_blat(dat: dict) -> dict:
             chrom,
             strand,
             coverage,
-            identity,
             query_ranges,
             hit_ranges,
-            gsymb,
-            accession,
-        ) = get_query_and_hit_ranges(output, dat)
+        ) = get_query_and_hit_ranges(output)
         qh_dat = {"query_ranges": query_ranges, "hit_ranges": hit_ranges}
         qh_dat = pd.DataFrame(data=qh_dat)
         mave_blat_dict = {
-            "urn": dat["urn"],
             "chrom": chrom,
             "strand": strand,
             "target_type": dat["target_type"],
-            "uniprot": dat["uniprot_id"],
             "coverage": coverage,
-            "identity": identity,
             "hits": qh_dat,
-            "gsymb": gsymb,
-            "accession": accession,
         }
 
     else:
         qh_dat = {"query_ranges": ["NA"], "hit_ranges": ["NA"]}
         qh_dat = pd.DataFrame(data=qh_dat)
         mave_blat_dict = {
-            "urn": dat["urn"],
             "chrom": "NA",
             "strand": "NA",
-            "target": "NA",
             "target_type": "NA",
-            "uniprot": "NA",
             "coverage": "NA",
-            "identity": "NA",
             "hits": qh_dat,
-            "gsymb": "NA",
-            "accession": "NA",
         }
 
     return mave_blat_dict
