@@ -22,17 +22,22 @@ def extract_blat_output(dat: dict):
     blat_file.write(">" + "query" + "\n")
     blat_file.write(dat["target_sequence"] + "\n")
     blat_file.close()
+    # minimum match 50%
+    min_score = len(dat["target_sequence"]) // 2
+
     if dat["target_sequence_type"] == "protein":
-        command = f"blat {path_to_hg38_file} -q=prot -t=dnax -minScore=20 blat_query.fa blat_out.psl"
+        command = f"blat {path_to_hg38_file} -q=prot -t=dnax -minScore={min_score} blat_query.fa blat_out.psl"
         process = subprocess.run(command, shell=True)
     else:
-        command = f"blat {path_to_hg38_file} -minScore=20 blat_query.fa blat_out.psl"
+        command = (
+            f"blat {path_to_hg38_file} -minScore={min_score} blat_query.fa blat_out.psl"
+        )
         process = subprocess.run(command, shell=True)
     try:
         output = SearchIO.read("blat_out.psl", "blat-psl")
     except:
         try:
-            command = f"blat {path_to_hg38_file} -q=dnax -t=dnax -minScore=20 blat_query.fa blat_out.psl"
+            command = f"blat {path_to_hg38_file} -q=dnax -t=dnax -minScore={min_score} blat_query.fa blat_out.psl"
             process = subprocess.run(command, shell=True)
             output = SearchIO.read("blat_out.psl", "blat-psl")
         except:

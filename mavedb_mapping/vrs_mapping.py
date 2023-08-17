@@ -2,10 +2,9 @@ from ga4gh.vrs.extras.translator import Translator
 from Bio.Seq import Seq
 from mavedb_mapping.transcript_selection_helper import HelperFunctionsForBLATOutput
 import pandas as pd
-from ga4gh.vrs import models
-from ga4gh.core import ga4gh_identify, sha512t24u
-from ga4gh.vrs.normalize import normalize
+from ga4gh.core import sha512t24u
 from mavedb_mapping import sr, dp
+from mavedb_mapping.get_allele import pre_mapping, post_mapping
 
 tr = Translator(data_proxy=dp, normalize=False)
 
@@ -14,158 +13,10 @@ scores_dict_coding = {}
 mavedb_ids_coding = {}
 
 
-def get_haplotype_allele(
-    var: str,
-    ref: str,
-    offset: int,
-    l: str,
-    tr,
-    ts: str,
-    mapped: str,
-    ranges,
-    hits,
-    strand,
-):
-    """
-    Retrieves allele, and normalizes it
-
-    Parameters
-    ----------
-        var: str
-            Variant String.
-
-        ref:str
-            RefSeq Identifier.
-
-        offset: int
-            Offset Value.
-
-        l:str
-
-        tr: GA4GH Translator.
-
-        dp: Data proxy.
-
-        ts:str
-            Target Sequence.
-
-        mapped: str
-            Mapping state: premapping/ postmapping.
-
-        ranges: list
-            List of ranges
-
-        hits: list
-
-        strand: int
-
-
-    Returns:
-    --------
-        allele: dict
-            Normalized Allele
-
-    """
-
-    var = var.lstrip(f"{l}.")
-
-    if "[" in var:
-        var = var[1:][:-1]
-        varlist = var.split(";")
-        varlist = list(set(varlist))
-    else:
-        varlist = list()
-        varlist.append(var)
-    alleles = []
-    for i in range(len(varlist)):
-        hgvs_string = ref + ":" + l + "." + varlist[i]
-        allele = tr.translate_from(hgvs_string, "hgvs")
-
-        if mapped == "pre":
-            allele.location.sequence_id = "ga4gh:SQ." + sha512t24u(ts.encode("ascii"))
-            if "dup" in hgvs_string:
-                allele.state.sequence = 2 * str(
-                    sr[str(allele.location.sequence_id)][
-                        allele.location.start.value : allele.location.end.value
-                    ]
-                )
-
-        else:
-            if l != "g":
-                allele.location.interval.start.value += offset
-                allele.location.interval.end.value += offset
-                if "dup" in hgvs_string:
-                    allele.state.sequence = 2 * str(
-                        sr[str(allele.location.sequence_id)][
-                            allele.location.interval.start.value : allele.location.interval.end.value
-                        ]
-                    )
-
-            else:
-                start = allele.location.interval.start.value
-                if len(hits) == 1 and strand == 1:
-                    i = 0
-                    diff = start - hits[i][0]
-                    diff2 = allele.location.interval.end.value - start
-                    allele.location.interval.start.value = ranges[i][0] + diff
-                    allele.location.interval.end.value = (
-                        allele.location.interval.start.value + diff2
-                    )
-                else:
-                    for i in range(len(hits)):
-                        if start >= hits[i][0] and start < hits[i][1]:
-                            break
-                    diff = start - hits[i][0]
-                    diff2 = allele.location.interval.end.value - start
-                    if strand == 1:  # positive orientation
-                        allele.location.interval.start.value = ranges[i][0] + diff
-                        allele.location.interval.end.value = (
-                            allele.location.interval.start.value + diff2
-                        )
-                        if "dup" in hgvs_string:
-                            allele.state.sequence = 2 * str(
-                                sr[str(allele.location.sequence_id)][
-                                    allele.location.interval.start.value : allele.location.interval.end.value
-                                ]
-                            )
-                    else:
-                        allele.location.interval.start.value = (
-                            ranges[i][1] - diff - diff2
-                        )
-                        allele.location.interval.end.value = (
-                            allele.location.interval.start.value + diff2
-                        )
-                        if "dup" in hgvs_string:
-                            allele.state.sequence = 2 * str(
-                                sr[str(allele.location.sequence_id)][
-                                    allele.location.start.value : allele.location.end.value
-                                ]
-                            )
-                        allele.state.sequence = str(
-                            Seq(str(allele.state.sequence)).reverse_complement()
-                        )
-
-        if allele.state.sequence == "N" and l != "p":
-            allele.state.sequence = str(
-                sr[str(allele.location.sequence_id)][
-                    allele.location.interval.start.value : allele.location.interval.end.value
-                ]
-            )
-        allele = normalize(allele, data_proxy=dp)
-        allele._id = ga4gh_identify(allele)
-        alleles.append(allele)
-
-    if len(alleles) == 1:  # Not haplotype
-        return alleles[0].as_dict()
-    else:
-        return models.Haplotype(members=alleles)
-
-
 def process_protein_coding_data(
     varm: list,
     np: str,
     offset: int,
-    tr,
     ts,
     ranges,
     hits,
@@ -178,17 +29,13 @@ def process_protein_coding_data(
     Parameters
     ----------
         varm: list
-            HGVS protein list from MaveDB scores
+            HGVS protein variant list from MaveDB scores
 
         np:str
             RefSeq Protein Identifier.
 
         offset: int
             Offset value.
-
-        tr: GA4GH Translator
-
-        dp: Data proxy
 
         ts: str
             Target Sequence
@@ -208,7 +55,7 @@ def process_protein_coding_data(
 
     Returns
     -------
-        tempdat: DataFrame
+        tempdat: dict
             Contains premapped and postmapped alleles
 
         spro: list
@@ -239,37 +86,17 @@ def process_protein_coding_data(
         else:
             try:
                 if np.startswith("N") == True:
-                    var_ids_pre_map.append(
-                        get_haplotype_allele(
-                            varm[j], np, 0, "p", tr, ts, "pre", "", "", ""
-                        )
-                    )
+                    var_ids_pre_map.append(pre_mapping(np, varm[j], "p", ts))
                     var_ids_post_map.append(
-                        get_haplotype_allele(
-                            varm[j], np, offset, "p", tr, ts, "post", "", "", ""
-                        )
+                        post_mapping(np, varm[j], "p", ranges, hits, offset, None)
                     )
                     spro.append(scores[j])
                     accpro.append(accessions[j])
                 else:
-                    var_ids_pre_map.append(
-                        get_haplotype_allele(
-                            varm[j], np, 0, "p", tr, ts, "pre", "", "", ""
-                        )
-                    )
+                    var_ids_pre_map.append(pre_mapping(np, varm[j], "p", ts))
+
                     var_ids_post_map.append(
-                        get_haplotype_allele(
-                            varm[j],
-                            np,
-                            offset,
-                            "p",
-                            tr,
-                            ts,
-                            "post",
-                            ranges,
-                            hits,
-                            "",
-                        )
+                        post_mapping(np, varm[j], "p", ranges, hits, offset, None)
                     )
                     spro.append(scores[j])
                     accpro.append(accessions[j])
@@ -279,7 +106,7 @@ def process_protein_coding_data(
     return tempdat, spro, accpro
 
 
-def process_nt_data(ntlist, ref, ts, tr, ranges, hits, scores, accessions, strand):
+def process_nt_data(ntlist, ref, ts, ranges, hits, scores, accessions, strand):
     """
     Uses HGVS nucleotide data to map alleles
 
@@ -333,33 +160,9 @@ def process_nt_data(ntlist, ref, ts, tr, ranges, hits, scores, accessions, stran
             continue
         else:
             try:
-                var_ids_pre_map.append(
-                    get_haplotype_allele(
-                        ntlist[j][2:],
-                        ref,
-                        0,
-                        "g",
-                        tr,
-                        ts,
-                        "pre",
-                        ranges,
-                        hits,
-                        strand,
-                    )
-                )
+                var_ids_pre_map.append(pre_mapping(ref, ntlist[j][2:], "g", ts))
                 var_ids_post_map.append(
-                    get_haplotype_allele(
-                        ntlist[j][2:],
-                        ref,
-                        0,
-                        "g",
-                        tr,
-                        ts,
-                        "post",
-                        ranges,
-                        hits,
-                        strand,
-                    )
+                    post_mapping(ref, ntlist[j][2:], "g", ranges, hits, 0, strand)
                 )
                 sn.append(scores[j])
                 accn.append(accessions[j])
@@ -417,23 +220,23 @@ def vrs_mapping_for_protein_coding(
     digest = "SQ." + sha512t24u(ts.encode("ascii"))
     alias_dict_list = [{"namespace": "ga4gh", "alias": digest}]
     sr.store(ts, nsaliases=alias_dict_list)
-
+    print(2)
     mappings_list = list()
     scores_list = list()
     accessions_list = list()
 
     tempdat, spro, accpro = process_protein_coding_data(
-        varm, np, offset, tr, ts, ranges, hits, scores, accessions
+        varm, np, offset, ts, ranges, hits, scores, accessions
     )
 
     mappings_list.append(tempdat)
     scores_list.append(spro)
     accessions_list.append(accpro)
 
-    if ntlist.isnull().values.all() == False and "97" not in dat["urn"]:
+    if ntlist.isnull().values.all() == False:
         strand = mave_blat_dict["strand"]
         tempdat, sn, accn = process_nt_data(
-            ntlist, ref, ts, tr, ranges, hits, scores, accessions, strand
+            ntlist, ref, ts, ranges, hits, scores, accessions, strand
         )
 
         mappings_list.append(tempdat)
@@ -499,7 +302,7 @@ def vrs_mapping_for_non_coding(dat, mave_blat_dict, ref, ranges, hits, variant_d
 
     strand = mave_blat_dict["strand"]
     tempdat, sn, accn = process_nt_data(
-        ntlist, ref, ts, tr, ranges, hits, scores, accessions, strand
+        ntlist, ref, ts, ranges, hits, scores, accessions, strand
     )
 
     mappings_list.append(tempdat)
@@ -543,6 +346,7 @@ def vrs_mapping(dat, mappings_dict, mave_blat_dict, variant_data):
 
     if dat["target_type"] == "Protein coding" and dat["target_sequence_type"] == "dna":
         check_for_transcripts(mappings_dict)
+        print(1)
         mapping = vrs_mapping_for_protein_coding(
             dat, mappings_dict, mave_blat_dict, ref, ranges, hits, variant_data
         )
