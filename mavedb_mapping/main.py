@@ -6,9 +6,16 @@ from mavedb_mapping import data_file_path
 from mavedb_mapping.output import output
 import json
 
+"""Function to create a mapping given a scoreset and its scores"""
 
-def main_map(urn, scores_csv):
-    dat, scores = metadata_obtain(urn, scores_csv)
+
+def main_map(scoreset, scores_csv):
+    # Function to obtain expected inputs from scoreset and scores data
+
+    dat, scores = metadata_obtain(scoreset, scores_csv)
+    # dat and scores are expected inputs
+
+    # Mapping process
     blat_dict = mave_to_blat(dat)
     transcripts = main(blat_dict, dat)
     vrs = vrs_mapping(dat, transcripts, blat_dict, scores)
