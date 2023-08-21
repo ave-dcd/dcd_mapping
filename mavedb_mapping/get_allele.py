@@ -8,6 +8,7 @@ from mavedb_mapping import sr, dp
 tr = Translator(data_proxy=dp, normalize=False)
 
 
+# TODO: docstrings
 def return_normalized_allele(allele, l):
     if allele.state.sequence == "N" and l != "p":
         allele.state.sequence = str(

@@ -239,11 +239,7 @@ def vrs_mapping_for_protein_coding(
         scores_list.append(sn)
         accessions_list.append(accn)
 
-    vrs_mappings_dict = mappings_list
-    scores_dict_coding = scores_list
-    mavedb_ids_coding = accessions_list
-
-    return vrs_mappings_dict
+    return mappings_list
 
 
 def check_for_transcripts(mappings_dict):
@@ -305,14 +301,12 @@ def vrs_mapping_for_non_coding(dat, mave_blat_dict, ref, ranges, hits, variant_d
     scores_list.append(sn)
     accessions_list.append(accn)
 
-    vrs_mappings_dict = mappings_list
-    scores_dict_coding = scores_list
-    mavedb_ids_coding = accessions_list
-
-    return vrs_mappings_dict
+    return mappings_list
 
 
-def vrs_mapping(dat, mappings_dict, mave_blat_dict, variant_data):
+def vrs_mapping(
+    dat: dict, mappings_dict: dict, mave_blat_dict: dict, variant_data: dict
+) -> list:
     """
     Perform VRS mapping for protein coding scoresets.
 
@@ -327,7 +321,7 @@ def vrs_mapping(dat, mappings_dict, mave_blat_dict, variant_data):
         mave_blat_dict: dict
             Dicitionary containing data after doing BLAT Alignment
 
-        scores_csv: csv
+        variant_data: dict
             Scores from MaveDB.
 
     Returns

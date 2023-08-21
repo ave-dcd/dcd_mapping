@@ -55,8 +55,8 @@ def extract_blat_output(dat: dict):
 def obtain_hit_starts(output, hit: int):
     # a hit is a portion of similarity between query seq and matched seq
     """
-    Helper function to obtain HSP
-    Returns the start of hit
+    Helper function to obtain HSP.
+    Returns the starts of hit sequence.
     """
     hit_starts = list()
     for n in range(len(output[hit])):
@@ -66,7 +66,7 @@ def obtain_hit_starts(output, hit: int):
 
 def obtain_hsp(output):
     """
-    Obtains high-scoring pairs (HSP) for query sequence
+    Obtains high-scoring pairs (HSP) for query sequence.
 
     Parameters
     ----------
