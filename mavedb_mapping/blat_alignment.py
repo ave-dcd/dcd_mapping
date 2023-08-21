@@ -4,10 +4,17 @@ import subprocess
 
 from mavedb_mapping import path_to_hg38_file
 
+"""
+    Module for performing BLAT Alignment using target sequence.
+    Returns Query sequence locations with corresponding locations in the
+    hit sequence obtained by BLAT.
+
+"""
+
 
 def extract_blat_output(dat: dict):
     """
-    Runs a BLAT Query and returns the output
+    Runs a BLAT Query and returns the output.
 
     Parameters
     ----------
@@ -35,17 +42,17 @@ def extract_blat_output(dat: dict):
         process = subprocess.run(command, shell=True)
     try:
         output = SearchIO.read("blat_out.psl", "blat-psl")
-    except:
+    except ValueError:
         try:
             command = f"blat {path_to_hg38_file} -q=dnax -t=dnax -minScore={min_score} blat_query.fa blat_out.psl"
             process = subprocess.run(command, shell=True)
             output = SearchIO.read("blat_out.psl", "blat-psl")
-        except:
+        except ValueError:
             return None
     return output
 
 
-def obtain_hit_starts(output, hit):
+def obtain_hit_starts(output, hit: int):
     # a hit is a portion of similarity between query seq and matched seq
     """
     Helper function to obtain HSP
@@ -85,7 +92,7 @@ def obtain_hsp(output):
     return hsp
 
 
-def from_hsp_output(hsp, output):
+def get_query_and_hit_ranges(hsp, output) -> tuple:
     """
 
     Parameters
@@ -99,9 +106,11 @@ def from_hsp_output(hsp, output):
 
     Returns
     -------
-        Tuple with data used for mapping
+        Tuple containing the chromosome, strand, coverage, query ranges, and hit ranges.
 
     """
+    strand = hsp[0].query_strand
+    coverage = 100 * (hsp.query_end - hsp.query_start) / output.seq_len
     query_ranges = []
     hit_ranges = []
     for j in range(len(hsp)):
@@ -111,8 +120,6 @@ def from_hsp_output(hsp, output):
 
         query_string = ""
         hit_string = ""
-        strand = hsp[0].query_strand
-        coverage = 100 * (hsp.query_end - hsp.query_start) / output.seq_len
 
         test_file = open("blat_output_test.txt", "r")
         for k, line in enumerate(test_file):
@@ -133,28 +140,6 @@ def from_hsp_output(hsp, output):
     return chrom, strand, coverage, query_ranges, hit_ranges
 
 
-def get_query_and_hit_ranges(output) -> tuple:
-    """
-    Extracts query and hit ranges from the BLAT output.
-
-    Parameters
-    ----------
-        output:
-            Output from the BLAT query.
-        dat: dict
-            Dictionary containing data required for mapping.
-
-    Returns
-    -------
-        Tuple containing the chromosome, strand, coverage, identity, query ranges, hit ranges, and gene symbol.
-    """
-
-    hsp = obtain_hsp(output)
-
-    data_tuple = from_hsp_output(hsp, output)
-    return data_tuple
-
-
 def mave_to_blat(dat: dict) -> dict:
     """
 
@@ -173,13 +158,14 @@ def mave_to_blat(dat: dict) -> dict:
     """
     output = extract_blat_output(dat)
     if output is not None:
+        hsp = obtain_hsp(output)
         (
             chrom,
             strand,
             coverage,
             query_ranges,
             hit_ranges,
-        ) = get_query_and_hit_ranges(output)
+        ) = get_query_and_hit_ranges(hsp, output)
         qh_dat = {"query_ranges": query_ranges, "hit_ranges": hit_ranges}
         qh_dat = pd.DataFrame(data=qh_dat)
         mave_blat_dict = {
