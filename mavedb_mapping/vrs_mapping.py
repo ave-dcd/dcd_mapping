@@ -121,15 +121,11 @@ def process_nt_data(ntlist, ref, ts, ranges, hits, scores, accessions, strand):
         ts: str
             Target Sequence
 
-        tr: GA4GH Translator
-
-        dp: Data proxy
-
         ranges: list
-            List of ranges
+            List of ranges from BLAT
 
         hits: list
-            List of hits
+            List of hits from BLAT
 
         scores: list
             List of scores from MaveDB
@@ -140,7 +136,7 @@ def process_nt_data(ntlist, ref, ts, ranges, hits, scores, accessions, strand):
 
     Returns
     -------
-        tempdat: DataFrame
+        tempdat: dict
             Contains premapped and postmapped alleles
 
         sn: list
@@ -346,7 +342,6 @@ def vrs_mapping(dat, mappings_dict, mave_blat_dict, variant_data):
 
     if dat["target_type"] == "Protein coding" and dat["target_sequence_type"] == "dna":
         check_for_transcripts(mappings_dict)
-        print(1)
         mapping = vrs_mapping_for_protein_coding(
             dat, mappings_dict, mave_blat_dict, ref, ranges, hits, variant_data
         )

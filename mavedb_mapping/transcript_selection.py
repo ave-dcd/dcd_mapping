@@ -1,10 +1,8 @@
-import requests
 import nest_asyncio
 import asyncio
 from cool_seq_tool.data_sources.mane_transcript_mappings import MANETranscriptMappings
 from cool_seq_tool.data_sources.uta_database import UTADatabase
 from Bio.Seq import Seq
-from bs4 import BeautifulSoup
 from mavedb_mapping.transcript_selection_helper import HelperFunctionsForBLATOutput
 from mavedb_mapping import sr
 
@@ -53,6 +51,7 @@ async def mapq(locs: list, chrom: str):
         if tl != []:
             transcript_lists.append(tl)
     return transcript_lists
+
 
 def get_status(mane_trans: list):
     """
