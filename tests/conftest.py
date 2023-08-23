@@ -19,7 +19,6 @@ def blat_for_tests(dat):
     blat_url = f"https://genome.ucsc.edu/cgi-bin/hgBlat?userSeq={seq}&type={type_}&db={database}&output=json"
     response = requests.get(blat_url)
     blat_output = response.json()
-    print(blat_output)
     hsp = blat_output["blat"][0]
     if "fix" in hsp[13]:
         hsp = blat_output["blat"][1]
@@ -70,7 +69,7 @@ def full_mapping(request):
     scores_path = f"{data_file_path}scores-{(request.param)[11:]}"
     scores_csv = open(scores_path)
     with open(scoreset_path) as scoreset:
-        mave_dat,scores = metadata_obtain(scoreset,scores_csv)
+        mave_dat, scores = metadata_obtain(scoreset, scores_csv)
     mave_blat = blat_for_tests(mave_dat)
     mappings_dict = main(mave_blat, mave_dat)
     vrs_mapped = vrs_mapping(mave_dat, mappings_dict, mave_blat, scores)
@@ -83,7 +82,7 @@ def obtain_transcripts(request):
     scores_path = f"{data_file_path}scores-{(request.param)[11:]}"
     scores_csv = open(scores_path)
     with open(scoreset_path) as scoreset:
-        mave_dat,scores = metadata_obtain(scoreset,scores_csv)
+        mave_dat, scores = metadata_obtain(scoreset, scores_csv)
     mave_blat = blat_for_tests(mave_dat)
     mappings_dict = main(mave_blat, mave_dat)
     return mappings_dict
