@@ -1,0 +1,13 @@
+name: Checks
+on: [push, pull_request]
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: black
+        uses: psf/black@stable
+
+      - name: ruff
+        uses: chartboost/ruff-action@v1
