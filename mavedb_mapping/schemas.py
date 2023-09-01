@@ -5,9 +5,15 @@ from pydantic import BaseModel
 
 
 class TargetGeneCategory(str, Enum):
-    """Define target gene category options"""
+    """Define target gene category options. Add more definitions as needed."""
 
     PROTEIN_CODING = "Protein coding"
+
+
+class TargetSequenceType(str, Enum):
+    """Define target sequence type. Add more definitions as needed."""
+
+    PROTEIN = "protein"
 
 
 class ScoresetMetadata(BaseModel):
@@ -17,7 +23,7 @@ class ScoresetMetadata(BaseModel):
     target_gene_name: str
     target_gene_category: TargetGeneCategory
     target_sequence: str
-    target_sequence_type: str
+    target_sequence_type: TargetSequenceType
 
 
 class ScoreRow(BaseModel):
@@ -25,5 +31,5 @@ class ScoreRow(BaseModel):
 
     hgvs_pro: str
     hgvs_nt: str
-    scores: str
+    score: str
     accession: str
