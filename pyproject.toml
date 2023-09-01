@@ -1,5 +1,5 @@
 [project]
-name = "dcd-mapping"
+name = "mavedb-mapping"
 description = "Map MaveDB scoresets to reference sequences"
 authors = [
     {name = "Alex Handler Wagner", email = "Alex.Wagner@nationwidechildrens.org"},
@@ -20,14 +20,14 @@ classifiers = [
     'Programming Language :: Python :: 3.11',
 ]
 requires-python = ">=3.8"
-dependencies = []
+dependencies = ["requests", "pydantic"]
 
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["dcd_mapping"]
+packages = ["mavedb_mapping"]
 
 [project.optional-dependencies]
 test = []
