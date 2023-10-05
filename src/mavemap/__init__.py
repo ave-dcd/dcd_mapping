@@ -5,3 +5,10 @@ Dissemination (DCD) workstream of the Atlas of Variant Effects (AVE) Alliance.
 See the mapping manuscript for more information:
 https://www.biorxiv.org/content/10.1101/2023.06.20.545702v1
 """
+from dotenv import load_dotenv
+
+from .main import map_scoreset
+
+__all__ = ["map_scoreset"]
+
+load_dotenv()
