@@ -1,21 +1,64 @@
-[tool.poetry]
-name = "dcd-mapping"
-version = "0.1.0"
-description = ""
-authors = ["Alex Handler Wagner <Alex.Wagner@nationwidechildrens.org>"]
-readme = "README.md"
-packages = [{include = "dcd_mapping"}]
-
-[tool.poetry.dependencies]
-python = "^3.9"
-jupyter = "*"
-jupyterlab = "*"
-bs4 = "*"
-requests = "*"
-biopython = '*'
-"biocommons.seqrepo" = "*"
-
-
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dcd-mapping"
+dynamic = ["version"]
+description = "Map variants from MaveDB to the human reference genome."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [
+    { name = "Alex Handler Wagner", email = "Alex.Wagner@nationwidechildrens.org" },
+    { name = "Alan F Rubin", email = "alan.rubin@wehi.edu.au" },
+    { name = "Jeremy Arbesfeld" },
+    { name = "Samriddhi Singh" },
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+    "bs4",
+    "requests",
+    "biopython",
+    "biocommons.seqrepo",
+    "gene-normalizer>=0.1.23",
+    "uta-tools>0.1.0",
+    "pandas",
+    "nest_asyncio",
+    "asyncio",
+]
+
+[project.urls]
+repository = "https://github.com/ave-dcd/dcd_mapping"
+
+[project.optional-dependencies]
+notebooks = [
+    "jupyter",
+    "plotly",
+]
+dev = [
+    "black",
+    "flake8",
+    "pre-commit",
+    "pytest",
+]
+
+[tool.hatch.version]
+path = "src/mavedb_mapping/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mavedb_mapping"]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "docs/",
+    "notebooks",
+    ".github/",
+]

@@ -9,6 +9,8 @@ from ga4gh.vrs.dataproxy import SeqRepoDataProxy
 from gene.query import QueryHandler
 from gene.database import create_db
 
+__version__ = "0.1.0"
+
 path_to_seqrepo = os.getenv("PATH_TO_SEQREPO", "/usr/local/share/seqrepo/latest")
 path_to_hg38_file = os.getenv("HG38_FILE", "hg38.2bit")  # default- in current directory
 data_file_path = "tests/data/"
