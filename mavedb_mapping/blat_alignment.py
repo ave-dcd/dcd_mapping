@@ -1,12 +1,29 @@
 from Bio import SearchIO
 import pandas as pd
 import subprocess
+
 from mavedb_mapping import qh
 from mavedb_mapping import path_to_hg38_file
 
 
-# TODO: edit docstrings
-def get_gene_symb(dat):
+def get_gene_symb(dat:dict):
+    """
+    Obtains gene symbol using gene normalizer.
+
+    Parameters
+    ----------
+        dat: dict
+            Dictionary containing data required for mapping from MAVEDB scoreset.
+
+
+    Returns:
+    --------
+        str:
+            Gene symbol
+
+        If gene symbol cannot be extracted, returns None.
+
+    """
     try:
         uniprot = dat["uniprot_id"]
         gsymb = qh.normalize(str(f"uniprot:{uniprot}")).gene_descriptor.label
@@ -15,13 +32,28 @@ def get_gene_symb(dat):
             target = dat["target"].split(" ")[0]
             gsymb = qh.normalize(target).gene_descriptor.label
         except:
-            return "NA"
+            return None
     return gsymb
 
 
-def get_gene_data(gsymb: str):
-    if gsymb == "NA":
-        return "NA", "NA"
+def get_gene_data(gsymb: str)->tuple:
+    """
+    Searches through QueryHandler using obtained gene symbol.
+
+    Parameters
+    ----------
+        gsymb: str
+            Gene symbol
+
+    Returns:
+    --------
+        tuple:
+            source_dict: dictionary of sources with their index in temp
+            temp: QueryHandler search output
+    
+    """
+    if not gsymb:
+        return (None, None)
     temp = qh.search(gsymb).source_matches
     source_dict = {}
     for i in range(len(temp)):
@@ -29,7 +61,8 @@ def get_gene_data(gsymb: str):
     return temp, source_dict
 
 
-def get_hgnc_accession(temp, source_dict):
+def get_hgnc_accession(temp, source_dict:dict):
+    """Function that obtains HGNC accession id (like hgnc:12345)"""
     if temp == "NA":
         return "NA"
     accession = temp[source_dict["HGNC"]].records[0].concept_id
@@ -37,6 +70,10 @@ def get_hgnc_accession(temp, source_dict):
 
 
 def get_sequence_interval(records):
+    """
+    Helper function to obtain gene data
+
+    """
     for record in records:
         for location in record.locations:
             if location.interval.type == "SequenceInterval":
@@ -47,18 +84,17 @@ def get_sequence_interval(records):
     return None
 
 
-def return_gene_data(return_chr: bool, temp, source_dict):
+def return_gene_data(return_chr: bool, temp, source_dict:dict):
     """
     Parameters
     ----------
         return_chr :bool
            If True, returns chromosome information.
 
-        dat: dict
-            Dictionary containing data required for mapping.
+        source_dict: dict
+            dictionary of sources with their index in temp
 
-        gsymb: str
-            Gene symbol.
+        temp: QueryHandler search output
 
 
     Returns:
@@ -71,7 +107,7 @@ def return_gene_data(return_chr: bool, temp, source_dict):
             If gene symbol can be extracted and return_chr is False
 
     """
-    if temp == "NA":
+    if not temp:
         return "NA"
 
     if "HGNC" in source_dict and return_chr == True:
@@ -98,27 +134,22 @@ def return_gene_data(return_chr: bool, temp, source_dict):
     return "NA"
 
 
-def extract_blat_output(dat: dict):
+def extract_blat_output(dat: dict, query_filename: str = "blat_query.fa"):
     """
+    Runs a BLAT Query and returns the output
+
     Parameters
     ----------
-        return_chr :bool
-           If True, returns chromosome information.
-
         dat: dict
             Dictionary containing data required for mapping.
-
+        blat_query: str
+            Filename for BLAT query file to save
 
     Returns:
     --------
-        str:
-            If return_chr is True, returns the chromosome value as a string.
-            If gene symbol cannot be extracted, returns 'NA'.
-        OR
-        dict:
-            If gene symbol can be extracted and return_chr is False
+        BLAT Output
     """
-    blat_file = open("blat_query.fa", "w")
+    blat_file = open(query_filename, "w")
     blat_file.write(">" + dat["target"] + "\n")
     blat_file.write(dat["target_sequence"] + "\n")
     blat_file.close()
@@ -140,69 +171,80 @@ def extract_blat_output(dat: dict):
     return output
 
 
-def get_query_and_hit_ranges(output, dat):
+def obtain_hit_starts(output, hit):
+    #a hit is a portion of similarity between query seq and matched seq
     """
-    Extracts query and hit ranges from the BLAT output.
-
-    Parameters
-    ----------
-        output:
-            Output from the BLAT query.
-        dat: dict
-            Dictionary containing data required for mapping.
-
-    Returns
-    -------
-        Tuple containing the chromosome, strand, coverage, identity, query ranges, hit ranges, and gene symbol.
+        Helper function to obtain HSP
+        Returns the start of hit  
     """
-    hit_scores = list()
-    hit_dict = {}
-    use_chr = False
-    chrom = strand = ""
-    coverage = identity = None
-    query_ranges = hit_ranges = list()
-
-    gsymb = get_gene_symb(dat)
-    temp, source_dict = get_gene_data(gsymb)
-    accession = get_hgnc_accession(temp, source_dict)
-
-    correct_chr = return_gene_data(True, temp, source_dict)
-    for c in range(len(output)):
-        if correct_chr == output[c].id.strip("chr"):
-            use_chr = True
-            break
-        if (
-            correct_chr == "NA"
-        ):  # Take top scoring hit if target not found using gene normalizer
-            hit_scores = list()
-            for e in range(len(output[c])):
-                hit_scores.append(output[c][e].score)
-            hit_dict[c] = hit_scores
-    if use_chr == False:
-        for key in hit_dict:
-            hit_dict[key] = max(hit_dict[key])
-        hit = max(hit_dict, key=hit_dict.get)
-    else:
-        hit = c
-
-    loc_dict = return_gene_data(False, temp, source_dict)
-
     hit_starts = list()
     for n in range(len(output[hit])):
         hit_starts.append(output[hit][n].hit_start)
+    return hit_starts
 
-    sub_scores = list()
-    for n in range(len(output[hit])):
-        sub_scores.append(output[hit][n].score)
 
-    if loc_dict == "NA":
-        hsp = output[hit][
-            sub_scores.index(max(sub_scores))
-        ]  # Take top score if no match found
-    else:
-        hsp = output[hit][
-            hit_starts.index(min(hit_starts, key=lambda x: abs(x - loc_dict["start"])))
-        ]
+def obtain_hsp_using_gene_normalizer(output, correct_chr, temp, source_dict):
+    for c in range(len(output)):
+        if correct_chr == output[c].id.strip("chr"):
+            hit = c
+            break
+    loc_dict = return_gene_data(False, temp, source_dict)
+    hit_starts = obtain_hit_starts(output, hit)
+    hsp = output[hit][
+        hit_starts.index(min(hit_starts, key=lambda x: abs(x - loc_dict["start"])))
+    ]
+    return hsp
+
+
+def obtain_hsp(output):
+    """
+    Obtains high-scoring pairs (HSP) for query sequence
+     
+    Parameters
+    ----------
+        output: BLAT output
+
+    Returns
+    -------
+        HSP
+    
+    """
+    hit_dict = {}
+    for c in range(len(output)):  
+        max_hit = output[c][0].score
+        for e in range(len(output[c])):
+            if output[c][e].score>max_hit:
+                max_hit = output[c][e].score
+        hit_dict[c] = max_hit
+    
+    #Using top scoring hit
+    hit = max(hit_dict, key=hit_dict.get)
+    hit_starts = obtain_hit_starts(output, hit)
+    hsp = output[hit][hit_starts.index(max(hit_starts))]
+    return hsp
+
+
+def from_hsp_output(hsp, output, gsymb):
+    """
+    
+    Parameters
+    ----------
+        hsp: 
+            High scoring pairs obtained by using top scoring hit
+        output:
+            BLAT output
+        gsymb: str
+            Gene symbol
+    
+    Returns
+    -------
+        Tuple with data used for mapping
+
+    """
+    query_ranges = hit_ranges = []
+    strand = hsp[0].query_strand
+    coverage = 100 * (hsp.query_end - hsp.query_start) / output.seq_len
+    identity = hsp.ident_pct
 
     for j in range(len(hsp)):
         test_file = open("blat_output_test.txt", "w")
@@ -211,10 +253,6 @@ def get_query_and_hit_ranges(output, dat):
 
         query_string = ""
         hit_string = ""
-        strand = hsp[0].query_strand
-        coverage = 100 * (hsp.query_end - hsp.query_start) / output.seq_len
-        # coverage = f"{hsp.query_end - hsp.query_start} / {output.seq_len}, {coverage}"
-        identity = hsp.ident_pct
 
         test_file = open("blat_output_test.txt", "r")
         for k, line in enumerate(test_file):
@@ -229,13 +267,47 @@ def get_query_and_hit_ranges(output, dat):
         chrom = chrom.split(" ")[9].strip("chr")
         query_string = query_string.split(" ")
         hit_string = hit_string.split(" ")
+
+        #Range in query sequence that aligned with hit sequence
         query_ranges.append(query_string[2])
+
+        #Range in hit sequence that aligned with hquery sequence
         hit_ranges.append(hit_string[4])
 
-    return chrom, strand, coverage, identity, query_ranges, hit_ranges, gsymb, accession
+    return chrom, strand, coverage, identity, query_ranges, hit_ranges, gsymb, None
 
 
-def mave_to_blat(dat):
+def get_query_and_hit_ranges(output, dat:dict)->tuple:
+    """
+    Extracts query and hit ranges from the BLAT output.
+
+    Parameters
+    ----------
+        output:
+            Output from the BLAT query.
+        dat: dict
+            Dictionary containing data required for mapping.
+
+    Returns
+    -------
+        Tuple containing the chromosome, strand, coverage, identity, query ranges, hit ranges, and gene symbol.
+    """
+    gsymb = get_gene_symb(dat)
+    temp, source_dict = get_gene_data(gsymb)
+
+    #if "HGNC" in source_dict and (source_dict.get("Ensembl") is not None or source_dict.get("NCBI") is not None):
+    if False: #temporary, will remove using_gene_normalizer
+        # TODO: remove these conditions from return_gene_data
+        correct_chr = return_gene_data(True, temp, source_dict)
+        hsp = obtain_hsp_using_gene_normalizer(output, correct_chr, temp, source_dict)
+    else:
+        hsp = obtain_hsp(output)
+
+    data_tuple = from_hsp_output(hsp, output, gsymb)
+    return data_tuple
+
+
+def mave_to_blat(dat:dict)->dict:
     """
 
     Performs BLAT Alignment on MaveDB scoreset data.
