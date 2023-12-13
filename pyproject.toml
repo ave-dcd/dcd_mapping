@@ -28,12 +28,13 @@ dependencies = [
     "requests",
     "biopython",
     "biocommons.seqrepo",
-    "gene-normalizer>=0.1.23",
+    "gene-normalizer<0.2.0",
     "uta-tools>0.1.0",
     "pandas",
     "nest_asyncio",
     "asyncio",
     "cool_seq_tool",
+    "ga4gh.vrsatile.pydantic==0.0.13",
 ]
 
 [project.urls]
