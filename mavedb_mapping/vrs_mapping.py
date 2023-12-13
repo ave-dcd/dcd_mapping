@@ -1,20 +1,16 @@
 import requests
 import io
-from ga4gh.vrs.dataproxy import SeqRepoDataProxy
-from gene.query import QueryHandler
-from gene.database import create_db
 from ga4gh.vrs.extras.translator import Translator
 from Bio.Seq import Seq
-from biocommons.seqrepo import SeqRepo
-from transcript_selection_helper import *
+from mavedb_mapping.transcript_selection_helper import HelperFunctionsForBLATOutput
 import pandas as pd
 from ga4gh.vrs import models
 from ga4gh.core import ga4gh_identify, sha512t24u
+from ga4gh.vrs.normalize import normalize
+from mavedb_mapping import sr, dp
 
-sr = SeqRepo("/usr/local/share/seqrepo/latest", writeable=True)
-dp = SeqRepoDataProxy(sr=sr)
 tr = Translator(data_proxy=dp, normalize=False)
-qh = QueryHandler(create_db())
+
 vrs_mappings_dict = {}
 scores_dict_coding = {}
 mavedb_ids_coding = {}
@@ -405,7 +401,10 @@ def get_scores_data(scores_csv):
             List of nucleotide variant strings.
 
     """
-    vardat = pd.read_csv(io.StringIO(scores_csv.decode("utf-8")))
+    # string = ("https://api.mavedb.org/api/v1/score-sets/urn%3Amavedb%3A"+ dat["urn"][11::]+ "/scores")
+    # origdat = requests.get(string).content
+    # vardat = pd.read_csv(io.StringIO(origdat.decode("utf-8")))
+    vardat = pd.read_csv(scores_csv)
     scores = vardat["score"].to_list()
     accessions = vardat["accession"].to_list()
     varm = vardat["hgvs_pro"]
@@ -487,6 +486,11 @@ def vrs_mapping_for_protein_coding(
     return vrs_mappings_dict
 
 
+def check_for_transcripts(mappings_dict):
+    if mappings_dict["status"] == "NA":
+        raise Exception("No transcripts found")
+
+
 def vrs_mapping_for_non_coding(
     dat, mappings_dict, mave_blat_dict, ref, ranges, hits, scores_csv
 ):
@@ -521,6 +525,7 @@ def vrs_mapping_for_non_coding(
         vrs_mappings_dict: dict
             VRS mappings dictionary.
     """
+
     mappings_list = list()
     scores_list = list()
     accessions_list = list()
@@ -572,11 +577,13 @@ def vrs_mapping(dat, mappings_dict, mave_blat_dict, scores_csv):
         mapping: dict
             VRS mappings dictionary.
     """
-    ranges = get_locs_list(mave_blat_dict["hits"])
-    hits = get_hits_list(mave_blat_dict["hits"])
-    ref = get_chr(dp, mave_blat_dict["chrom"])
+    helper = HelperFunctionsForBLATOutput(mave_blat_dict)
+    ranges = helper.get_locs_list()
+    hits = helper.get_hits_list()
+    ref = helper.get_chr(dp)
 
     if dat["target_type"] == "Protein coding" and dat["target_sequence_type"] == "dna":
+        check_for_transcripts(mappings_dict)
         mapping = vrs_mapping_for_protein_coding(
             dat, mappings_dict, mave_blat_dict, ref, ranges, hits, scores_csv
         )
