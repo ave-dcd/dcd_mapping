@@ -33,6 +33,7 @@ dependencies = [
     "pandas",
     "nest_asyncio",
     "asyncio",
+    "cool_seq_tool",
 ]
 
 [project.urls]
