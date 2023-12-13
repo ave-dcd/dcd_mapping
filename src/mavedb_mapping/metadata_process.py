@@ -8,6 +8,7 @@ def metadata_obtain(scoreset_json) -> dict:
     ----------
         scoreset_json: json object
             Scoreset JSON object
+
     Returns:
     ----------
         dat: dict
