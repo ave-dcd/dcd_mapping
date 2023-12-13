@@ -4,10 +4,17 @@ import subprocess
 
 from mavedb_mapping import path_to_hg38_file
 
+"""
+    Module for performing BLAT Alignment using target sequence.
+    Returns Query sequence locations with corresponding locations in the
+    hit sequence obtained by BLAT.
+
+"""
+
 
 def extract_blat_output(dat: dict):
     """
-    Runs a BLAT Query and returns the output
+    Runs a BLAT Query and returns the output.
 
     Parameters
     ----------
@@ -19,32 +26,37 @@ def extract_blat_output(dat: dict):
         BLAT Output
     """
     blat_file = open("blat_query.fa", "w")
-    blat_file.write(">" + dat["urn"] + "\n")
+    blat_file.write(">" + "query" + "\n")
     blat_file.write(dat["target_sequence"] + "\n")
     blat_file.close()
+    # minimum match 50%
+    min_score = len(dat["target_sequence"]) // 2
+
     if dat["target_sequence_type"] == "protein":
-        command = f"blat {path_to_hg38_file} -q=prot -t=dnax -minScore=20 blat_query.fa blat_out.psl"
+        command = f"blat {path_to_hg38_file} -q=prot -t=dnax -minScore={min_score} blat_query.fa blat_out.psl"
         process = subprocess.run(command, shell=True)
     else:
-        command = f"blat {path_to_hg38_file} -minScore=20 blat_query.fa blat_out.psl"
+        command = (
+            f"blat {path_to_hg38_file} -minScore={min_score} blat_query.fa blat_out.psl"
+        )
         process = subprocess.run(command, shell=True)
     try:
         output = SearchIO.read("blat_out.psl", "blat-psl")
-    except:
+    except ValueError:
         try:
-            command = f"blat {path_to_hg38_file} -q=dnax -t=dnax -minScore=20 blat_query.fa blat_out.psl"
+            command = f"blat {path_to_hg38_file} -q=dnax -t=dnax -minScore={min_score} blat_query.fa blat_out.psl"
             process = subprocess.run(command, shell=True)
             output = SearchIO.read("blat_out.psl", "blat-psl")
-        except:
+        except ValueError:
             return None
     return output
 
 
-def obtain_hit_starts(output, hit):
+def obtain_hit_starts(output, hit: int):
     # a hit is a portion of similarity between query seq and matched seq
     """
-    Helper function to obtain HSP
-    Returns the start of hit
+    Helper function to obtain HSP.
+    Returns the starts of hit sequence.
     """
     hit_starts = list()
     for n in range(len(output[hit])):
@@ -54,7 +66,7 @@ def obtain_hit_starts(output, hit):
 
 def obtain_hsp(output):
     """
-    Obtains high-scoring pairs (HSP) for query sequence
+    Obtains high-scoring pairs (HSP) for query sequence.
 
     Parameters
     ----------
@@ -80,7 +92,7 @@ def obtain_hsp(output):
     return hsp
 
 
-def from_hsp_output(hsp, output, gsymb):
+def get_query_and_hit_ranges(hsp, output) -> tuple:
     """
 
     Parameters
@@ -94,14 +106,13 @@ def from_hsp_output(hsp, output, gsymb):
 
     Returns
     -------
-        Tuple with data used for mapping
+        Tuple containing the chromosome, strand, coverage, query ranges, and hit ranges.
 
     """
-    query_ranges = hit_ranges = []
     strand = hsp[0].query_strand
     coverage = 100 * (hsp.query_end - hsp.query_start) / output.seq_len
-    identity = hsp.ident_pct
-
+    query_ranges = []
+    hit_ranges = []
     for j in range(len(hsp)):
         test_file = open("blat_output_test.txt", "w")
         test_file.write(str(hsp[j]))
@@ -123,36 +134,10 @@ def from_hsp_output(hsp, output, gsymb):
         chrom = chrom.split(" ")[9].strip("chr")
         query_string = query_string.split(" ")
         hit_string = hit_string.split(" ")
-
-        # Range in query sequence that aligned with hit sequence
         query_ranges.append(query_string[2])
-
-        # Range in hit sequence that aligned with hquery sequence
         hit_ranges.append(hit_string[4])
 
-    return chrom, strand, coverage, identity, query_ranges, hit_ranges, gsymb, None
-
-
-def get_query_and_hit_ranges(output, dat: dict) -> tuple:
-    """
-    Extracts query and hit ranges from the BLAT output.
-
-    Parameters
-    ----------
-        output:
-            Output from the BLAT query.
-        dat: dict
-            Dictionary containing data required for mapping.
-
-    Returns
-    -------
-        Tuple containing the chromosome, strand, coverage, identity, query ranges, hit ranges, and gene symbol.
-    """
-
-    hsp = obtain_hsp(output)
-
-    data_tuple = from_hsp_output(hsp, output, None)
-    return data_tuple
+    return chrom, strand, coverage, query_ranges, hit_ranges
 
 
 def mave_to_blat(dat: dict) -> dict:
@@ -173,46 +158,33 @@ def mave_to_blat(dat: dict) -> dict:
     """
     output = extract_blat_output(dat)
     if output is not None:
+        hsp = obtain_hsp(output)
         (
             chrom,
             strand,
             coverage,
-            identity,
             query_ranges,
             hit_ranges,
-            gsymb,
-            accession,
-        ) = get_query_and_hit_ranges(output, dat)
+        ) = get_query_and_hit_ranges(hsp, output)
         qh_dat = {"query_ranges": query_ranges, "hit_ranges": hit_ranges}
         qh_dat = pd.DataFrame(data=qh_dat)
         mave_blat_dict = {
-            "urn": dat["urn"],
             "chrom": chrom,
             "strand": strand,
             "target_type": dat["target_type"],
-            "uniprot": dat["uniprot_id"],
             "coverage": coverage,
-            "identity": identity,
             "hits": qh_dat,
-            "gsymb": gsymb,
-            "accession": accession,
         }
 
     else:
         qh_dat = {"query_ranges": ["NA"], "hit_ranges": ["NA"]}
         qh_dat = pd.DataFrame(data=qh_dat)
         mave_blat_dict = {
-            "urn": dat["urn"],
             "chrom": "NA",
             "strand": "NA",
-            "target": "NA",
             "target_type": "NA",
-            "uniprot": "NA",
             "coverage": "NA",
-            "identity": "NA",
             "hits": qh_dat,
-            "gsymb": "NA",
-            "accession": "NA",
         }
 
     return mave_blat_dict

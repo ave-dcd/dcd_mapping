@@ -14,16 +14,18 @@ class TestForNonHumanScoresets:
         The mapping raises an Exception"""
 
         scoreset = open(f"{data_file_path}urn:mavedb:00000010-a-1", "r")
+        scores_csv = open(f"{data_file_path}scores-00000010-a-1")
         with pytest.raises(Exception):
-            main_map(scoreset)
+            main_map(scoreset, scores_csv)
 
     def test_for_scoreset_if_blat_not_successful(self):
         """Test to check for non human scoreset where BLAT Alignment is not successful, and gives no output.
         The mapping raises a ValueError"""
 
         scoreset = open(f"{data_file_path}urn:mavedb:00000004-a-1", "r")
+        scores_csv = open(f"{data_file_path}scores-00000004-a-1")
         with pytest.raises(ValueError):
-            main_map(scoreset)
+            main_map(scoreset, scores_csv)
 
 
 class TestForUnsuccessfulMappingScoresets:
@@ -34,5 +36,6 @@ class TestForUnsuccessfulMappingScoresets:
         """Testing for a scoreset for which transcripts could not be found"""
         # TODO: create test for 53
         scoreset = open(f"{data_file_path}urn:mavedb:00000097-c-1", "r")
+        scores_csv = open(f"{data_file_path}scores-00000097-c-1")
         with pytest.raises(Exception):
-            main_map(scoreset)
+            main_map(scoreset, scores_csv)

@@ -39,7 +39,7 @@ def test_for_vrs_mapping(full_mapping):
     ) = get_sample_mapping_data(urn)
 
     # Sequence ID from mapped variant
-    sequence_id = mapped_variant[urn][0]["pre_mapping"][0]["location"]["sequence_id"]
+    sequence_id = mapped_variant[0]["pre_mapping"][0]["location"]["sequence_id"]
     assert sequence_id == sample_sequence_id
 
     # Obtaining the same pre mapped ID from mapped variant, and its index

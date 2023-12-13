@@ -1,10 +1,8 @@
-import requests
 import nest_asyncio
 import asyncio
 from cool_seq_tool.data_sources.mane_transcript_mappings import MANETranscriptMappings
 from cool_seq_tool.data_sources.uta_database import UTADatabase
 from Bio.Seq import Seq
-from bs4 import BeautifulSoup
 from mavedb_mapping.transcript_selection_helper import HelperFunctionsForBLATOutput
 from mavedb_mapping import sr
 
@@ -53,47 +51,6 @@ async def mapq(locs: list, chrom: str):
         if tl != []:
             transcript_lists.append(tl)
     return transcript_lists
-
-
-# uses gene symb here to get transcripts
-
-
-def using_uniprot(uniprot: str, ts: str):
-    """
-    Looks for transcripts using Uniprot ID
-
-    Parameters
-    ----------
-        uniprot: str
-            Uniprot ID
-
-        ts: str
-            Target Sequence
-
-
-    Returns:
-    --------
-        start: str
-
-        full_match:bool
-
-    """
-    try:
-        url = "https://www.uniprot.org/uniprot/" + uniprot + ".xml"
-        page = requests.get(url)
-        page = BeautifulSoup(page.text)
-        page = page.find_all("sequence")
-        up = page[1].get_text()
-        stri = str(ts)
-        if up.find(stri) != -1:
-            full_match = True
-        else:
-            full_match = False
-        start = up.find(stri[:10])
-        return start, full_match
-    except:
-        # print(dat['urn'], 'no transcripts found')
-        return "NA", "NA"
 
 
 def get_status(mane_trans: list):
@@ -177,7 +134,6 @@ def from_mane_trans(dat: dict, mane_trans: list):
     else:
         full_match = False
     start = str(sr[np]).find(stri[:10])
-    mappings_list = [np, start, dat["urn"], full_match, nm, status]
     return np, start, full_match, nm, status
 
 
@@ -279,11 +235,8 @@ def main(mave_blat_dict: dict, dat: dict) -> dict:
             intersection_set = set.intersection(set(i))
             isect = list(intersection_set)
         except:
-            start, full_match = using_uniprot(dat["uniprot_id"], dat["target_sequence"])
-            np = nm = status = "NA"
+            start = full_match = np = nm = status = "NA"
             mappings_dict = {
-                "urn": dat["urn"],
-                "uniprot_id": dat["uniprot_id"],
                 "start": start,
                 "full_match": full_match,
                 "RefSeq_prot": "NA",
@@ -303,14 +256,11 @@ def main(mave_blat_dict: dict, dat: dict) -> dict:
             np, start, full_match, nm, status = no_mane_trans(isect, dat)
 
         mappings_dict = {
-            "urn": dat["urn"],
-            "uniprot_id": dat["uniprot_id"],
             "start": start,
             "full_match": full_match,
             "RefSeq_prot": np,
             "RefSeq_nuc": nm,
             "status": status,
             "gsymb": gsymb,
-            "uniprot_id": dat["uniprot_id"],
         }
         return mappings_dict

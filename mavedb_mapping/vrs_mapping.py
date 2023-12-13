@@ -2,10 +2,9 @@ from ga4gh.vrs.extras.translator import Translator
 from Bio.Seq import Seq
 from mavedb_mapping.transcript_selection_helper import HelperFunctionsForBLATOutput
 import pandas as pd
-from ga4gh.vrs import models
-from ga4gh.core import ga4gh_identify, sha512t24u
-from ga4gh.vrs.normalize import normalize
+from ga4gh.core import sha512t24u
 from mavedb_mapping import sr, dp
+from mavedb_mapping.get_allele import pre_mapping, post_mapping
 
 tr = Translator(data_proxy=dp, normalize=False)
 
@@ -14,158 +13,10 @@ scores_dict_coding = {}
 mavedb_ids_coding = {}
 
 
-def get_haplotype_allele(
-    var: str,
-    ref: str,
-    offset: int,
-    l: str,
-    tr,
-    ts: str,
-    mapped: str,
-    ranges,
-    hits,
-    strand,
-):
-    """
-    Retrieves allele, and normalizes it
-
-    Parameters
-    ----------
-        var: str
-            Variant String.
-
-        ref:str
-            RefSeq Identifier.
-
-        offset: int
-            Offset Value.
-
-        l:str
-
-        tr: GA4GH Translator.
-
-        dp: Data proxy.
-
-        ts:str
-            Target Sequence.
-
-        mapped: str
-            Mapping state: premapping/ postmapping.
-
-        ranges: list
-            List of ranges
-
-        hits: list
-
-        strand: int
-
-
-    Returns:
-    --------
-        allele: dict
-            Normalized Allele
-
-    """
-
-    var = var.lstrip(f"{l}.")
-
-    if "[" in var:
-        var = var[1:][:-1]
-        varlist = var.split(";")
-        varlist = list(set(varlist))
-    else:
-        varlist = list()
-        varlist.append(var)
-    alleles = []
-    for i in range(len(varlist)):
-        hgvs_string = ref + ":" + l + "." + varlist[i]
-        allele = tr.translate_from(hgvs_string, "hgvs")
-
-        if mapped == "pre":
-            allele.location.sequence_id = "ga4gh:SQ." + sha512t24u(ts.encode("ascii"))
-            if "dup" in hgvs_string:
-                allele.state.sequence = 2 * str(
-                    sr[str(allele.location.sequence_id)][
-                        allele.location.start.value : allele.location.end.value
-                    ]
-                )
-
-        else:
-            if l != "g":
-                allele.location.interval.start.value += offset
-                allele.location.interval.end.value += offset
-                if "dup" in hgvs_string:
-                    allele.state.sequence = 2 * str(
-                        sr[str(allele.location.sequence_id)][
-                            allele.location.interval.start.value : allele.location.interval.end.value
-                        ]
-                    )
-
-            else:
-                start = allele.location.interval.start.value
-                if len(hits) == 1 and strand == 1:
-                    i = 0
-                    diff = start - hits[i][0]
-                    diff2 = allele.location.interval.end.value - start
-                    allele.location.interval.start.value = ranges[i][0] + diff
-                    allele.location.interval.end.value = (
-                        allele.location.interval.start.value + diff2
-                    )
-                else:
-                    for i in range(len(hits)):
-                        if start >= hits[i][0] and start < hits[i][1]:
-                            break
-                    diff = start - hits[i][0]
-                    diff2 = allele.location.interval.end.value - start
-                    if strand == 1:  # positive orientation
-                        allele.location.interval.start.value = ranges[i][0] + diff
-                        allele.location.interval.end.value = (
-                            allele.location.interval.start.value + diff2
-                        )
-                        if "dup" in hgvs_string:
-                            allele.state.sequence = 2 * str(
-                                sr[str(allele.location.sequence_id)][
-                                    allele.location.interval.start.value : allele.location.interval.end.value
-                                ]
-                            )
-                    else:
-                        allele.location.interval.start.value = (
-                            ranges[i][1] - diff - diff2
-                        )
-                        allele.location.interval.end.value = (
-                            allele.location.interval.start.value + diff2
-                        )
-                        if "dup" in hgvs_string:
-                            allele.state.sequence = 2 * str(
-                                sr[str(allele.location.sequence_id)][
-                                    allele.location.start.value : allele.location.end.value
-                                ]
-                            )
-                        allele.state.sequence = str(
-                            Seq(str(allele.state.sequence)).reverse_complement()
-                        )
-
-        if allele.state.sequence == "N" and l != "p":
-            allele.state.sequence = str(
-                sr[str(allele.location.sequence_id)][
-                    allele.location.interval.start.value : allele.location.interval.end.value
-                ]
-            )
-        allele = normalize(allele, data_proxy=dp)
-        allele._id = ga4gh_identify(allele)
-        alleles.append(allele)
-
-    if len(alleles) == 1:  # Not haplotype
-        return alleles[0].as_dict()
-    else:
-        return models.Haplotype(members=alleles)
-
-
 def process_protein_coding_data(
     varm: list,
     np: str,
     offset: int,
-    tr,
     ts,
     ranges,
     hits,
@@ -178,17 +29,13 @@ def process_protein_coding_data(
     Parameters
     ----------
         varm: list
-            HGVS protein list from MaveDB scores
+            HGVS protein variant list from MaveDB scores
 
         np:str
             RefSeq Protein Identifier.
 
         offset: int
             Offset value.
-
-        tr: GA4GH Translator
-
-        dp: Data proxy
 
         ts: str
             Target Sequence
@@ -208,7 +55,7 @@ def process_protein_coding_data(
 
     Returns
     -------
-        tempdat: DataFrame
+        tempdat: dict
             Contains premapped and postmapped alleles
 
         spro: list
@@ -239,47 +86,27 @@ def process_protein_coding_data(
         else:
             try:
                 if np.startswith("N") == True:
-                    var_ids_pre_map.append(
-                        get_haplotype_allele(
-                            varm[j], np, 0, "p", tr, ts, "pre", "", "", ""
-                        )
-                    )
+                    var_ids_pre_map.append(pre_mapping(np, varm[j], "p", ts))
                     var_ids_post_map.append(
-                        get_haplotype_allele(
-                            varm[j], np, offset, "p", tr, ts, "post", "", "", ""
-                        )
+                        post_mapping(np, varm[j], "p", ranges, hits, offset, None)
                     )
                     spro.append(scores[j])
                     accpro.append(accessions[j])
                 else:
-                    var_ids_pre_map.append(
-                        get_haplotype_allele(
-                            varm[j], np, 0, "p", tr, ts, "pre", "", "", ""
-                        )
-                    )
+                    var_ids_pre_map.append(pre_mapping(np, varm[j], "p", ts))
+
                     var_ids_post_map.append(
-                        get_haplotype_allele(
-                            varm[j],
-                            np,
-                            offset,
-                            "p",
-                            tr,
-                            ts,
-                            "post",
-                            ranges,
-                            hits,
-                            "",
-                        )
+                        post_mapping(np, varm[j], "p", ranges, hits, offset, None)
                     )
                     spro.append(scores[j])
                     accpro.append(accessions[j])
             except:
                 continue
-    tempdat = pd.DataFrame({"pre_mapping": var_ids_pre_map, "mapped": var_ids_post_map})
+    tempdat = {"pre_mapping": var_ids_pre_map, "mapped": var_ids_post_map}
     return tempdat, spro, accpro
 
 
-def process_nt_data(ntlist, ref, ts, tr, ranges, hits, scores, accessions, strand):
+def process_nt_data(ntlist, ref, ts, ranges, hits, scores, accessions, strand):
     """
     Uses HGVS nucleotide data to map alleles
 
@@ -294,15 +121,11 @@ def process_nt_data(ntlist, ref, ts, tr, ranges, hits, scores, accessions, stran
         ts: str
             Target Sequence
 
-        tr: GA4GH Translator
-
-        dp: Data proxy
-
         ranges: list
-            List of ranges
+            List of ranges from BLAT
 
         hits: list
-            List of hits
+            List of hits from BLAT
 
         scores: list
             List of scores from MaveDB
@@ -313,7 +136,7 @@ def process_nt_data(ntlist, ref, ts, tr, ranges, hits, scores, accessions, stran
 
     Returns
     -------
-        tempdat: DataFrame
+        tempdat: dict
             Contains premapped and postmapped alleles
 
         sn: list
@@ -333,33 +156,9 @@ def process_nt_data(ntlist, ref, ts, tr, ranges, hits, scores, accessions, stran
             continue
         else:
             try:
-                var_ids_pre_map.append(
-                    get_haplotype_allele(
-                        ntlist[j][2:],
-                        ref,
-                        0,
-                        "g",
-                        tr,
-                        ts,
-                        "pre",
-                        ranges,
-                        hits,
-                        strand,
-                    )
-                )
+                var_ids_pre_map.append(pre_mapping(ref, ntlist[j][2:], "g", ts))
                 var_ids_post_map.append(
-                    get_haplotype_allele(
-                        ntlist[j][2:],
-                        ref,
-                        0,
-                        "g",
-                        tr,
-                        ts,
-                        "post",
-                        ranges,
-                        hits,
-                        strand,
-                    )
+                    post_mapping(ref, ntlist[j][2:], "g", ranges, hits, 0, strand)
                 )
                 sn.append(scores[j])
                 accn.append(accessions[j])
@@ -369,44 +168,8 @@ def process_nt_data(ntlist, ref, ts, tr, ranges, hits, scores, accessions, stran
     return tempdat, sn, accn
 
 
-def get_scores_data(scores_csv):
-    """
-    Retrieve scores and accessions from scores from MaveDB
-
-    Parameters
-    ----------
-        scores_csv: csv
-            Scores from MaveDB
-
-
-    Returns
-    -------
-        scores: list
-            List of scores.
-
-        accessions: list
-            List of accessions.
-
-        varm: list
-            List of variant strings.
-
-        ntlist: list
-            List of nucleotide variant strings.
-
-    """
-    # string = ("https://api.mavedb.org/api/v1/score-sets/urn%3Amavedb%3A"+ dat["urn"][11::]+ "/scores")
-    # origdat = requests.get(string).content
-    # vardat = pd.read_csv(io.StringIO(origdat.decode("utf-8")))
-    vardat = pd.read_csv(scores_csv)
-    scores = vardat["score"].to_list()
-    accessions = vardat["accession"].to_list()
-    varm = vardat["hgvs_pro"]
-    ntlist = vardat["hgvs_nt"]
-    return scores, accessions, varm, ntlist
-
-
 def vrs_mapping_for_protein_coding(
-    dat, mappings_dict, mave_blat_dict, ref, ranges, hits, scores_csv
+    dat, mappings_dict, mave_blat_dict, ref, ranges, hits, variant_data
 ):
     """
     Perform VRS mapping for protein coding scoresets.
@@ -439,7 +202,11 @@ def vrs_mapping_for_protein_coding(
         vrs_mappings_dict: dict
             VRS mappings dictionary.
     """
-    scores, accessions, varm, ntlist = get_scores_data(scores_csv)
+    scores = variant_data["scores"]
+    accessions = variant_data["accessions"]
+    varm = variant_data["hgvs_pro"]  # TODO: change variable name l
+    ntlist = variant_data["hgvs_nt"]
+
     np = mappings_dict["RefSeq_prot"]
     offset = mappings_dict["start"]
 
@@ -449,34 +216,30 @@ def vrs_mapping_for_protein_coding(
     digest = "SQ." + sha512t24u(ts.encode("ascii"))
     alias_dict_list = [{"namespace": "ga4gh", "alias": digest}]
     sr.store(ts, nsaliases=alias_dict_list)
-
+    print(2)
     mappings_list = list()
     scores_list = list()
     accessions_list = list()
 
     tempdat, spro, accpro = process_protein_coding_data(
-        varm, np, offset, tr, ts, ranges, hits, scores, accessions
+        varm, np, offset, ts, ranges, hits, scores, accessions
     )
 
     mappings_list.append(tempdat)
     scores_list.append(spro)
     accessions_list.append(accpro)
 
-    if ntlist.isnull().values.all() == False and "97" not in dat["urn"]:
+    if ntlist.isnull().values.all() == False:
         strand = mave_blat_dict["strand"]
         tempdat, sn, accn = process_nt_data(
-            ntlist, ref, ts, tr, ranges, hits, scores, accessions, strand
+            ntlist, ref, ts, ranges, hits, scores, accessions, strand
         )
 
         mappings_list.append(tempdat)
         scores_list.append(sn)
         accessions_list.append(accn)
 
-    vrs_mappings_dict[dat["urn"]] = mappings_list
-    scores_dict_coding[dat["urn"]] = scores_list
-    mavedb_ids_coding[dat["urn"]] = accessions_list
-
-    return vrs_mappings_dict
+    return mappings_list
 
 
 def check_for_transcripts(mappings_dict):
@@ -484,9 +247,7 @@ def check_for_transcripts(mappings_dict):
         raise Exception("No transcripts found")
 
 
-def vrs_mapping_for_non_coding(
-    dat, mappings_dict, mave_blat_dict, ref, ranges, hits, scores_csv
-):
+def vrs_mapping_for_non_coding(dat, mave_blat_dict, ref, ranges, hits, variant_data):
     """
     Perform VRS mapping for protein coding scoresets.
 
@@ -522,10 +283,10 @@ def vrs_mapping_for_non_coding(
     mappings_list = list()
     scores_list = list()
     accessions_list = list()
-    ts = dat["target_sequence"]
-    scores, accessions, varm, ntlist = get_scores_data(scores_csv)
-    ts = dat["target_sequence"]
-    ts = Seq(ts)
+    scores = variant_data["scores"]
+    accessions = variant_data["accessions"]
+    ntlist = variant_data["hgvs_nt"]
+    ts = Seq(dat["target_sequence"])
     ts = str(ts.translate(table=1)).replace("*", "")
     digest = "SQ." + sha512t24u(ts.encode("ascii"))
     alias_dict_list = [{"namespace": "ga4gh", "alias": digest}]
@@ -533,21 +294,19 @@ def vrs_mapping_for_non_coding(
 
     strand = mave_blat_dict["strand"]
     tempdat, sn, accn = process_nt_data(
-        ntlist, ref, ts, tr, ranges, hits, scores, accessions, strand
+        ntlist, ref, ts, ranges, hits, scores, accessions, strand
     )
 
     mappings_list.append(tempdat)
     scores_list.append(sn)
     accessions_list.append(accn)
 
-    vrs_mappings_dict[dat["urn"]] = mappings_list
-    scores_dict_coding[dat["urn"]] = scores_list
-    mavedb_ids_coding[dat["urn"]] = accessions_list
-
-    return vrs_mappings_dict
+    return mappings_list
 
 
-def vrs_mapping(dat, mappings_dict, mave_blat_dict, scores_csv):
+def vrs_mapping(
+    dat: dict, mappings_dict: dict, mave_blat_dict: dict, variant_data: dict
+) -> list:
     """
     Perform VRS mapping for protein coding scoresets.
 
@@ -562,7 +321,7 @@ def vrs_mapping(dat, mappings_dict, mave_blat_dict, scores_csv):
         mave_blat_dict: dict
             Dicitionary containing data after doing BLAT Alignment
 
-        scores_csv: csv
+        variant_data: dict
             Scores from MaveDB.
 
     Returns
@@ -578,11 +337,11 @@ def vrs_mapping(dat, mappings_dict, mave_blat_dict, scores_csv):
     if dat["target_type"] == "Protein coding" and dat["target_sequence_type"] == "dna":
         check_for_transcripts(mappings_dict)
         mapping = vrs_mapping_for_protein_coding(
-            dat, mappings_dict, mave_blat_dict, ref, ranges, hits, scores_csv
+            dat, mappings_dict, mave_blat_dict, ref, ranges, hits, variant_data
         )
     else:
         mapping = vrs_mapping_for_non_coding(
-            dat, mappings_dict, mave_blat_dict, ref, ranges, hits, scores_csv
+            dat, mave_blat_dict, ref, ranges, hits, variant_data
         )
 
     return mapping

@@ -1,21 +1,32 @@
 import json
+import pandas as pd
+
+"""Function that specifies input format"""
 
 
-def metadata_obtain(scoreset_json) -> dict:
+def metadata_obtain(scoreset_json, scores_csv) -> dict:
     """
-    Extracts relevant metadata from a scoreset JSON object
+    Extract data from MaveDB scoresets and convert them into an input format that imitates
+    the expected inputs of the package.
+
+
     Parameters
     ----------
         scoreset_json: json object
             Scoreset JSON object
 
+        scores_csv
+
     Returns:
     ----------
         dat: dict
             Dictionary containing extracted metadata
+
+        variant_data: dict
+            Dictionary containing variants
+
     """
     scoreset = json.load(scoreset_json)
-    urn = scoreset["urn"]
 
     # Sequence
     human_target_sequences = scoreset["targetGene"]["wtSequence"]["sequence"]
@@ -23,22 +34,26 @@ def metadata_obtain(scoreset_json) -> dict:
     # Sequence type
     target_type = scoreset["targetGene"]["wtSequence"]["sequenceType"]
 
-    # Uniprot ID
-    if scoreset["targetGene"]["externalIdentifiers"] != []:
-        uniprot = scoreset["targetGene"]["externalIdentifiers"][0]["identifier"][
-            "identifier"
-        ]
-    else:
-        uniprot = None
-
     # Target type
     target = scoreset["targetGene"]["category"]
 
     dat = {
-        "urn": urn,
         "target_sequence": human_target_sequences,
         "target_sequence_type": target_type,
-        "uniprot_id": uniprot,
         "target_type": target,
     }
-    return dat
+
+    vardat = pd.read_csv(scores_csv)
+
+    varm = vardat["hgvs_pro"]
+    ntlist = vardat["hgvs_nt"]
+    scores = vardat["score"].to_list()
+    accessions = vardat["accession"].to_list()
+
+    variant_data = {
+        "hgvs_pro": varm,
+        "hgvs_nt": ntlist,
+        "scores": scores,
+        "accessions": accessions,
+    }
+    return dat, variant_data
