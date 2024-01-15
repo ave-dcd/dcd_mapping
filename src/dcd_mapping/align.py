@@ -1,22 +1,32 @@
 """Align MaveDB target sequences to a human reference genome."""
 import logging
 import subprocess
+import uuid
 from pathlib import Path
-from typing import Any, Dict, Generator, Optional
+from typing import Any, Dict, Generator, List, Optional
 
 from Bio.SearchIO import HSP
 from Bio.SearchIO import read as read_blat
 from Bio.SearchIO._model import Hit, QueryResult
+from cool_seq_tool.schemas import Strand
+from gene.database.database import click
 
-from mavemap.lookup import get_chromosome_identifier, get_gene_location
-from mavemap.resources import get_mapping_tmp_dir, get_ref_genome_file
-from mavemap.schemas import (
+from dcd_mapping.lookup import get_chromosome_identifier, get_gene_location
+from dcd_mapping.resources import (
+    LOCAL_STORE_PATH,
+    get_cached_blat_output,
+    get_mapping_tmp_dir,
+    get_ref_genome_file,
+)
+from dcd_mapping.schemas import (
     AlignmentResult,
     GeneLocation,
     ScoresetMetadata,
     SequenceRange,
     TargetSequenceType,
 )
+
+__all__ = ["align"]
 
 _logger = logging.getLogger(__name__)
 
@@ -25,21 +35,30 @@ class AlignmentError(Exception):
     """Raise when errors encountered during alignment."""
 
 
+def _write_query_file(file: Path, lines: List[str]) -> None:
+    """Write lines to query file. This method is broken out to enable easy mocking while
+    testing.
+
+    :param file: path to query file
+    :param lines: list of lines to write (should be header and then sequence)
+    """
+    with open(file, "w") as f:
+        for line in lines:
+            f.write(f"{line}\n")
+
+
 def _build_query_file(scoreset_metadata: ScoresetMetadata) -> Generator[Path, Any, Any]:
     """Construct BLAT query file.
-
-    TODO double-check that yield behaves the way I think it does
-
-    This function is broken out to enable mocking while testing.
 
     :param scoreset_metadata: MaveDB scoreset metadata object
     :return: Yielded Path to constructed file. Deletes file once complete.
     """
-    query_file = get_mapping_tmp_dir() / "blat_query.fa"
-    with open(query_file, "w") as f:
-        f.write(">" + "query" + "\n")
-        f.write(scoreset_metadata.target_sequence + "\n")
-        f.close()
+    query_file = (
+        get_mapping_tmp_dir() / f"blat_query_{scoreset_metadata.urn}_{uuid.uuid1()}.fa"
+    )
+    _logger.debug("Writing BLAT query to %", query_file)
+    lines = [">query", scoreset_metadata.target_sequence]
+    _write_query_file(query_file, lines)
     yield query_file
     query_file.unlink()
 
@@ -47,24 +66,28 @@ def _build_query_file(scoreset_metadata: ScoresetMetadata) -> Generator[Path, An
 def _run_blat_command(command: str, args: Dict) -> subprocess.CompletedProcess:
     """Execute BLAT binary with relevant params.
 
+    This function is broken out to enable mocking while testing.
+
     Currently, we rely on a system-installed BLAT binary accessible in the containing
     environment's PATH. This is sort of awkward and it'd be nice to make use of some
     direct bindings or better packaging if that's possible.
 
-    Perhaps `gget`? https://pachterlab.github.io/gget/en/blat.html
-
-    This function is broken out to enable mocking while testing.
+    * Perhaps `gget`? https://pachterlab.github.io/gget/en/blat.html
+    * ``PxBlat``? https://github.com/ylab-hi/pxblat
 
     :param command: shell command to execute
     :param args: ``subprocess.run`` extra args (eg redirecting output for silent mode)
     :return: process result
     """
+    _logger.debug("Running BLAT command: %", command)
     return subprocess.run(command, shell=True, **args)
 
 
-# TODO make output object an arg???
 def _get_blat_output(
-    scoreset_metadata: ScoresetMetadata, query_file: Path, quiet: bool
+    scoreset_metadata: ScoresetMetadata,
+    query_file: Path,
+    silent: bool,
+    use_cached: bool,
 ) -> QueryResult:
     """Run a BLAT query and returns a path to the output object.
 
@@ -72,47 +95,66 @@ def _get_blat_output(
     should be deleted by the process once complete. This happens manually, but we could
     probably add a decorator or a context manager for a bit more elegance.
 
+    Ideally, we should see if we could pipe query output to STDOUT and then grab/process
+    it that way instead of using a temporary intermediary file.
+
     :param scoreset_metadata: object containing scoreset attributes
     :param query_file: Path to BLAT query file
-    :param quiet: suppress BLAT command output
+    :param silent: suppress BLAT command output
+    :param use_cached: if True, don't rerun BLAT if output file already exists, and don't
+    save it to a temporary location. This is probably only useful during development.
     :return: BLAT query result
     :raise AlignmentError: if BLAT subprocess returns error code
     """
-    reference_genome_file = get_ref_genome_file()
-    # TODO is this min score value correct?
-    # min_score = len(scoreset_metadata.target_sequence) // 2  # minimum match 50%
-    min_score = 20
-    out_file = get_mapping_tmp_dir() / "blat_out.psl"
-
-    if scoreset_metadata.target_sequence_type == TargetSequenceType.PROTEIN:
-        command = f"blat {reference_genome_file} -q=prot -t=dnax -minScore={min_score} {query_file} {out_file}"
-    elif scoreset_metadata.target_sequence_type == TargetSequenceType.DNA:
-        command = f"blat {reference_genome_file} -q=dnax -t=dnax -minScore={min_score} {query_file} {out_file}"
+    if use_cached:
+        out_file = get_cached_blat_output(scoreset_metadata.urn)
     else:
-        query_file.unlink()
-        out_file.unlink()
-        raise AlignmentError(
-            f"Unknown target sequence type: {scoreset_metadata.target_sequence_type} for scoreset {scoreset_metadata.urn}"
-        )
-    if quiet:
-        kwargs = {"stdout": subprocess.DEVNULL, "stderr": subprocess.STDOUT}
-    else:
-        kwargs = {}
-    process = _run_blat_command(command, kwargs)
-    if process.returncode != 0:
-        query_file.unlink()
-        out_file.unlink()
-        raise AlignmentError(
-            f"BLAT process returned error code {process.returncode}: {command}"
-        )
+        out_file = None
+    if not use_cached or not out_file:
+        reference_genome_file = get_ref_genome_file(
+            silent=silent
+        )  # TODO hg38 by default--what about earlier builds?
+        if use_cached:
+            out_file = LOCAL_STORE_PATH / f"{scoreset_metadata.urn}_blat_output.psl"
+        else:
+            out_file = (
+                get_mapping_tmp_dir()
+                / f"blat_out_{scoreset_metadata.urn}_{uuid.uuid1()}.psl"
+            )
 
+        if scoreset_metadata.target_sequence_type == TargetSequenceType.PROTEIN:
+            target_commands = "-q=prot -t=dnax"
+        elif scoreset_metadata.target_sequence_type == TargetSequenceType.DNA:
+            target_commands = "-q=dnax -t=dnax"
+        else:
+            query_file.unlink()
+            out_file.unlink()
+            raise AlignmentError(
+                f"Unknown target sequence type: {scoreset_metadata.target_sequence_type} for scoreset {scoreset_metadata.urn}"
+            )
+        command = f"blat {reference_genome_file} {target_commands} -minScore=20 {query_file} {out_file}"
+        if silent:
+            kwargs = {"stdout": subprocess.DEVNULL, "stderr": subprocess.STDOUT}
+        else:
+            kwargs = {}
+        process = _run_blat_command(command, kwargs)
+        if process.returncode != 0:
+            query_file.unlink()
+            out_file.unlink()
+            raise AlignmentError(
+                f"BLAT process returned error code {process.returncode}: {command}"
+            )
+    # TODO
     # the notebooks handle errors here by trying different BLAT arg configurations --
     # investigate, refer to older code if it comes up
+    # ideally we should be forming correct queries up front instead of running
+    # failed alignment attempts
     output = read_blat(out_file.absolute(), "blat-psl")
 
     # clean up
     query_file.unlink()
-    out_file.unlink()
+    if not use_cached:
+        out_file.unlink()
 
     return output
 
@@ -131,6 +173,9 @@ def _get_best_hit(output: QueryResult, urn: str, chromosome: Optional[str]) -> H
     :raise AlignmentError: if unable to get hits from output
     """
     if chromosome:
+        if chromosome.startswith("refseq"):
+            chromosome = chromosome[7:]
+
         for hit in output:
             hit_chr = hit.id
             if hit_chr.startswith("chr"):
@@ -202,7 +247,7 @@ def _get_best_match(output: QueryResult, metadata: ScoresetMetadata) -> Alignmen
     best_hit = _get_best_hit(output, metadata.urn, chromosome)
     best_hsp = _get_best_hsp(best_hit, metadata.urn, location)
 
-    strand = best_hsp[0].query_strand
+    strand = Strand.POSITIVE if best_hsp[0].query_strand == 1 else Strand.NEGATIVE
     coverage = 100 * (best_hsp.query_end - best_hsp.query_start) / output.seq_len  # type: ignore
     identity = best_hsp.ident_pct  # type: ignore
     chrom = best_hsp.hit_id
@@ -230,15 +275,30 @@ def _get_best_match(output: QueryResult, metadata: ScoresetMetadata) -> Alignmen
     return result
 
 
-def align(scoreset_metadata: ScoresetMetadata, quiet: bool = True) -> AlignmentResult:
+def align(
+    scoreset_metadata: ScoresetMetadata, silent: bool = True, use_cached: bool = False
+) -> AlignmentResult:
     """Align target sequence to a reference genome.
 
     :param scoreset_metadata: object containing scoreset metadata
-    :param quiet: suppress BLAT process output if true
+    :param silent: suppress BLAT process output if true
+    :param use_cached: make use of permanent mapping storage for intermediary files rather
+        than rebuilding new output and storing in tmp directory. Mostly useful for
+        development/testing.
     :return: data wrapper containing alignment results
     """
-    query_file = next(_build_query_file(scoreset_metadata))
-    blat_output = _get_blat_output(scoreset_metadata, query_file, quiet)
+    msg = f"Performing alignment for {scoreset_metadata.urn}..."
+    if not silent:
+        click.echo(msg)
+    _logger.info(msg)
 
+    query_file = next(_build_query_file(scoreset_metadata))
+    blat_output = _get_blat_output(scoreset_metadata, query_file, silent, use_cached)
     match = _get_best_match(blat_output, scoreset_metadata)
+
+    msg = "Alignment complete."
+    if not silent:
+        click.echo(msg)
+    _logger.info(msg)
+
     return match

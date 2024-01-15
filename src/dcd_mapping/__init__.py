@@ -7,8 +7,8 @@ https://www.biorxiv.org/content/10.1101/2023.06.20.545702v1
 """
 from dotenv import load_dotenv
 
-from .main import map_scoreset
+from .main import map_scoreset, map_scoreset_urn
 
-__all__ = ["map_scoreset"]
+__all__ = ["map_scoreset", "map_scoreset_urn"]
 
 load_dotenv()

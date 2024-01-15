@@ -1,33 +1,33 @@
 """Provide class definitions for commonly-used information objects."""
-from enum import Enum
-from typing import List, Optional
+from enum import StrEnum
+from typing import List, Optional, Union
 
-from pydantic import BaseModel
-
-
-class TargetGeneCategory(str, Enum):
-    """Define target gene category options. Add more definitions as needed."""
-
-    PROTEIN_CODING = "Protein coding"
+from cool_seq_tool.schemas import Strand, TranscriptPriority
+from ga4gh.vrs._internal.models import Allele, Haplotype
+from pydantic import BaseModel, StrictBool, StrictInt
 
 
-class TargetSequenceType(str, Enum):
+class TargetSequenceType(StrEnum):
     """Define target sequence type. Add more definitions as needed."""
 
     PROTEIN = "protein"
     DNA = "dna"
 
 
-class ReferenceGenome(str, Enum):
+class ReferenceGenome(StrEnum):
     """Define known reference genome names."""
 
     HG38 = "hg38"
+    HG19 = "hg19"
+    HG16 = "hg16"
 
 
-class TargetType(str, Enum):
+class TargetType(StrEnum):
     """Define target gene types."""
 
     PROTEIN_CODING = "Protein coding"
+    REGULATORY = "Regulatory"
+    OTHER_NC = "Other noncoding"
 
 
 class UniProtRef(BaseModel):
@@ -50,7 +50,7 @@ class ScoresetMetadata(BaseModel):
 
 
 class ScoreRow(BaseModel):
-    """TODO"""
+    """Row from a MAVE score result"""
 
     hgvs_pro: str
     hgvs_nt: str
@@ -74,10 +74,10 @@ class GeneLocation(BaseModel):
 
 
 class AlignmentResult(BaseModel):
-    """Structured BLAT alignment output."""
+    """Define BLAT alignment output."""
 
     chrom: str
-    strand: str
+    strand: Strand
     coverage: float
     ident_pct: float
     query_range: SequenceRange
@@ -86,15 +86,18 @@ class AlignmentResult(BaseModel):
     hit_subranges: List[SequenceRange]
 
 
-class TranscriptStatus(str, Enum):
-    """Define legal MANE statuses."""
+class TranscriptDescription(BaseModel):
+    """Structured transcript description.
 
-    SELECT = "MANE Select"
-    PLUS_CLINICAL = "MANE Plus Clinical"
-    LONGEST_COMPATIBLE = "Longest Compatible"
+    Provides less information than the MANE results, but should convey what we need.
+    """
+
+    refseq_nuc: str
+    refseq_prot: str
+    transcript_priority: TranscriptPriority
 
 
-class ManeData(BaseModel):
+class ManeDescription(TranscriptDescription):
     """Structured MANE data retrieval result."""
 
     ncbi_gene_id: str
@@ -102,12 +105,39 @@ class ManeData(BaseModel):
     hgnc_gene_id: str
     symbol: str
     name: str
-    refseq_nuc: str
-    refseq_prot: str
     ensembl_nuc: str
     ensembl_prot: str
-    mane_status: TranscriptStatus
     grch38_chr: str
     chr_start: int
     chr_end: int
     chr_strand: str
+
+
+class TxSelectResult(BaseModel):
+    """Define response object from transcript selection process."""
+
+    nm: Optional[str] = None
+    np: str
+    start: StrictInt
+    is_full_match: StrictBool
+    transcript_mode: Optional[TranscriptPriority] = None
+    sequence: str
+
+
+class VrsMapping(BaseModel):
+    """Define pre-post mapping pair structure for VRS-structured variations.
+
+    Probably need to add score and accession to make json writing easier
+    """
+
+    pre_mapping: Union[Allele, Haplotype]
+    mapped: Union[Allele, Haplotype]
+
+
+class VrsMappingResult(BaseModel):
+    """Define response object from VRS mappings method.
+
+    Might not be necessary (should just be list of VrsMappings?)
+    """
+
+    variations: List[VrsMapping]

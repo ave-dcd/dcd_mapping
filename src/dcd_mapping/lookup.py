@@ -3,19 +3,41 @@
 This module should contain methods that we don't want to think about caching.
 """
 import logging
-from typing import List, Optional
+from typing import Dict, List, Optional
 
+import polars as pl
 import requests
-from cool_seq_tool import CoolSeqTool
-from ga4gh.vrsatile.pydantic.vrsatile_models import Extension, GeneDescriptor
+from cool_seq_tool.app import CoolSeqTool
+from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
+from cool_seq_tool.schemas import TranscriptPriority
+from ga4gh.core._internal.models import Extension, Gene
+from ga4gh.vrs._internal.models import Allele, SequenceLocation
+from ga4gh.vrs.extras.translator import AlleleTranslator
 from gene.database import create_db
 from gene.query import QueryHandler
 from gene.schemas import SourceName
 
-from mavemap.schemas import GeneLocation, ManeData, ScoresetMetadata
+from dcd_mapping.schemas import GeneLocation, ManeDescription, ScoresetMetadata
 
+__all__ = [
+    "CoolSeqToolBuilder",
+    "get_seqrepo",
+    "GeneNormalizerBuilder",
+    "VrsTranslatorBuilder",
+    "get_protein_accession",
+    "get_transcripts",
+    "get_gene_symbol",
+    "get_gene_location",
+    "get_chromosome_identifier",
+    "get_ucsc_chromosome_name",
+    "get_chromosome_identifier_from_vrs_id",
+    "get_sequence",
+    "store_sequence",
+    "hgvs_to_vrs",
+    "get_mane_transcripts",
+    "get_uniprot_sequence",
+]
 _logger = logging.getLogger(__name__)
-
 
 # ---------------------------------- Global ---------------------------------- #
 
@@ -29,8 +51,42 @@ class CoolSeqToolBuilder:
         :return: singleton instance of CoolSeqTool
         """
         if not hasattr(cls, "instance"):
-            q = QueryHandler(create_db())
-            cls.instance = CoolSeqTool(gene_query_handler=q)
+            cls.instance = CoolSeqTool()
+        return cls.instance
+
+
+def get_seqrepo() -> SeqRepoAccess:
+    """Retrieve SeqRepo access instance."""
+    cst = CoolSeqToolBuilder()
+    return cst.seqrepo_access
+
+
+class GeneNormalizerBuilder:
+    """Singleton constructor for Gene Normalizer instance."""
+
+    def __new__(cls) -> QueryHandler:
+        """Provide Gene Normalizer instance. Construct it if unavailable.
+
+        :return: singleton instance of ``QueryHandler`` for Gene Normalizer
+        """
+        if not hasattr(cls, "instance"):
+            db = create_db()
+            q = QueryHandler(db)
+            cls.instance = q
+        return cls.instance
+
+
+class VrsTranslatorBuilder:
+    """Singleton constructor for VRS-Python translator instance."""
+
+    def __new__(cls) -> AlleleTranslator:
+        """Provide VRS-Python translator. Construct if unavailable.
+
+        :return: singleton instances of Translator
+        """
+        if not hasattr(cls, "instance"):
+            cst = CoolSeqToolBuilder()
+            cls.instance = AlleleTranslator(cst.seqrepo_access, normalize=False)
         return cls.instance
 
 
@@ -80,37 +136,6 @@ async def get_transcripts(
     return [row["tx_ac"] for row in result]
 
 
-def get_mane_transcripts(transcripts: List[str]) -> List[ManeData]:
-    """Get corresponding MANE data for transcripts.
-
-    :param transcripts: candidate transcripts list
-    :return: complete MANE descriptions
-    """
-    mane = CoolSeqToolBuilder().mane_transcript_mappings
-    mane_transcripts = mane.get_mane_from_transcripts(transcripts)
-    mane_data = []
-    for result in mane_transcripts:
-        mane_data.append(
-            ManeData(
-                ncbi_gene_id=result["#NCBI_GeneID"],
-                ensembl_gene_id=result["Ensembl_Gene"],
-                hgnc_gene_id=result["HGNC_ID"],
-                symbol=result["symbol"],
-                name=result["name"],
-                refseq_nuc=result["RefSeq_nuc"],
-                refseq_prot=result["RefSeq_prot"],
-                ensembl_nuc=result["Ensembl_nuc"],
-                ensembl_prot=result["Ensembl_prot"],
-                mane_status=result["MANE_status"],
-                grch38_chr=result["GRCh38_chr"],
-                chr_start=result["chr_start"],
-                chr_end=result["chr_end"],
-                chr_strand=result["chr_strand"],
-            )
-        )
-    return mane_data
-
-
 # ------------------------------ Gene Normalizer ------------------------------ #
 
 
@@ -120,7 +145,7 @@ def _get_hgnc_symbol(term: str) -> Optional[str]:
     :param term: gene referent
     :return: gene symbol if available
     """
-    q = CoolSeqToolBuilder().gene_query_handler
+    q = GeneNormalizerBuilder()
     result = q.normalize_unmerged(term)
     hgnc = result.source_matches.get(SourceName.HGNC)
     if hgnc and len(hgnc.records) > 0:
@@ -151,27 +176,27 @@ def get_gene_symbol(metadata: ScoresetMetadata) -> Optional[str]:
         return _get_hgnc_symbol(parsed_name)
 
 
-def _normalize_gene(term: str) -> Optional[GeneDescriptor]:
+def _normalize_gene(term: str) -> Optional[Gene]:
     """Fetch normalizer response for gene term.
 
     :param term: gene name or referent to normalize
-    :return: GeneDescriptor if successful
+    :return: normalized Gene if successful
     """
-    q = CoolSeqToolBuilder().gene_query_handler
+    q = GeneNormalizerBuilder()
     response = q.normalize(term)
     if response.match_type > 0:
-        return response.gene_descriptor
+        return response.gene
     else:
         return None
 
 
 def _get_normalized_gene_response(
     metadata: ScoresetMetadata,
-) -> Optional[GeneDescriptor]:
+) -> Optional[Gene]:
     """Fetch best normalized concept given available scoreset metadata.
 
     :param metadata: salient scoreset metadata items
-    :return: Normalized gene descriptor if available
+    :return: Normalized gene if available
     """
     if metadata.target_uniprot_ref:
         gene_descriptor = _normalize_gene(metadata.target_uniprot_ref.id)
@@ -191,23 +216,25 @@ def _get_normalized_gene_response(
 def _get_genomic_interval(
     extensions: List[Extension], src_name: str
 ) -> Optional[GeneLocation]:
-    """Extract start/end coords from extension list. Extensions in gene descriptors
-    can be of many different types, but we only want SequenceLocation data.
+    """Extract start/end coords from extension list. Extensions in normalized genes
+    can be of several different types, but we only want SequenceLocation data.
 
     :param extensions: extensions given in a descriptor
     :return: genomic interval if available
     """
     locations = [ext for ext in extensions if f"{src_name}_locations" in ext.name]
-    if locations and len(locations[0].value) > 0:
+    if locations and len(locations[0].value) > 0:  # type: ignore
         location_values = [
-            v for v in locations[0].value if v["type"] == "SequenceLocation"
+            v
+            for v in locations[0].value
+            if v["type"] == "SequenceLocation"  # type: ignore
         ]
         if location_values:
             return GeneLocation(
-                start=location_values[0]["interval"]["start"]["value"],
-                end=location_values[0]["interval"]["end"]["value"],
+                start=location_values[0]["start"],
+                end=location_values[0]["end"],
                 chromosome=get_chromosome_identifier_from_vrs_id(
-                    location_values[0]["sequence_id"]
+                    f"ga4gh:{location_values[0]['sequenceReference']['refgetAccession']}"
                 ),
             )
     return None
@@ -229,11 +256,11 @@ def get_gene_location(metadata: ScoresetMetadata) -> Optional[GeneLocation]:
     if not gene_descriptor or not gene_descriptor.extensions:
         return None
 
-    hgnc_locations = [
+    hgnc_locations: List[Extension] = [
         loc for loc in gene_descriptor.extensions if loc.name == "hgnc_locations"
     ]
-    if hgnc_locations and len(hgnc_locations[0].value) > 0:
-        return GeneLocation(chromosome=hgnc_locations[0].value[0].chr)
+    if hgnc_locations and len(hgnc_locations[0].value) > 0:  # type: ignore
+        return GeneLocation(chromosome=hgnc_locations[0].value[0].chr)  # type: ignore
 
     for src_name in ("ensembl", "ncbi"):
         loc = _get_genomic_interval(gene_descriptor.extensions, src_name)
@@ -245,24 +272,31 @@ def get_gene_location(metadata: ScoresetMetadata) -> Optional[GeneLocation]:
 
 # --------------------------------- SeqRepo --------------------------------- #
 # TODO
-# * these could be refactored into a single method
+# * some of these could be refactored into a single method
 # * not clear if all of them are necessary
-# * either way, they should all be renamed
+# * either way, they should all be renamed once we have a final idea of what's needed
 
 
 def get_chromosome_identifier(chromosome: str) -> str:
-    """Get latest NC_ identifier given a chromosome name.
+    """Get latest NC_ accession identifier given a chromosome name.
 
     :param chromosome: prefix-free chromosome name, e.g. ``"8"``, ``"X"``
     :return: latest ID if available
     :raise KeyError: if unable to retrieve identifier
     """
     sr = CoolSeqToolBuilder().seqrepo_access
-    result, _ = sr.chromosome_to_acs(chromosome)
-    if not result:
+    acs = []
+    for assembly in ["GRCh38", "GRCh37"]:
+        tmp_acs, _ = sr.translate_identifier(
+            f"{assembly}:chr{chromosome}", target_namespaces="refseq"
+        )
+        for ac in tmp_acs:
+            acs.append(ac.split("refseq:")[-1])
+    if not acs:
         raise KeyError
 
-    sorted_results = sorted(result)
+    # make sure e.g. version .10 > version .9
+    sorted_results = sorted(acs, key=lambda i: int(i.split(".")[-1]))
     return sorted_results[-1]
 
 
@@ -302,8 +336,10 @@ def get_chromosome_identifier_from_vrs_id(sequence_id: str) -> Optional[str]:
     return sorted_results[-1]
 
 
-def get_reference_sequence(sequence_id: str) -> str:
-    """Get reference sequence given a sequnce identifier.
+def get_sequence(
+    sequence_id: str, start: Optional[int] = None, end: Optional[int] = None
+) -> str:
+    """Get reference sequence given a sequence identifier.
 
     :param sequence_id: sequence identifier, e.g. ``"NP_938033.1"``
     :return: sequence
@@ -311,7 +347,7 @@ def get_reference_sequence(sequence_id: str) -> str:
     """
     sr = CoolSeqToolBuilder().seqrepo_access
     try:
-        sequence = sr.get_sequence(sequence_id)
+        sequence = sr.get_sequence(sequence_id, start, end)
     except (KeyError, ValueError):
         _logger.error(f"Unable to acquire sequence for ID: {sequence_id}")
         raise KeyError
@@ -321,22 +357,103 @@ def get_reference_sequence(sequence_id: str) -> str:
     return sequence
 
 
-# ---------------------------------- Misc. ---------------------------------- #
+def store_sequence(sequence: str, names: List[Dict]) -> None:
+    """Store sequnce in SeqRepo.
 
+    I'm a little queasy about this part -- it seems potentially dangerous to be
+    modifying state outside of the mapper library itself, particularly if there
+    are any needs for those changes to endure (and if there aren't, why are we
+    modifying outside state in the first place?).
 
-def get_clingen_id(hgvs: str) -> Optional[str]:
-    """Fetch ClinGen ID. TODO finish this.
+    Currently unused unless we really really need this functionality.
 
-    :param hgvs: HGVS ID todo ??
-    :return: ClinGen ID if available
-    :raise HTTPError: if request encounters an error
+    :param sequence: raw sequence
+    :param names: list of namespace/alias pairs,
+        e.g. ``{"namespace": "GA4GH", "alias": "SQ.XXXXXX"}
     """
-    url = f"https://reg.genome.network/allele?hgvs={hgvs}"
-    response = requests.get(url)
-    response.raise_for_status()
-    page = response.json()
-    page = page["@id"]
-    return page.split("/")[4]
+    sr = CoolSeqToolBuilder().seqrepo_access
+    sr.sr.store(sequence, nsaliases=names)
+
+
+# -------------------------------- VRS-Python -------------------------------- #
+
+
+def hgvs_to_vrs(hgvs: str, alias_map: Dict) -> Allele:
+    """Convert HGVS variation description to VRS object.
+
+    # TODO incorporate alias map
+
+    :param hgvs: MAVE-HGVS variation string
+    :param alias_map: lookup for custom sequence IDs
+    :return: Corresponding VRS allele as a Pydantic class
+    """
+    tr = VrsTranslatorBuilder()
+    vrs_allele = tr.translate_from(hgvs, "hgvs")
+    allele = Allele(**vrs_allele)
+
+    if (
+        not isinstance(allele.location, SequenceLocation)
+        or not isinstance(allele.location.start, int)
+        or not isinstance(allele.location.end, int)
+    ):
+        raise ValueError
+
+    return allele
+
+
+# ----------------------------------- MANE ----------------------------------- #
+
+
+def get_mane_transcripts(transcripts: List[str]) -> List[ManeDescription]:
+    """Get corresponding MANE data for transcripts. Results given in order of
+    transcript preference.
+
+    :param transcripts: candidate transcripts list
+    :return: complete MANE descriptions
+    """
+
+    def _sort_mane_result(description: ManeDescription) -> int:
+        if description.transcript_priority == TranscriptPriority.MANE_SELECT:
+            return 2
+        elif description.transcript_priority == TranscriptPriority.MANE_PLUS_CLINICAL:
+            return 1
+        else:  # should be impossible
+            _logger.warning(
+                "Unrecognized transcript priority value %s for transcript description of %s",
+                description.transcript_priority,
+                description.refseq_nuc,
+            )
+            return 0
+
+    mane_df = CoolSeqToolBuilder().mane_transcript_mappings.df
+    mane_results = mane_df.filter(pl.col("RefSeq_nuc").is_in(transcripts))
+    mane_data = []
+    for row in mane_results.rows(named=True):
+        mane_data.append(
+            ManeDescription(
+                ncbi_gene_id=row["#NCBI_GeneID"],
+                ensembl_gene_id=row["Ensembl_Gene"],
+                hgnc_gene_id=row["HGNC_ID"],
+                symbol=row["symbol"],
+                name=row["name"],
+                refseq_nuc=row["RefSeq_nuc"],
+                refseq_prot=row["RefSeq_prot"],
+                ensembl_nuc=row["Ensembl_nuc"],
+                ensembl_prot=row["Ensembl_prot"],
+                transcript_priority=TranscriptPriority(
+                    "_".join(row["MANE_status"].lower().split())
+                ),
+                grch38_chr=row["GRCh38_chr"],
+                chr_start=row["chr_start"],
+                chr_end=row["chr_end"],
+                chr_strand=row["chr_strand"],
+            )
+        )
+    mane_data.sort(key=_sort_mane_result)
+    return mane_data
+
+
+# ---------------------------------- Misc. ---------------------------------- #
 
 
 def get_uniprot_sequence(uniprot_id: str) -> Optional[str]:
