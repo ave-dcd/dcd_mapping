@@ -80,8 +80,9 @@ src = ["src"]
 # pydocstyle (D)
 # pep8-naming (N)
 # isort (I)
-select = ["E", "W", "F", "ANN", "D", "N", "I"]
-fixable = ["I", "F401"]
+select = ["E", "W", "F", "ANN", "D", "N", "I", "T201", "T100"]
+fixable = ["I", "F401", "T201", "T100"]
+include = ["pyproject.toml", "tests/**/*.py", "src/**/*.py"]
 
 # ANN101 - missing-type-self
 # ANN003 - missing-type-kwargs

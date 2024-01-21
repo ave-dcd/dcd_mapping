@@ -1,6 +1,7 @@
 """Provide core MaveDB mapping methods."""
 import json
 import logging
+from pathlib import Path
 from typing import List
 
 import click
@@ -21,20 +22,23 @@ _logger = logging.getLogger(__name__)
 
 def _save_results(
     metadata: ScoresetMetadata, mapping_results: VrsMappingResult
-) -> None:
+) -> Path:
     """Save results to file.
 
     Todo:
     ----
-    * Embed in original metadata JSON
+    * add ``mapped_reference_sequence`` and ``computed_referense_sequence`` properties
+    * Embed within original metadata JSON
     * Option to save as VRS 1.x
 
     :param metadata: scoreset metadata
     :param mapping results: mapped objects
+    :return: path to saved file
     """
     outfile = LOCAL_STORE_PATH / f"{metadata.urn}_mapping_results.json"
     with open(outfile, "w") as f:
-        json.dump(mapping_results.model_dump_json(indent=2), f)
+        json.dump(mapping_results.model_dump(exclude_none=True), f, indent=2)
+    return outfile
 
 
 async def map_scoreset(
@@ -65,7 +69,7 @@ async def map_scoreset(
         return None
 
     try:
-        vrs_results = vrs_map(metadata, alignment_result, transcript, records)
+        vrs_results = vrs_map(metadata, alignment_result, transcript, records, silent)
     except VrsMapError:
         _logger.error(f"VRS mapping failed for scoreset {metadata.urn}")
         return None

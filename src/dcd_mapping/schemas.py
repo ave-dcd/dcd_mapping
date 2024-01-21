@@ -4,7 +4,7 @@ from typing import List, Optional, Union
 
 from cool_seq_tool.schemas import Strand, TranscriptPriority
 from ga4gh.vrs._internal.models import Allele, Haplotype
-from pydantic import BaseModel, StrictBool, StrictInt
+from pydantic import BaseModel, StrictBool, StrictFloat, StrictInt, StrictStr
 
 
 class TargetSequenceType(StrEnum):
@@ -125,13 +125,14 @@ class TxSelectResult(BaseModel):
 
 
 class VrsMapping(BaseModel):
-    """Define pre-post mapping pair structure for VRS-structured variations.
+    """Define pre-post mapping pair structure for VRS-structured variations."""
 
-    Probably need to add score and accession to make json writing easier
-    """
-
-    pre_mapping: Union[Allele, Haplotype]
-    mapped: Union[Allele, Haplotype]
+    mavedb_id: StrictStr
+    pre_mapped: Union[Allele, Haplotype]
+    post_mapped: Union[Allele, Haplotype]
+    mapped_transcript: Optional[TranscriptDescription] = None
+    score: StrictFloat
+    # relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
 
 
 class VrsMappingResult(BaseModel):

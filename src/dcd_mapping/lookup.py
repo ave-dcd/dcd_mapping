@@ -12,6 +12,7 @@ from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
 from cool_seq_tool.schemas import TranscriptPriority
 from ga4gh.core._internal.models import Extension, Gene
 from ga4gh.vrs._internal.models import Allele, SequenceLocation
+from ga4gh.vrs.dataproxy import SeqRepoDataProxy
 from ga4gh.vrs.extras.translator import AlleleTranslator
 from gene.database import create_db
 from gene.query import QueryHandler
@@ -23,7 +24,6 @@ __all__ = [
     "CoolSeqToolBuilder",
     "get_seqrepo",
     "GeneNormalizerBuilder",
-    "VrsTranslatorBuilder",
     "get_protein_accession",
     "get_transcripts",
     "get_gene_symbol",
@@ -33,7 +33,7 @@ __all__ = [
     "get_chromosome_identifier_from_vrs_id",
     "get_sequence",
     "store_sequence",
-    "hgvs_to_vrs",
+    "translate_hgvs_to_vrs",
     "get_mane_transcripts",
     "get_uniprot_sequence",
 ]
@@ -76,17 +76,20 @@ class GeneNormalizerBuilder:
         return cls.instance
 
 
-class VrsTranslatorBuilder:
-    """Singleton constructor for VRS-Python translator instance."""
+class TranslatorBuilder:
+    """Singleton constructor for VRS Translator instance."""
 
-    def __new__(cls) -> AlleleTranslator:
-        """Provide VRS-Python translator. Construct if unavailable.
+    def __new__(cls, data_proxy: SeqRepoDataProxy) -> AlleleTranslator:
+        """Provide translator instance. Constructs it if unavailable. Use a new
+        ``data_proxy`` instance that contains a given score row's sequence/ID.
 
-        :return: singleton instances of Translator
+        :return: singleton instance of ``AlleleTranslator``
         """
         if not hasattr(cls, "instance"):
-            cst = CoolSeqToolBuilder()
-            cls.instance = AlleleTranslator(cst.seqrepo_access, normalize=False)
+            tr = AlleleTranslator(data_proxy, normalize=False)
+            cls.instance = tr
+        else:
+            cls.instance.data_proxy = data_proxy
         return cls.instance
 
 
@@ -280,15 +283,17 @@ def get_gene_location(metadata: ScoresetMetadata) -> Optional[GeneLocation]:
 def get_chromosome_identifier(chromosome: str) -> str:
     """Get latest NC_ accession identifier given a chromosome name.
 
-    :param chromosome: prefix-free chromosome name, e.g. ``"8"``, ``"X"``
+    :param chromosome: chromosome name, e.g. ``"8"``, ``"X"``
     :return: latest ID if available
     :raise KeyError: if unable to retrieve identifier
     """
+    if not chromosome.startswith("chr"):
+        chromosome = f"chr{chromosome}"
     sr = CoolSeqToolBuilder().seqrepo_access
     acs = []
     for assembly in ["GRCh38", "GRCh37"]:
         tmp_acs, _ = sr.translate_identifier(
-            f"{assembly}:chr{chromosome}", target_namespaces="refseq"
+            f"{assembly}:{chromosome}", target_namespaces="refseq"
         )
         for ac in tmp_acs:
             acs.append(ac.split("refseq:")[-1])
@@ -378,18 +383,15 @@ def store_sequence(sequence: str, names: List[Dict]) -> None:
 # -------------------------------- VRS-Python -------------------------------- #
 
 
-def hgvs_to_vrs(hgvs: str, alias_map: Dict) -> Allele:
+def translate_hgvs_to_vrs(hgvs: str, data_proxy: SeqRepoDataProxy) -> Allele:
     """Convert HGVS variation description to VRS object.
 
-    # TODO incorporate alias map
-
     :param hgvs: MAVE-HGVS variation string
-    :param alias_map: lookup for custom sequence IDs
+    :param data_proxy:
     :return: Corresponding VRS allele as a Pydantic class
     """
-    tr = VrsTranslatorBuilder()
-    vrs_allele = tr.translate_from(hgvs, "hgvs")
-    allele = Allele(**vrs_allele)
+    tr = TranslatorBuilder(data_proxy)
+    allele = tr.translate_from(hgvs, "hgvs")
 
     if (
         not isinstance(allele.location, SequenceLocation)
@@ -397,6 +399,10 @@ def hgvs_to_vrs(hgvs: str, alias_map: Dict) -> Allele:
         or not isinstance(allele.location.end, int)
     ):
         raise ValueError
+
+    # TODO temporary, remove
+    if not isinstance(allele, Allele):
+        raise NotImplementedError
 
     return allele
 

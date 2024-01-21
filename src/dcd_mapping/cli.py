@@ -41,7 +41,7 @@ def cli(urn: str, debug: bool, cache_align: bool) -> None:
     """  # noqa: D301
     logging.basicConfig(
         filename="dcd-mapping.log",
-        format="%(asctime)s %(levelname)s:%(message)s",
+        format="%(asctime)s %(levelname)s:%(name)s:%(message)s",
         level=logging.INFO,
         force=True,
     )
