@@ -138,7 +138,8 @@ def _get_protein_sequence(target_sequence: str) -> str:
     """Get protein sequence if necessary.
 
     It'd be nice if there was a more elegant way to check if the sequence was already a
-    protein sequence.
+    protein sequence (it should be possible for protein sequences to contain <5 unique
+    bases, albeit unlikely with a large enough length).
 
     :param target_sequence: sequence set as baseline in MAVE experiment (might already
         be set to protein)

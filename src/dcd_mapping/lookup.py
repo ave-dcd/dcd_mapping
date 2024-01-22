@@ -1,9 +1,14 @@
 """Handle API lookups to external (non-MaveDB) services.
 
-This module should contain methods that we don't want to think about caching.
+Data sources/handlers include:
+
+* `CoolSeqTool <https://github.com/GenomicMedLab/cool-seq-tool/>`_
+* `Gene Normalizer <https://github.com/cancervariants/gene-normalization>`_
+* the `VRS-Python Translator tool <https://github.com/ga4gh/vrs-python>`_
+* the UniProt web API
 """
 import logging
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import polars as pl
 import requests
@@ -32,7 +37,6 @@ __all__ = [
     "get_ucsc_chromosome_name",
     "get_chromosome_identifier_from_vrs_id",
     "get_sequence",
-    "store_sequence",
     "translate_hgvs_to_vrs",
     "get_mane_transcripts",
     "get_uniprot_sequence",
@@ -118,6 +122,8 @@ async def get_transcripts(
     """Get transcript accessions matching given parameters (excluding non-coding RNA).
 
     TODO: may be able to successfully query with only one of gene symbol/chromosome ac.
+    In initial testing, gene symbol doesn't seem to be a meaningful filter, but should
+    get further confirmation.
 
     :param gene_symbol: HGNC-given gene symbol (usually, but not always, equivalent to
         symbols available in other nomenclatures.)
@@ -274,10 +280,6 @@ def get_gene_location(metadata: ScoresetMetadata) -> Optional[GeneLocation]:
 
 
 # --------------------------------- SeqRepo --------------------------------- #
-# TODO
-# * some of these could be refactored into a single method
-# * not clear if all of them are necessary
-# * either way, they should all be renamed once we have a final idea of what's needed
 
 
 def get_chromosome_identifier(chromosome: str) -> str:
@@ -360,24 +362,6 @@ def get_sequence(
         _logger.error(f"Unable to acquire sequence for ID: {sequence_id}")
         raise KeyError
     return sequence
-
-
-def store_sequence(sequence: str, names: List[Dict]) -> None:
-    """Store sequnce in SeqRepo.
-
-    I'm a little queasy about this part -- it seems potentially dangerous to be
-    modifying state outside of the mapper library itself, particularly if there
-    are any needs for those changes to endure (and if there aren't, why are we
-    modifying outside state in the first place?).
-
-    Currently unused unless we really really need this functionality.
-
-    :param sequence: raw sequence
-    :param names: list of namespace/alias pairs,
-        e.g. ``{"namespace": "GA4GH", "alias": "SQ.XXXXXX"}
-    """
-    sr = CoolSeqToolBuilder().seqrepo_access
-    sr.sr.store(sequence, nsaliases=names)
 
 
 # -------------------------------- VRS-Python -------------------------------- #
