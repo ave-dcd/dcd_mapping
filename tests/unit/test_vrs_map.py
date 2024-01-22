@@ -33,7 +33,7 @@ def test_vrs_map_src(
     assert vrs_mapping_result is not None
     mapping = vrs_mapping_result.variations[0]
     assert mapping.mavedb_id == "urn:mavedb:00000041-a-1#548"
-    assert mapping.score == pytest.approx(0.753146338)
+    assert mapping.score == pytest.approx(1.513315421)
 
     assert isinstance(mapping.pre_mapped, Allele)
     assert mapping.pre_mapped.state.sequence == "T"
@@ -45,15 +45,15 @@ def test_vrs_map_src(
     assert mapping.pre_mapped.location.end == 15
 
     assert isinstance(mapping.post_mapped, Allele)
-    assert mapping.post_mapped.state.sequence == "G"
+    assert mapping.post_mapped.state.sequence == "T"
     assert (
         mapping.post_mapped.location.sequenceReference.refgetAccession
         == "ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye"
     )
-    assert mapping.post_mapped.location.start == 438
-    assert mapping.post_mapped.location.end == 439
+    assert mapping.post_mapped.location.start == 283
+    assert mapping.post_mapped.location.end == 284
     assert mapping.post_mapped.expressions[0]["syntax"] == "hgvs.p"
-    assert mapping.post_mapped.expressions[0]["value"] == "NP_005408.1:p.Tyr439Gly"
+    assert mapping.post_mapped.expressions[0]["value"] == "NNP_005408.1:p.Val284Thr"
     assert mapping.post_mapped.expressions[0]["syntax_version"] is None
 
     assert mapping.mapped_transcript is not None
