@@ -3,8 +3,8 @@ name = "dcd-mapping"
 description = "Map MaveDB scoresets to VRS objects"
 authors = [
     {name = "Alex Handler Wagner", email = "Alex.Wagner@nationwidechildrens.org"},
-    {name = "Jeremy Arbesfeld", email = "todo@todo.com"},
-    {name = "Samriddhi TODO", email = "todo@todo.com"},
+    {name = "Jeremy Arbesfeld", email = "Jeremy.Arbesfeld@nationwidechildrens.org"},
+    {name = "Samriddhi Singh", email = ""},
     {name = "James Stevenson", email = "James.Stevenson@nationwidechildrens.org"},
 ]
 readme = "README.md"
@@ -12,9 +12,8 @@ version = "0.0.1"
 license = { file = "LICENSE" }
 classifiers = [
     "Development Status :: 3 - Alpha",
-    "Framework :: FastAPI",
     "Framework :: Pydantic",
-    "Framework :: Pydantic :: 1",
+    "Framework :: Pydantic :: 2",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
@@ -22,6 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
@@ -31,10 +31,9 @@ dependencies = [
     "biopython",
     "tqdm",
     "click",
-    "cool-seq-tool>=0.4.0.dev0",
+    "cool-seq-tool>=0.4.0.dev1",
     "gene-normalizer>=0.3.0-dev1",
     "pydantic>=2",
-    "fastapi",
     "python-dotenv",
 ]
 
