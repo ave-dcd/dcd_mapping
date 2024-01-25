@@ -24,7 +24,6 @@ from tqdm import tqdm
 from dcd_mapping.schemas import ReferenceGenome, ScoreRow, ScoresetMetadata, UniProtRef
 
 __all__ = [
-    "get_cached_blat_output",
     "get_scoreset_urns",
     "get_human_urns",
     "get_raw_scoreset_metadata",
@@ -45,19 +44,6 @@ LOCAL_STORE_PATH = Path(
 )
 if not LOCAL_STORE_PATH.exists():
     LOCAL_STORE_PATH.mkdir(exist_ok=True, parents=True)
-
-
-def get_cached_blat_output(urn: str) -> Optional[Path]:
-    """Return cached BLAT output if available. Mostly useful for development/testing.
-
-    :param urn: identifier for scoreset
-    :return: path to BLAT output if exists
-    """
-    out_file = LOCAL_STORE_PATH / f"{urn}_blat_output.psl"
-    if out_file.exists():
-        return out_file
-    else:
-        return None
 
 
 class ResourceAcquisitionError(Exception):

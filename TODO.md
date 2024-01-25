@@ -2,15 +2,31 @@
 
 General:
 * notes scattered in comments and docstrings (sorry!)
-* Docker-ification. More or less needs to start from scratch (there should be existing images for SeqRepo and UTA, not sure how up-to-date they are).
-* Add extra stuff that appears in mapping JSON objects.
+* Docker-ification. (there should be existing images for SeqRepo and UTA, not sure how up-to-date they are).
+* Add extra stuff that appears in mapping JSON objects (``vrs_ref_allele_seq``).
 * Currently using VRS 2.0a-based libraries. For lifting back to VRS 1.3, some basic post-processing should be fine (annoying but shouldn't be too trivial)
 * Without access to a production DynamoDB instance, Gene Normalizer will be quickest and easiest to set up via a PostgreSQL data backend. That, however, requires an extra dependency group (noted in README). We might want to make a `pg` dependency group here or just include it in core dependencies.
 * On that note, I've only done minimal testing of how possible it would be to drop the gene normalizer dependency entirely, but it'd be nice to get there.
 * Some of the singleton/factory stuff might be cleaner as `global`s
+* make `silent` a global
 
 Alignment:
-* Pretty sure this is mostly done. Haven't tested exhaustively, though.
+* Pretty sure this is mostly done.
+* Getting disagreements vs Jeremy's work on strand for the following:
+  * urn:mavedb:00000032-a-1
+  * urn:mavedb:00000083-i-1
+  * urn:mavedb:00000034-a-1
+  * urn:mavedb:00000043-a-1
+  * urn:mavedb:00000083-c-1
+  * urn:mavedb:00000083-g-1
+  * urn:mavedb:00000068-a-1
+  * urn:mavedb:00000043-a-2
+  * urn:mavedb:00000001-c-1
+  * urn:mavedb:00000083-f-1
+  * urn:mavedb:00000083-b-1
+  * urn:mavedb:00000068-c-1
+  * urn:mavedb:00000001-c-2
+  * urn:mavedb:00000034-b-1
 * Need to sufficiently mock/patch things in tests
 
 Transcript selection:

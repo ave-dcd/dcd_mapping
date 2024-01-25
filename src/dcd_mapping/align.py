@@ -1,9 +1,10 @@
 """Align MaveDB target sequences to a human reference genome."""
 import logging
 import subprocess
+import tempfile
 import uuid
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional
+from typing import Any, Generator, List, Optional
 
 from Bio.SearchIO import HSP
 from Bio.SearchIO import read as read_blat
@@ -14,7 +15,6 @@ from gene.database.database import click
 from dcd_mapping.lookup import get_chromosome_identifier, get_gene_location
 from dcd_mapping.resources import (
     LOCAL_STORE_PATH,
-    get_cached_blat_output,
     get_mapping_tmp_dir,
     get_ref_genome_file,
 )
@@ -56,17 +56,17 @@ def _build_query_file(scoreset_metadata: ScoresetMetadata) -> Generator[Path, An
     query_file = (
         get_mapping_tmp_dir() / f"blat_query_{scoreset_metadata.urn}_{uuid.uuid1()}.fa"
     )
-    _logger.debug("Writing BLAT query to %", query_file)
+    _logger.debug("Writing BLAT query to %s", query_file)
     lines = [">query", scoreset_metadata.target_sequence]
     _write_query_file(query_file, lines)
     yield query_file
     query_file.unlink()
 
 
-def _run_blat_command(command: str, args: Dict) -> subprocess.CompletedProcess:
+def _run_blat(
+    target_args: str, query_file: Path, out_file: str, silent: bool
+) -> subprocess.CompletedProcess:
     """Execute BLAT binary with relevant params.
-
-    This function is broken out to enable mocking while testing.
 
     Currently, we rely on a system-installed BLAT binary accessible in the containing
     environment's PATH. This is sort of awkward and it'd be nice to make use of some
@@ -75,86 +75,103 @@ def _run_blat_command(command: str, args: Dict) -> subprocess.CompletedProcess:
     * Perhaps `gget`? https://pachterlab.github.io/gget/en/blat.html
     * ``PxBlat``? https://github.com/ylab-hi/pxblat
 
-    :param command: shell command to execute
-    :param args: ``subprocess.run`` extra args (eg redirecting output for silent mode)
+    :param target_args: target params eg ``"-q=prot -t=dnax"`` (can be empty)
+    :param query_file: path to query FASTA file
+    :param out_file: path-like string to output fill (could be "/dev/stdout")
+    :param silent: if True, suppress all console output
     :return: process result
     """
-    _logger.debug("Running BLAT command: %", command)
-    return subprocess.run(command, shell=True, **args)
+    reference_genome_file = get_ref_genome_file(silent=silent)
+    command = f"blat {reference_genome_file} {target_args} -minScore=20 {query_file} {out_file}"
+    _logger.debug("Running BLAT command: %s", command)
+    result = subprocess.run(
+        command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    _logger.debug("BLAT command finished with result %s", result.returncode)
+    if result.returncode != 0:
+        raise AlignmentError(
+            f"BLAT process returned error code {result.returncode}: {target_args} {query_file} {out_file}"
+        )
+    return result
 
 
-def _get_blat_output(
-    scoreset_metadata: ScoresetMetadata,
-    query_file: Path,
-    silent: bool,
-    use_cached: bool,
-) -> QueryResult:
+def _get_cached_blat_output(metadata: ScoresetMetadata, silent: bool) -> QueryResult:
+    """Get a BLAT output object for the given scoreset -- either reusing a previously-
+    run query output file, or making a new one if unavailable.
+
+    This method is broken out from ``_get_blat_output`` because it was getting pretty
+    messy to handle differing file management logic between the two of them. However,
+    query/command generation logic should be shared.
+
+    :param metadata:
+    :param silent:
+    :return:
+    """
+    out_file = LOCAL_STORE_PATH / f"{metadata.urn}_blat_output.psl"
+    if out_file.exists():
+        return read_blat(out_file.absolute(), "blat-psl")
+    query_file = next(_build_query_file(metadata))
+    if metadata.target_sequence_type == TargetSequenceType.PROTEIN:
+        target_args = "-q=prot -t=dnax"
+    else:
+        target_args = ""
+    _run_blat(target_args, query_file, str(out_file.absolute()), silent)
+    try:
+        output = read_blat(out_file.absolute(), "blat-psl")
+    except ValueError:
+        target_args = "-q=dnax -t=dnax"
+        _run_blat(target_args, query_file, str(out_file.absolute()), silent)
+        try:
+            output = read_blat(out_file.absolute(), "blat-psl")
+        except ValueError:
+            raise AlignmentError(
+                f"Unable to get valid BLAT response for {metadata.urn}"
+            )
+    return output
+
+
+def _write_blat_output_tempfile(result: subprocess.CompletedProcess) -> str:
+    """Create temp BLAT output file. Not immediately deleted, but should eventually
+    be cleared by the OS.
+
+    :param result: BLAT process result object
+    :return: path-like string representing file location
+    """
+    raw_output = result.stdout.split(b"Loaded")[0]
+    tmp = tempfile.NamedTemporaryFile(delete=False)
+    tmp.write(raw_output)
+    return tmp.name
+
+
+def _get_blat_output(metadata: ScoresetMetadata, silent: bool) -> QueryResult:
     """Run a BLAT query and returns a path to the output object.
 
-    We create query and output files in the application's "temporary" folder, which
-    should be deleted by the process once complete. This happens manually, but we could
-    probably add a decorator or a context manager for a bit more elegance.
-
-    Ideally, we should see if we could pipe query output to STDOUT and then grab/process
-    it that way instead of using a temporary intermediary file.
+    If unable to produce a valid query the first time, then try a query using ``dnax``
+    bases.
 
     :param scoreset_metadata: object containing scoreset attributes
-    :param query_file: Path to BLAT query file
     :param silent: suppress BLAT command output
-    :param use_cached: if True, don't rerun BLAT if output file already exists, and don't
-    save it to a temporary location. This is probably only useful during development.
     :return: BLAT query result
     :raise AlignmentError: if BLAT subprocess returns error code
     """
-    if use_cached:
-        out_file = get_cached_blat_output(scoreset_metadata.urn)
+    query_file = next(_build_query_file(metadata))
+    if metadata.target_sequence_type == TargetSequenceType.PROTEIN:
+        target_args = "-q=prot -t=dnax"
     else:
-        out_file = None
-    if not use_cached or not out_file:
-        reference_genome_file = get_ref_genome_file(
-            silent=silent
-        )  # TODO hg38 by default--what about earlier builds?
-        if use_cached:
-            out_file = LOCAL_STORE_PATH / f"{scoreset_metadata.urn}_blat_output.psl"
-        else:
-            out_file = (
-                get_mapping_tmp_dir()
-                / f"blat_out_{scoreset_metadata.urn}_{uuid.uuid1()}.psl"
-            )
+        target_args = ""
+    process_result = _run_blat(target_args, query_file, "/dev/stdout", silent)
+    out_file = _write_blat_output_tempfile(process_result)
 
-        if scoreset_metadata.target_sequence_type == TargetSequenceType.PROTEIN:
-            target_commands = "-q=prot -t=dnax"
-        elif scoreset_metadata.target_sequence_type == TargetSequenceType.DNA:
-            target_commands = "-q=dnax -t=dnax"
-        else:
-            query_file.unlink()
-            out_file.unlink()
-            raise AlignmentError(
-                f"Unknown target sequence type: {scoreset_metadata.target_sequence_type} for scoreset {scoreset_metadata.urn}"
-            )
-        command = f"blat {reference_genome_file} {target_commands} -minScore=20 {query_file} {out_file}"
-        if silent:
-            kwargs = {"stdout": subprocess.DEVNULL, "stderr": subprocess.STDOUT}
-        else:
-            kwargs = {}
-        process = _run_blat_command(command, kwargs)
-        if process.returncode != 0:
-            query_file.unlink()
-            out_file.unlink()
-            raise AlignmentError(
-                f"BLAT process returned error code {process.returncode}: {command}"
-            )
-    # TODO
-    # the notebooks handle errors here by trying different BLAT arg configurations --
-    # investigate, refer to older code if it comes up
-    # ideally we should be forming correct queries up front instead of running
-    # failed alignment attempts
-    output = read_blat(out_file.absolute(), "blat-psl")
-
-    # clean up
-    query_file.unlink()
-    if not use_cached:
-        out_file.unlink()
+    try:
+        output = read_blat(out_file, "blat-psl")
+    except ValueError:
+        target_args = "-q=dnax -t=dnax"
+        process_result = _run_blat(target_args, query_file, "/dev/stdout", silent)
+        out_file = _write_blat_output_tempfile(process_result)
+        try:
+            output = read_blat(out_file, "blat-psl")
+        except ValueError:
+            raise AlignmentError(f"Unable to run successful BLAT on {metadata.urn}")
 
     return output
 
@@ -292,8 +309,10 @@ def align(
         click.echo(msg)
     _logger.info(msg)
 
-    query_file = next(_build_query_file(scoreset_metadata))
-    blat_output = _get_blat_output(scoreset_metadata, query_file, silent, use_cached)
+    if use_cached:
+        blat_output = _get_cached_blat_output(scoreset_metadata, silent)
+    else:
+        blat_output = _get_blat_output(scoreset_metadata, silent)
     match = _get_best_match(blat_output, scoreset_metadata)
 
     msg = "Alignment complete."

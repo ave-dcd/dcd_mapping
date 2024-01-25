@@ -4,7 +4,7 @@ description = "Map MaveDB scoresets to VRS objects"
 authors = [
     {name = "Alex Handler Wagner", email = "Alex.Wagner@nationwidechildrens.org"},
     {name = "Jeremy Arbesfeld", email = "Jeremy.Arbesfeld@nationwidechildrens.org"},
-    {name = "Samriddhi Singh", email = ""},
+    {name = "Samriddhi Singh", email = "todo@todo.org"},
     {name = "James Stevenson", email = "James.Stevenson@nationwidechildrens.org"},
 ]
 readme = "README.md"
@@ -48,7 +48,7 @@ tests = [
     "pytest-asyncio"
 ]
 dev = [
-    "ruff>=0.1.9",
+    "ruff>=0.1.14",
     "pre-commit"
 ]
 

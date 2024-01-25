@@ -56,8 +56,8 @@ async def map_scoreset(
     """
     try:
         alignment_result = align(metadata, silent, cache_align)
-    except AlignmentError:
-        _logger.error(f"Alignment failed for scoreset {metadata.urn}")
+    except AlignmentError as e:
+        _logger.error(f"Alignment failed for scoreset {metadata.urn}: {e}")
         return None
 
     try:
