@@ -1,4 +1,11 @@
-"""Provide shared testing utilities."""
+"""Provide shared testing utilities.
+
+
+Notes on test cases:
+-------------------
+
+* urn:mavedb:00000068-a-1: TP53, protein-coding, DNA.
+"""
 import json
 import os
 from pathlib import Path

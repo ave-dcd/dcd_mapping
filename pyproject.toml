@@ -73,6 +73,7 @@ branch = true
 
 [tool.ruff]
 src = ["src"]
+exclude = ["misc/*"]
 # pycodestyle (E, W)
 # Pyflakes (F)
 # flake8-annotations (ANN)
