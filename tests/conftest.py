@@ -4,7 +4,13 @@
 Notes on test cases:
 -------------------
 
-* urn:mavedb:00000068-a-1: TP53, protein-coding, DNA.
+* urn:mavedb:00000041-a-1: SRC, protein-coding, dna, uniprot ref
+* urn:mavedb:00000018-a-1: HBB promoter, regulatory, DNA
+* urn:mavedb:00000001-a-4: UBE2I, protein-coding, dna, uniprot ref
+* urn:mavedb:00000113-a-2: APP, protein-coding, protein sequence, uniprot ref. Not in original notebooks.
+* urn:mavedb:00000098-a-1: SCN5A, protein-coding, protein sequence, uniprot ref with offset
+* urn:mavedb:00000061-h-1: RAF, protein coding, DNA, uniprot ref with offset
+* urn:mavedb:00000068-a-1: TP53, protein-coding, DNA
 """
 import json
 import os

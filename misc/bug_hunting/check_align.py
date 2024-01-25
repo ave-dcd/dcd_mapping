@@ -18,7 +18,7 @@ _logger = logging.getLogger(__name__)
 with open("notebooks/analysis/results/mave_blat.pickle", "rb") as f:
     mave_blat_dict = pickle.load(f)
 
-with open("human_urns.txt", "r") as f:
+with open("misc/bug_hunting/human_urns.txt", "r") as f:
     urns = [line.strip() for line in f.readlines()]
 
 strand_reformat = {1: Strand.POSITIVE, -1: Strand.NEGATIVE}

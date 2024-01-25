@@ -23,16 +23,6 @@
       { "start": 37403170, "end": 37403325 }
     ]
   },
-  "urn:mavedb:00000098-a-1": {
-    "chrom": "chr3",
-    "strand": -1,
-    "coverage": 100.0,
-    "ident_pct": 100.0,
-    "query_range": { "start": 0, "end": 12 },
-    "query_subranges": [{ "start": 0, "end": 12 }],
-    "hit_range": { "start": 38551475, "end": 38551511 },
-    "hit_subranges": [{ "start": 38551475, "end": 38551511 }]
-  },
   "urn:mavedb:00000018-a-1": {
     "chrom": "chr11",
     "strand": 1,
@@ -42,6 +32,40 @@
     "query_subranges": [{ "start": 0, "end": 187 }],
     "hit_range": { "start": 5227021, "end": 5227208 },
     "hit_subranges": [{ "start": 5227021, "end": 5227208 }]
+  },
+  "urn:mavedb:00000001-a-4": {
+    "chrom": "chr16",
+    "strand": 1,
+    "coverage": 100.0,
+    "ident_pct": 100.0,
+    "query_range": { "start": 0, "end": 477 },
+    "query_subranges": [
+      { "start": 0, "end": 66 },
+      { "start": 66, "end": 150 },
+      { "start": 150, "end": 223 },
+      { "start": 223, "end": 333 },
+      { "start": 333, "end": 413 },
+      { "start": 413, "end": 477 }
+    ],
+    "hit_range": { "start": 1314030, "end": 1324793 },
+    "hit_subranges": [
+      { "start": 1314030, "end": 1314096 },
+      { "start": 1314292, "end": 1314376 },
+      { "start": 1315653, "end": 1315726 },
+      { "start": 1320173, "end": 1320283 },
+      { "start": 1320437, "end": 1320517 },
+      { "start": 1324729, "end": 1324793 }
+    ]
+  },
+  "urn:mavedb:00000098-a-1": {
+    "chrom": "chr3",
+    "strand": -1,
+    "coverage": 100.0,
+    "ident_pct": 100.0,
+    "query_range": { "start": 0, "end": 12 },
+    "query_subranges": [{ "start": 0, "end": 12 }],
+    "hit_range": { "start": 38551475, "end": 38551511 },
+    "hit_subranges": [{ "start": 38551475, "end": 38551511 }]
   },
   "urn:mavedb:00000061-h-1": {
     "chrom": "chr3",

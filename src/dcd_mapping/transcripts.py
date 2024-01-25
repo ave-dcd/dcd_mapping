@@ -3,7 +3,7 @@
 Outstanding questions/confusion
 -------------------------------
 * ``urn:mavedb:00000097-n-1``: unable to find any matching transcripts
-* Lots of scoresets (2023-) giving index errors in offset calculation
+* Lots of scoresets (esp. 2023-) giving index errors in offset calculation
 * Remove MANE sorting once upstream sorting is confirmed
 """
 import logging
@@ -274,7 +274,8 @@ def _offset_target_sequence(metadata: ScoresetMetadata, records: List[ScoreRow])
                 protein_sequence[i + p1 - p0] == amino_acids_by_position[p1],
                 protein_sequence[i + p2 - p0] == amino_acids_by_position[p2],
                 protein_sequence[i + p3 - p0] == amino_acids_by_position[p3],
-                protein_sequence[i + p4 - p0] == amino_acids_by_position[p4],
+                protein_sequence[i + p4 - p0]
+                == amino_acids_by_position[p4],  # TODO problem here-ish
             ]
         ):
             if i + 1 == min(amino_acids_by_position.keys()) or i + 2 == min(
