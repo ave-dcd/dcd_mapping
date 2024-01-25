@@ -12,21 +12,6 @@ General:
 
 Alignment:
 * Pretty sure this is mostly done.
-* Getting disagreements vs Jeremy's work on strand for the following:
-  * urn:mavedb:00000032-a-1
-  * urn:mavedb:00000083-i-1
-  * urn:mavedb:00000034-a-1
-  * urn:mavedb:00000043-a-1
-  * urn:mavedb:00000083-c-1
-  * urn:mavedb:00000083-g-1
-  * urn:mavedb:00000068-a-1
-  * urn:mavedb:00000043-a-2
-  * urn:mavedb:00000001-c-1
-  * urn:mavedb:00000083-f-1
-  * urn:mavedb:00000083-b-1
-  * urn:mavedb:00000068-c-1
-  * urn:mavedb:00000001-c-2
-  * urn:mavedb:00000034-b-1
 * Need to sufficiently mock/patch things in tests
 
 Transcript selection:
