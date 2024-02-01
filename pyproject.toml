@@ -1,21 +1,113 @@
-[tool.poetry]
+[project]
 name = "dcd-mapping"
-version = "0.1.0"
-description = ""
-authors = ["Alex Handler Wagner <Alex.Wagner@nationwidechildrens.org>"]
+description = "Map MaveDB scoresets to VRS objects"
+authors = [
+    {name = "Alex Handler Wagner", email = "Alex.Wagner@nationwidechildrens.org"},
+    {name = "Jeremy Arbesfeld", email = "Jeremy.Arbesfeld@nationwidechildrens.org"},
+    {name = "Samriddhi Singh", email = "todo@todo.org"},
+    {name = "James Stevenson", email = "James.Stevenson@nationwidechildrens.org"},
+]
 readme = "README.md"
-packages = [{include = "dcd_mapping"}]
+version = "0.0.1"
+license = { file = "LICENSE" }
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: Pydantic",
+    "Framework :: Pydantic :: 2",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "requests",
+    "biopython",
+    "tqdm",
+    "click",
+    "cool-seq-tool>=0.4.0.dev1",
+    "gene-normalizer>=0.3.0-dev1",
+    "pydantic>=2",
+    "python-dotenv",
+]
 
-[tool.poetry.dependencies]
-python = "^3.9"
-jupyter = "*"
-jupyterlab = "*"
-bs4 = "*"
-requests = "*"
-biopython = '*'
-"biocommons.seqrepo" = "*"
+[project.scripts]
+dcd-map = "dcd_mapping.cli:cli"
+
+[project.optional-dependencies]
+tests = [
+    "pytest",
+    "pytest-mock",
+    "pytest-cov",
+    "pytest-asyncio"
+]
+dev = [
+    "ruff>=0.1.14",
+    "pre-commit"
+]
+
+[project.urls]
+Homepage = "https://www.varianteffect.org/"
+Documentation = "https://github.com/ave-dcd/dcd_mapping/README.md"
+Source = "https://github.com/ave-dcd/dcd_mapping"
 
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+addopts = "--cov=src --cov-report term-missing"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+
+[tool.coverage.run]
+branch = true
+
+[tool.ruff]
+src = ["src"]
+exclude = ["misc/*"]
+# pycodestyle (E, W)
+# Pyflakes (F)
+# flake8-annotations (ANN)
+# pydocstyle (D)
+# pep8-naming (N)
+# isort (I)
+select = ["E", "W", "F", "ANN", "D", "N", "I", "T201", "T100"]
+fixable = ["I", "F401", "T201", "T100"]
+include = ["pyproject.toml", "tests/**/*.py", "src/**/*.py"]
+
+# ANN101 - missing-type-self
+# ANN003 - missing-type-kwargs
+# D203 - one-blank-line-before-class
+# D205 - blank-line-after-summary
+# D206 - indent-with-spaces*
+# D213 - multi-line-summary-second-line
+# D300 - triple-single-quotes*
+# D400 - ends-in-period
+# D415 - ends-in-punctuation
+# E111 - indentation-with-invalid-multiple*
+# E114 - indentation-with-invalid-multiple-comment*
+# E117 - over-indented*
+# E501 - line-too-long*
+# W191 - tab-indentation*
+# *ignored for compatibility with formatter
+ignore = [
+    "ANN101", "ANN003",
+    "D203", "D205", "D206", "D213", "D300", "D400", "D415",
+    "E111", "E114", "E117", "E501",
+    "W191"
+]
+
+[tool.ruff.per-file-ignores]
+# ANN001 - missing-type-function-argument
+# ANN2 - missing-return-type
+# ANN102 - missing-type-cls
+"tests/*" = ["ANN001", "ANN102", "ANN2"]

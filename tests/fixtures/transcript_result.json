@@ -1,0 +1,41 @@
+{
+  "urn:mavedb:00000041-a-1": {
+    "nm": "NM_198291.3",
+    "np": "NP_938033.1",
+    "start": 269,
+    "is_full_match": true,
+    "transcript_mode": "mane_select",
+    "sequence": "TODO"
+  },
+  "urn:mavedb:00000001-a-4": {
+    "nm": "NM_003345.5",
+    "np": "NP_003336.1",
+    "start": 0,
+    "is_full_match": true,
+    "transcript_mode": "mane_select",
+    "sequence": "TODO"
+  },
+  "urn:mavedb:00000098-a-1": {
+    "nm": "NM_000335.5",
+    "np": "NP_000326.2",
+    "start": 1619,
+    "is_full_match": true,
+    "transcript_mode": "mane_select",
+    "sequence": "TODO"
+  },
+  "urn:mavedb:00000061-h-1": {
+    "nm": "NM_002880.4",
+    "np": "NP_002871.1",
+    "start": 51,
+    "is_full_match": true,
+    "transcript_mode": "mane_select",
+    "sequence": "TODO"
+  },
+  "urn:mavedb:00000068-a-1": {
+    "nm": "NM_000546.6",
+    "np": "NP_000537.3",
+    "start": 0,
+    "is_full_match": false,
+    "transcript_mode": "mane_select"
+  }
+}
