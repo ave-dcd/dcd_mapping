@@ -1,5 +1,6 @@
 """Align MaveDB target sequences to a human reference genome."""
 import logging
+import os
 import subprocess
 import tempfile
 import uuid
@@ -69,8 +70,8 @@ def _run_blat(
     """Execute BLAT binary with relevant params.
 
     Currently, we rely on a system-installed BLAT binary accessible in the containing
-    environment's PATH. This is sort of awkward and it'd be nice to make use of some
-    direct bindings or better packaging if that's possible.
+    environment's PATH, or under env var ``BLAT_BIN_PATH``. This is sort of awkward and
+    it'd be nice to make use of some direct bindings or better packaging if that's possible.
 
     * Perhaps `gget`? https://pachterlab.github.io/gget/en/blat.html
     * ``PxBlat``? https://github.com/ylab-hi/pxblat
@@ -82,7 +83,11 @@ def _run_blat(
     :return: process result
     """
     reference_genome_file = get_ref_genome_file(silent=silent)
-    command = f"blat {reference_genome_file} {target_args} -minScore=20 {query_file} {out_file}"
+    if "BLAT_BIN_PATH" in os.environ:
+        bin_name = os.environ["BLAT_BIN_PATH"]
+    else:
+        bin_name = "blat"
+    command = f"{bin_name} {reference_genome_file} {target_args} -minScore=20 {query_file} {out_file}"
     _logger.debug("Running BLAT command: %s", command)
     result = subprocess.run(
         command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
