@@ -56,6 +56,7 @@ def _create_hgvs_strings(
         hgvs_strings = [f"{chrom_ac}:{layer.value}.{d}" for d in descr_list]
     else:
         descr_list = [raw_description]
+        print(descr_list)
         hgvs_strings = [f"{chrom_ac}:{d}" for d in descr_list]
     return hgvs_strings
 
@@ -149,7 +150,7 @@ def _map_protein_coding(
     else:
         sequence = metadata.target_sequence
 
-    sequence_id = f"ga4gh:SQ.{sha512t24u(sequence.encode('ascii'))}"
+    sequence_id = f"SQ.{sha512t24u(sequence.encode('ascii'))}"
     alias_dict_list = [{'namespace': 'ga4gh', 'alias': sequence_id}]
     get_seqrepo().sr.store(sequence, nsaliases = alias_dict_list) # Add custom digest to SeqRepo
 
@@ -171,7 +172,7 @@ def _map_protein_coding(
             continue
         else:
             layer = AnnotationLayer.GENOMIC
-            hgvs_strings = _create_hgvs_strings(align_result, row.hgvs_nt[2:], layer)
+            hgvs_strings = _create_hgvs_strings(align_result, row.hgvs_nt, layer)
             variations.variations.append(
                 VrsMapping(
                     mavedb_id=row.accession,
@@ -209,7 +210,7 @@ def _map_regulatory_noncoding(
     :return: TODO
     """
     variations = VrsMappingResult(variations=[])
-    sequence_id = f"ga4gh:SQ.{sha512t24u(metadata.target_sequence.encode('ascii'))}"
+    sequence_id = f"SQ.{sha512t24u(metadata.target_sequence.encode('ascii'))}"
     alias_dict_list = [{'namespace': 'ga4gh', 'alias': sequence_id}]
     get_seqrepo().sr.store(metadata.target_sequence, nsaliases = alias_dict_list) # Add custom digest to SeqRepo
 

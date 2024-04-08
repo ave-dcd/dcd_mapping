@@ -376,6 +376,7 @@ def translate_hgvs_to_vrs(hgvs: str) -> Allele:
     :return: Corresponding VRS allele as a Pydantic class
     """
     tr = TranslatorBuilder(CoolSeqToolBuilder().seqrepo_access)
+    print(hgvs)
     allele = tr.translate_from(hgvs, "hgvs")
 
     if (
