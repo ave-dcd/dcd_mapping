@@ -15,10 +15,7 @@ import click
 from Bio.Seq import Seq
 from cool_seq_tool.schemas import AnnotationLayer, Strand
 from ga4gh.core import ga4gh_identify, sha512t24u
-from ga4gh.vrs._internal.models import (
-    Allele,
-    Haplotype,
-)
+from ga4gh.vrs._internal.models import Allele, Haplotype, SequenceString
 from ga4gh.vrs.dataproxy import SeqRepoDataProxy
 from ga4gh.vrs.normalize import normalize
 
@@ -48,16 +45,19 @@ class VrsMapError(Exception):
     """Raise in case of VRS mapping errors."""
 
 def _create_hgvs_strings(
-    alignment: AlignmentResult, raw_description: str, layer: AnnotationLayer
+    alignment: AlignmentResult, raw_description: str, layer: AnnotationLayer,
+    tx: Optional[TxSelectResult] = None,
 ) -> List[str]:
-    chrom_ac = get_chromosome_identifier(alignment.chrom)
+    if layer == AnnotationLayer.PROTEIN:
+        acc = tx.np
+    else:
+        acc = get_chromosome_identifier(alignment.chrom)
     if '[' in raw_description:
-        descr_list = list(set(raw_description[1:-1].split(";")))
-        hgvs_strings = [f"{chrom_ac}:{layer.value}.{d}" for d in descr_list]
+        descr_list = list(set(raw_description[3:-1].split(";")))
+        hgvs_strings = [f"{acc}:{layer.value}.{d}" for d in descr_list]
     else:
         descr_list = [raw_description]
-        print(descr_list)
-        hgvs_strings = [f"{chrom_ac}:{d}" for d in descr_list]
+        hgvs_strings = [f"{acc}:{d}" for d in descr_list]
     return hgvs_strings
 
 def _map_protein_coding_pro(
@@ -80,7 +80,8 @@ def _map_protein_coding_pro(
     :param transcript:
     :return: VRS mapping object if mapping succeeds
     """
-    if row.hgvs_pro in {"_wt", "_sy", "p.="}:
+    if row.hgvs_pro in {"_wt", "_sy", "p.=", "NA"}:
+        print("here")
         _logger.warning(
             f"Can't process Enrich2-style variant syntax {row.hgvs_nt} for {row.accession}"
         )
@@ -94,7 +95,7 @@ def _map_protein_coding_pro(
             score=score,
         )
     layer = AnnotationLayer.PROTEIN
-    hgvs_strings = _create_hgvs_strings(align_result, row.hgvs_pro, layer)
+    hgvs_strings = _create_hgvs_strings(align_result, row.hgvs_pro, layer, transcript)
     mapping = VrsMapping(
         mavedb_id=row.accession,
         score=score,
@@ -127,7 +128,7 @@ def _get_allele_sequence(allele: Allele) -> str:
     sr = get_seqrepo()
     start = allele.location.start  # type: ignore
     end = allele.location.end  # type: ignore
-    base = sr.sr[allele.location.sequenceReference.refgetAccession]  # type: ignore
+    base = sr.sr[f"ga4gh:{allele.location.sequenceReference.refgetAccession}"]  # type: ignore
     selection = base[start:end]
     return selection
 
@@ -168,7 +169,7 @@ def _map_protein_coding(
         )
         if hgvs_pro_mappings:
             variations.variations.append(hgvs_pro_mappings)
-        if row.hgvs_nt == "NA":
+        if row.hgvs_nt == "NA" or row.hgvs_nt in {"_wt", "_sy"}:
             continue
         else:
             layer = AnnotationLayer.GENOMIC
@@ -222,7 +223,7 @@ def _map_regulatory_noncoding(
             continue
         score = row.score
         hgvs_strings = _create_hgvs_strings(
-            align_result, row.hgvs_nt[2:], AnnotationLayer.GENOMIC
+            align_result, row.hgvs_nt, AnnotationLayer.GENOMIC
         )
         pre_map_allele = _get_variation(
             hgvs_strings,
@@ -255,9 +256,9 @@ def _map_regulatory_noncoding(
 def vrs_map(
     metadata: ScoresetMetadata,
     align_result: AlignmentResult,
-    transcript: Optional[TxSelectResult],
     records: List[ScoreRow],
     silent: bool = True,
+    transcript: Optional[TxSelectResult] = None,
 ) -> Optional[VrsMappingResult]:
     """Given a description of a MAVE scoreset and an aligned transcript, generate
     the corresponding VRS objects.
@@ -300,7 +301,7 @@ def _get_variation(
 
     :param hgvs_strings:
     :param layer: annotation layer
-    :param sequence_id: target sequence digest eg ``"ga4gh:SQ.SQ.jUOcLPDjSqWFEo9kSOG8ITe1dr9QK3h6"``
+    :param sequence_id: target sequence digest eg ``"ga4gh:SQ.jUOcLPDjSqWFEo9kSOG8ITe1dr9QK3h6"``
     :param sequence: target sequence
     :param alignment:
     :param pre_map: if True, return object for pre mapping stage. Otherwise return for
@@ -315,7 +316,7 @@ def _get_variation(
     for hgvs_string in hgvs_strings:
         allele = translate_hgvs_to_vrs(hgvs_string)
         if "dup" in hgvs_string:
-            allele.state.sequence = 2 * _get_allele_sequence(allele)  # type: ignore
+            allele.state.sequence = SequenceString(2 * _get_allele_sequence(allele) ) # type: ignore
         if pre_map:
             allele.location.sequenceReference.refgetAccession = sequence_id  # type: ignore
         else:
@@ -331,7 +332,7 @@ def _get_variation(
                     subrange_start = alignment.query_subranges[0].start
                     diff = start - subrange_start
                     diff2: int = allele.location.end - start  # type: ignore
-                    allele.location.start = subrange_start + diff
+                    allele.location.start = alignment.hit_subranges[0].start + diff
                     allele.location.end = allele.location.start + diff2  # type: ignore
                 else:
                     for query_subrange, hit_subrange in zip(
@@ -351,19 +352,21 @@ def _get_variation(
                         allele.location.start = hit_subrange_start + diff
                         allele.location.end = allele.location.start + diff2  # type: ignore
                         if "dup" in hgvs_string:
-                            allele.state.sequence = 2 * _get_allele_sequence(allele)  # type: ignore
+                            allele.state.sequence = SequenceString(2 * _get_allele_sequence(allele))  # type: ignore
                     else:
                         allele.location.start = hit_subrange_start - diff - diff2
                         allele.location.end = allele.location.start + diff2  # type: ignore
                         if "dup" in hgvs_string:
-                            allele.state.sequence = 2 * _get_allele_sequence(allele)  # type: ignore
-                        allele.state.sequence = str(
-                            Seq(str(allele.state.sequence)).reverse_complement()
+                            allele.state.sequence = SequenceString(2 * _get_allele_sequence(allele))  # type: ignore
+                        temp_str = allele.state.sequence.root
+                        temp_str = str(
+                            Seq(str(temp_str)).reverse_complement()
                         )
-        if allele.state.sequence == "N" and layer != AnnotationLayer.PROTEIN:
-            allele.state.sequence = _get_allele_sequence(allele)  # type: ignore
+                        allele.state.sequence = SequenceString(temp_str)
+        if allele.state.sequence.root == "N" and layer == AnnotationLayer.GENOMIC:
+            allele.state.sequence = SequenceString(_get_allele_sequence(allele)) # type: ignore
         if '=' in hgvs_string and layer == AnnotationLayer.PROTEIN:
-            allele.state.sequence = _get_allele_sequence(allele)
+            allele.state.sequence = SequenceString(_get_allele_sequence(allele))
         allele = normalize(allele, data_proxy=sequence_store)
         allele.id = ga4gh_identify(allele)
         alleles.append(allele)
