@@ -196,6 +196,7 @@ def get_scoreset_metadata(scoreset_urn: str) -> ScoresetMetadata:
     :raise ResourceAcquisitionError: if unable to acquire metadata
     """
     metadata = get_raw_scoreset_metadata(scoreset_urn)
+
     if not _metadata_response_is_human(metadata):
         raise ResourceAcquisitionError(
             f"Experiment for {scoreset_urn} contains no human targets"
@@ -236,15 +237,18 @@ def get_scoreset_records(scoreset_urn: str, silent: bool = True) -> List[ScoreRo
         changes and scores
     :raise ResourceAcquisitionError: if unable to fetch file
     """
-    scores_csv = LOCAL_STORE_PATH / f"{scoreset_urn}_scores.csv"
-    # TODO use smarter/more flexible caching methods
-    if not scores_csv.exists():
-        url = f"https://api.mavedb.org/api/v1/score-sets/{scoreset_urn}/scores"
-        try:
-            _http_download(url, scores_csv, silent)
-        except requests.HTTPError:
-            _logger.error(f"HTTPError when fetching scores CSV from {url}")
-            raise ResourceAcquisitionError(f"Scores CSV for scoreset {scoreset_urn}")
+    if scoreset_urn == "urn:mavedb:00000053-a-1":
+        scores_csv = "analysis_files/00000053-a-1.scores.csv"
+    else:
+        scores_csv = LOCAL_STORE_PATH / f"{scoreset_urn}_scores.csv"
+        # TODO use smarter/more flexible caching methods
+        if not scores_csv.exists():
+            url = f"https://api.mavedb.org/api/v1/score-sets/{scoreset_urn}/scores"
+            try:
+                _http_download(url, scores_csv, silent)
+            except requests.HTTPError:
+                _logger.error(f"HTTPError when fetching scores CSV from {url}")
+                raise ResourceAcquisitionError(f"Scores CSV for scoreset {scoreset_urn}")
 
     scores_data: List[ScoreRow] = []
     with open(scores_csv, "r") as csvfile:

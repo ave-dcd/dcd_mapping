@@ -12,6 +12,7 @@ from typing import List, Optional
 
 import polars as pl
 import requests
+from biocommons.seqrepo import SeqRepo
 from cool_seq_tool.app import CoolSeqTool
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
 from cool_seq_tool.schemas import TranscriptPriority
@@ -55,7 +56,8 @@ class CoolSeqToolBuilder:
         :return: singleton instance of CoolSeqTool
         """
         if not hasattr(cls, "instance"):
-            cls.instance = CoolSeqTool()
+            sr = SeqRepo("/usr/local/share/seqrepo/latest", writeable = True)
+            cls.instance = CoolSeqTool(sr=sr)
         return cls.instance
 
 
@@ -367,14 +369,13 @@ def get_sequence(
 # -------------------------------- VRS-Python -------------------------------- #
 
 
-def translate_hgvs_to_vrs(hgvs: str, data_proxy: SeqRepoDataProxy) -> Allele:
+def translate_hgvs_to_vrs(hgvs: str) -> Allele:
     """Convert HGVS variation description to VRS object.
 
     :param hgvs: MAVE-HGVS variation string
-    :param data_proxy:
     :return: Corresponding VRS allele as a Pydantic class
     """
-    tr = TranslatorBuilder(data_proxy)
+    tr = TranslatorBuilder(CoolSeqToolBuilder().seqrepo_access)
     allele = tr.translate_from(hgvs, "hgvs")
 
     if (

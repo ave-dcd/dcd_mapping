@@ -222,7 +222,6 @@ def _map_protein_coding(
                 row.accession,
             )
             continue
-
         # hgvs_pro
         hgvs_pro_mappings = _map_protein_coding_pro(
             row,
@@ -238,12 +237,12 @@ def _map_protein_coding(
 
         if row.hgvs_nt == "NA":
             continue  # TODO is it correct to be skipping this? can we project down?
-        if "97" in metadata.urn:
+        if metadata.urn.startswith("urn:mavedb:00000097"):
             _logger.warning(f"Skipping hgvs_nt for {metadata.urn}")
             continue  # TODO more information about this
         else:
             layer = AnnotationLayer.GENOMIC
-            hgvs_strings = _create_hgvs_strings(align_result, row.hgvs_nt, layer)
+            hgvs_strings = _create_hgvs_strings(align_result, row.hgvs_nt[2:], layer)
             variations.variations.append(
                 VrsMapping(
                     mavedb_id=row.accession,
@@ -275,10 +274,10 @@ def _create_hgvs_strings(
     chrom_ac = get_chromosome_identifier(alignment.chrom)
     if chr(91) in raw_description:
         descr_list = list(set(raw_description[1:-1].split(";")))
+        hgvs_strings = [f"{chrom_ac}:{layer.value}.{d}" for d in descr_list]
     else:
         descr_list = [raw_description]
-    hgvs_strings = [f"{chrom_ac}:{d}" for d in descr_list]
-    # hgvs_strings = [f"{chrom_ac}:{layer.value}.{d}" for d in descr_list]
+        hgvs_strings = [f"{chrom_ac}:{d}" for d in descr_list]
     return hgvs_strings
 
 
@@ -333,7 +332,7 @@ def _get_variation(
     sequence_store = SequenceStore()
     sequence_store.local_sequences[sequence_id] = sequence
     for hgvs_string in hgvs_strings:
-        allele = translate_hgvs_to_vrs(hgvs_string, sequence_store)
+        allele = translate_hgvs_to_vrs(hgvs_string)
         if "dup" in hgvs_string:
             allele.state.sequence = 2 * _get_allele_sequence(allele)  # type: ignore
         if pre_map:
@@ -378,6 +377,8 @@ def _get_variation(
                         )
         if allele.state.sequence == "N" and layer != AnnotationLayer.PROTEIN:
             allele.state.sequence = _get_allele_sequence(allele)  # type: ignore
+        if '=' in hgvs_string and layer == AnnotationLayer.PROTEIN:
+            allele.state.sequence = _get_allele_sequence(allele)
         allele = normalize(allele, data_proxy=sequence_store)
         allele.id = ga4gh_identify(allele)
         alleles.append(allele)

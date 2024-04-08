@@ -267,6 +267,10 @@ def _offset_target_sequence(metadata: ScoresetMetadata, records: List[ScoreRow])
 
     protein_sequence = _get_protein_sequence(metadata.target_sequence)
     offset = 0
+
+    if protein_sequence in seq:
+       return offset
+
     for i, base in enumerate(protein_sequence):
         if all(
             [
@@ -284,6 +288,7 @@ def _offset_target_sequence(metadata: ScoresetMetadata, records: List[ScoreRow])
                 offset = 0
             else:
                 offset = i
+            break
     return offset
 
 
@@ -309,9 +314,15 @@ async def select_transcript(
         click.echo(msg)
     _logger.info(msg)
 
-    if metadata.urn in {"urn:mavedb:00000053-a-1", "urn:mavedb:00000053-a-2"}:
-        # target sequence for these scoresets is missing codon
-        return None
+    if metadata.urn.startswith("urn:mavedb:00000097"):
+        # Score Sets in Experiment 97 are expressed in full HGVS strings,
+        # so additional mapping is not needed
+        return TxSelectResult(nm="NM_007294.3",
+                              np="NP_009225.1",
+                              start=0,
+                              is_full_match=False,
+                              transcript_mode=TranscriptPriority.MANE_SELECT,
+                              sequence=_get_protein_sequence(metadata.target_sequence))
 
     if metadata.target_gene_category == TargetType.PROTEIN_CODING:
         transcript_reference = await _select_protein_reference(metadata, align_result)
@@ -325,6 +336,12 @@ async def select_transcript(
     else:
         # can't provide transcripts for regulatory/noncoding scoresets
         return None
+
+    if (metadata.urn.startswith("urn:mavedb:00000047")
+        or metadata.urn.startswith("urn:mavedb:00000048")):
+        # Set start = 0 as there is discordance between expected and actual
+        # amino acid locations
+        transcript_reference.start = 0
 
     msg = "Reference selection complete."
     if not silent:
