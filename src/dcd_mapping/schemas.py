@@ -1,8 +1,10 @@
 """Provide class definitions for commonly-used information objects."""
+import json
 from enum import StrEnum
 from typing import Dict, List, Optional, Tuple, Union
 
 from cool_seq_tool.schemas import AnnotationLayer, Strand, TranscriptPriority
+from ga4gh.core import sha512t24u
 from ga4gh.vrs._internal.models import Allele
 from pydantic import BaseModel, StrictBool, StrictFloat, StrictInt, StrictStr
 
@@ -136,9 +138,9 @@ class VrsMapping(BaseModel):
     score: Union[StrictFloat, str]
     # relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
 
-    def output_vrs_variations(self, layer: AnnotationLayer) -> Tuple[Dict, Dict]:
+    def output_vrs_variations(self) -> Tuple[Dict, Dict]:
         """Construct VRS 1.3 compatible objects from 2.0a models."""
-        if layer == AnnotationLayer.GENOMIC:
+        if self.pre_mapped_genomic:
             pre_mapped_2_0 = self.pre_mapped_genomic
             post_mapped_2_0 = self.post_mapped_genomic
         else:  # protein coding
@@ -146,14 +148,16 @@ class VrsMapping(BaseModel):
             post_mapped_2_0 = self.post_mapped_protein
 
         # TODO do we need to think about haplotype?
-        if not isinstance(pre_mapped_2_0, Allele) or not isinstance(
-            post_mapped_2_0, Allele
-        ):
-            raise NotImplementedError
+
+        #if not isinstance(pre_mapped_2_0, Allele) or not isinstance(
+        #    post_mapped_2_0, Allele
+        #):
+        #    raise NotImplementedError
 
         pre_mapped = {
             "type": "Allele",
             "location": {
+                "id": None,
                 "type": "SequenceLocation",
                 "sequence_id": f"ga4gh:{pre_mapped_2_0.location.sequenceReference.refgetAccession}",
                 "start": {"value": pre_mapped_2_0.location.start, "type": "number"},
@@ -161,12 +165,13 @@ class VrsMapping(BaseModel):
             },
             "state": {
                 "type": "LiteralSequenceExpression",
-                "sequence": pre_mapped_2_0.state.sequence,
+                "sequence": pre_mapped_2_0.state.sequence.root,
             },
         }
         post_mapped = {
             "type": "Allele",
             "location": {
+                "id": None,
                 "type": "SequenceLocation",
                 "sequence_id": f"ga4gh:{post_mapped_2_0.location.sequenceReference.refgetAccession}",
                 "start": {"value": post_mapped_2_0.location.start, "type": "number"},
@@ -174,11 +179,15 @@ class VrsMapping(BaseModel):
             },
             "state": {
                 "type": "LiteralSequenceExpression",
-                "sequence": post_mapped_2_0.state.sequence,
+                "sequence": post_mapped_2_0.state.sequence.root,
             },
         }
 
         # run ga4gh identify
+        pre_mapped_id = sha512t24u(json.dumps(pre_mapped).encode("ascii"))
+        post_mapped_id = sha512t24u(json.dumps(post_mapped).encode("ascii"))
+        pre_mapped["id"] = f"ga4gh:VA.{pre_mapped_id}"
+        post_mapped["id"] = f"ga4gh:VA.{post_mapped_id}"
 
         return (pre_mapped, post_mapped)
 
