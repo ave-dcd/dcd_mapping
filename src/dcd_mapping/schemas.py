@@ -128,8 +128,10 @@ class VrsMapping(BaseModel):
     """Define pre-post mapping pair structure for VRS-structured variations."""
 
     mavedb_id: StrictStr
-    pre_mapped: Union[Allele, List[Allele]]
-    post_mapped: Union[Allele, List[Allele]]
+    pre_mapped_protein: Optional[Union[Allele, List[Allele]]] = None
+    post_mapped_protein: Optional[Union[Allele, List[Allele]]] = None
+    pre_mapped_genomic: Optional[Union[Allele, List[Allele]]] = None
+    post_mapped_genomic: Optional[Union[Allele, List[Allele]]] = None
     mapped_transcript: Optional[TranscriptDescription] = None
     score: Union[StrictFloat,str]
     # relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"

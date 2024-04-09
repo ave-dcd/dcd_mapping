@@ -48,6 +48,13 @@ def _create_hgvs_strings(
     alignment: AlignmentResult, raw_description: str, layer: AnnotationLayer,
     tx: Optional[TxSelectResult] = None,
 ) -> List[str]:
+    """Properly format MAVE variant strings
+    :param align_results: Alignment results for a score set
+    :param raw_description: The variant list as expressed in MaveDB
+    :param layer: The Annotation Layer (protein or genomic)
+    :param tx: The transcript selection information for a score set
+    :return A list of processed variants
+    """
     if layer == AnnotationLayer.PROTEIN:
         acc = tx.np
     else:
@@ -72,18 +79,17 @@ def _map_protein_coding_pro(
 
     These arguments are a little lazy and could be pruned down later
 
-    :param row:
-    :param score:
-    :param align_result:
-    :param sequence:
-    :param sequence_id:
-    :param transcript:
+    :param row: A row of output from a MaveDB score set
+    :param score: The score for a given row of output
+    :param align_result: The alignment data for a score set
+    :param sequence: The target sequence for a score set
+    :param sequence_id: The GA4GH accession for the provided sequence
+    :param transcript: The transcript selection information for a score set
     :return: VRS mapping object if mapping succeeds
     """
-    if row.hgvs_pro in {"_wt", "_sy", "p.=", "NA"}:
-        print("here")
+    if row.hgvs_pro in {"_wt", "_sy", "p.=", "NA"} or "fs" in row.hgvs_pro:
         _logger.warning(
-            f"Can't process Enrich2-style variant syntax {row.hgvs_nt} for {row.accession}"
+            f"Can't process variant syntax {row.hgvs_pro} for {row.accession}"
         )
         return None
     if row.hgvs_pro.startswith("NP_009225.1:p."): # This is for experiment set 97
@@ -99,7 +105,7 @@ def _map_protein_coding_pro(
     mapping = VrsMapping(
         mavedb_id=row.accession,
         score=score,
-        pre_mapped=_get_variation(
+        pre_mapped_protein=_get_variation(
             hgvs_strings,
             layer,
             sequence_id,
@@ -107,7 +113,7 @@ def _map_protein_coding_pro(
             align_result,
             True,
         ),
-        post_mapped=_get_variation(
+        post_mapped_protein=_get_variation(
             hgvs_strings,
             layer,
             sequence_id,
@@ -151,9 +157,14 @@ def _map_protein_coding(
     else:
         sequence = metadata.target_sequence
 
-    sequence_id = f"SQ.{sha512t24u(sequence.encode('ascii'))}"
-    alias_dict_list = [{'namespace': 'ga4gh', 'alias': sequence_id}]
-    get_seqrepo().sr.store(sequence, nsaliases = alias_dict_list) # Add custom digest to SeqRepo
+    # Add custom digest to SeqRepo for both Protein and DNA Sequence
+    psequence_id = f"SQ.{sha512t24u(sequence.encode('ascii'))}"
+    alias_dict_list = [{'namespace': 'ga4gh', 'alias': psequence_id}]
+    get_seqrepo().sr.store(sequence, nsaliases = alias_dict_list) 
+
+    gsequence_id = f"SQ.{sha512t24u(metadata.target_sequence.encode('ascii'))}"
+    alias_dict_list = [{'namespace': 'ga4gh', 'alias': gsequence_id}]
+    get_seqrepo().sr.store(metadata.target_sequence, nsaliases = alias_dict_list)
 
     for row in records:
         score = row.score
@@ -164,7 +175,7 @@ def _map_protein_coding(
             score,
             align_result,
             sequence,
-            sequence_id,
+            psequence_id,
             transcript,
         )
         if hgvs_pro_mappings:
@@ -178,18 +189,18 @@ def _map_protein_coding(
                 VrsMapping(
                     mavedb_id=row.accession,
                     score=score,
-                    pre_mapped=_get_variation(
+                    pre_mapped_genomic=_get_variation(
                         hgvs_strings,
                         layer,
-                        sequence_id,
+                        gsequence_id,
                         sequence,
                         align_result,
                         True,
                     ),
-                    post_mapped=_get_variation(
+                    post_mapped_genomic=_get_variation(
                         hgvs_strings,
                         layer,
-                        sequence_id,
+                        gsequence_id,
                         sequence,
                         align_result,
                         False,
@@ -216,9 +227,9 @@ def _map_regulatory_noncoding(
     get_seqrepo().sr.store(metadata.target_sequence, nsaliases = alias_dict_list) # Add custom digest to SeqRepo
 
     for row in records:
-        if row.hgvs_nt in {"_wt", "_sy"}:
+        if row.hgvs_nt in {"_wt", "_sy"} or "fs" in row.hgvs_nt:
             _logger.warning(
-                f"Can't process Enrich2-style variant syntax {row.hgvs_nt} for {metadata.urn}"
+                f"Can't process variant syntax {row.hgvs_nt} for {metadata.urn}"
             )
             continue
         score = row.score
@@ -245,8 +256,8 @@ def _map_regulatory_noncoding(
         )
         variations.variations.append(
             VrsMapping(
-                pre_mapped=pre_map_allele,
-                post_mapped=post_map_allele,
+                pre_mapped_genomic=pre_map_allele,
+                post_mapped_genomic=post_map_allele,
                 mavedb_id=row.accession,
                 score=score,
             )
@@ -341,6 +352,7 @@ def _get_variation(
                         if start >= query_subrange.start and start < query_subrange.end:
                             query_subrange_start = query_subrange.start
                             hit_subrange_start = hit_subrange.start
+                            hit_subrange_end = hit_subrange.end
                             break
                     else:
                         raise ValueError(
@@ -354,7 +366,7 @@ def _get_variation(
                         if "dup" in hgvs_string:
                             allele.state.sequence = SequenceString(2 * _get_allele_sequence(allele))  # type: ignore
                     else:
-                        allele.location.start = hit_subrange_start - diff - diff2
+                        allele.location.start = hit_subrange_end - diff - diff2
                         allele.location.end = allele.location.start + diff2  # type: ignore
                         if "dup" in hgvs_string:
                             allele.state.sequence = SequenceString(2 * _get_allele_sequence(allele))  # type: ignore
