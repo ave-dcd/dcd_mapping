@@ -1,7 +1,7 @@
 """Provide class definitions for commonly-used information objects."""
 import json
 from enum import StrEnum
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Literal, Optional, Tuple, Union
 
 from cool_seq_tool.schemas import AnnotationLayer, Strand, TranscriptPriority
 from ga4gh.core import sha512t24u
@@ -136,23 +136,28 @@ class VrsMapping(BaseModel):
     post_mapped_genomic: Optional[Union[Allele, List[Allele]]] = None
     mapped_transcript: Optional[TranscriptDescription] = None
     score: Union[StrictFloat, str]
-    # relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
+    relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
 
-    def output_vrs_variations(self) -> Tuple[Dict, Dict]:
-        """Construct VRS 1.3 compatible objects from 2.0a models."""
-        if self.pre_mapped_genomic:
+    def output_vrs_1_3_variations(
+        self, layer: AnnotationLayer = AnnotationLayer.GENOMIC
+    ) -> Tuple[Dict, Dict]:
+        """Construct VRS 1.3 compatible objects from 2.0a models.
+
+        :param layer: desired annotation layer. Some experiment sets are edge cases in
+            terms of what data's already available, so we need to preserve the option
+            to manually select from protein vs genomic for producing final VRS output.
+        :return: Tuple containing pre- and post-mapped VRS 1.3 compatible dictionaries.
+        """
+        if layer == AnnotationLayer.GENOMIC:
             pre_mapped_2_0 = self.pre_mapped_genomic
             post_mapped_2_0 = self.post_mapped_genomic
-        else:  # protein coding
+        else:
             pre_mapped_2_0 = self.pre_mapped_protein
             post_mapped_2_0 = self.post_mapped_protein
 
-        # TODO do we need to think about haplotype?
-
-        #if not isinstance(pre_mapped_2_0, Allele) or not isinstance(
-        #    post_mapped_2_0, Allele
-        #):
-        #    raise NotImplementedError
+        # TODO how to think about haplotype?
+        if isinstance(pre_mapped_2_0, List) or isinstance(post_mapped_2_0, List):
+            raise NotImplementedError
 
         pre_mapped = {
             "type": "Allele",
@@ -183,7 +188,6 @@ class VrsMapping(BaseModel):
             },
         }
 
-        # run ga4gh identify
         pre_mapped_id = sha512t24u(json.dumps(pre_mapped).encode("ascii"))
         post_mapped_id = sha512t24u(json.dumps(post_mapped).encode("ascii"))
         pre_mapped["id"] = f"ga4gh:VA.{pre_mapped_id}"

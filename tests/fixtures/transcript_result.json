@@ -37,5 +37,13 @@
     "start": 0,
     "is_full_match": false,
     "transcript_mode": "mane_select"
+  },
+  "urn:mavedb:00000093-a-1": {
+    "nm": "NM_007294.4",
+    "np": "NP_009225.1",
+    "start": 0,
+    "is_full_match": true,
+    "transcript_mode": "mane_select",
+    "sequence": "MDLSALRVEEVQNVINAMQKILECPICLELIKEPVSTKCDHIFCKFCMLKLLNQKKGPSQCPLCKNDITKRSLQESTRFSQLVEELLKIICAFQLDTGLE"
   }
 }

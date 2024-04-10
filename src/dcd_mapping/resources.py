@@ -225,6 +225,20 @@ def get_scoreset_metadata(scoreset_urn: str) -> ScoresetMetadata:
     return structured_data
 
 
+def _load_scoreset_records(path: Path) -> List[ScoreRow]:
+    """Load scoreset records from CSV file.
+
+    This method is intentionally identified as "private", but is refactored out for
+    use during testing.
+    """
+    scores_data: List[ScoreRow] = []
+    with path.open() as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            scores_data.append(ScoreRow(**row))
+    return scores_data
+
+
 def get_scoreset_records(scoreset_urn: str, silent: bool = True) -> List[ScoreRow]:
     """Get scoreset records.
 
@@ -237,25 +251,17 @@ def get_scoreset_records(scoreset_urn: str, silent: bool = True) -> List[ScoreRo
         changes and scores
     :raise ResourceAcquisitionError: if unable to fetch file
     """
-    if scoreset_urn == "urn:mavedb:00000053-a-1":
-        scores_csv = "analysis_files/00000053-a-1.scores.csv"
-    else:
-        scores_csv = LOCAL_STORE_PATH / f"{scoreset_urn}_scores.csv"
-        # TODO use smarter/more flexible caching methods
-        if not scores_csv.exists():
-            url = f"https://api.mavedb.org/api/v1/score-sets/{scoreset_urn}/scores"
-            try:
-                _http_download(url, scores_csv, silent)
-            except requests.HTTPError:
-                _logger.error(f"HTTPError when fetching scores CSV from {url}")
-                raise ResourceAcquisitionError(f"Scores CSV for scoreset {scoreset_urn}")
+    scores_csv = LOCAL_STORE_PATH / f"{scoreset_urn}_scores.csv"
+    # TODO use smarter/more flexible caching methods
+    if not scores_csv.exists():
+        url = f"https://api.mavedb.org/api/v1/score-sets/{scoreset_urn}/scores"
+        try:
+            _http_download(url, scores_csv, silent)
+        except requests.HTTPError:
+            _logger.error(f"HTTPError when fetching scores CSV from {url}")
+            raise ResourceAcquisitionError(f"Scores CSV for scoreset {scoreset_urn}")
 
-    scores_data: List[ScoreRow] = []
-    with open(scores_csv, "r") as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            scores_data.append(ScoreRow(**row))
-    return scores_data
+    return _load_scoreset_records(scores_csv)
 
 
 def get_ref_genome_file(
