@@ -87,7 +87,8 @@ def _map_protein_coding_pro(
     :param transcript: The transcript selection information for a score set
     :return: VRS mapping object if mapping succeeds
     """
-    if row.hgvs_pro in {"_wt", "_sy", "p.=", "NA"} or "fs" in row.hgvs_pro:
+    if (row.hgvs_pro in {"_wt", "_sy","NA"}
+        or "fs" in row.hgvs_pro or len(row.hgvs_pro) == 3):
         _logger.warning(
             f"Can't process variant syntax {row.hgvs_pro} for {row.accession}"
         )
@@ -96,8 +97,8 @@ def _map_protein_coding_pro(
         vrs_variation = translate_hgvs_to_vrs(row.hgvs_pro)
         return VrsMapping(
             mavedb_id=row.accession,
-            pre_mapped=vrs_variation,
-            post_mapped=vrs_variation,
+            pre_mapped_protein=vrs_variation,
+            post_mapped_protein=vrs_variation,
             score=score,
         )
     layer = AnnotationLayer.PROTEIN
@@ -168,7 +169,6 @@ def _map_protein_coding(
 
     for row in records:
         score = row.score
-
         # hgvs_pro
         hgvs_pro_mappings = _map_protein_coding_pro(
             row,
@@ -180,7 +180,8 @@ def _map_protein_coding(
         )
         if hgvs_pro_mappings:
             variations.variations.append(hgvs_pro_mappings)
-        if row.hgvs_nt == "NA" or row.hgvs_nt in {"_wt", "_sy"}:
+        if (row.hgvs_nt == "NA" or row.hgvs_nt in {"_wt", "_sy", "="}
+            or len(row.hgvs_nt) == 3):
             continue
         else:
             layer = AnnotationLayer.GENOMIC
@@ -227,7 +228,8 @@ def _map_regulatory_noncoding(
     get_seqrepo().sr.store(metadata.target_sequence, nsaliases = alias_dict_list) # Add custom digest to SeqRepo
 
     for row in records:
-        if row.hgvs_nt in {"_wt", "_sy"} or "fs" in row.hgvs_nt:
+        if (row.hgvs_nt in {"_wt", "_sy", "="} or "fs" in row.hgvs_nt
+            or len(row.hgvs_nt) == 3):
             _logger.warning(
                 f"Can't process variant syntax {row.hgvs_nt} for {metadata.urn}"
             )
@@ -325,9 +327,18 @@ def _get_variation(
     alleles = []
     sequence_store = get_seqrepo()
     for hgvs_string in hgvs_strings:
+        if hgvs_string.endswith(".=") or hgvs_string.endswith(".?"): # No variant
+            continue
+
+        # Generate VRS Allele structure. Set VA digests and SL digests to None
         allele = translate_hgvs_to_vrs(hgvs_string)
+        allele.id = None
+        allele.digest = None
+        allele.location.id = None
+        allele.location.digest = None
+
         if "dup" in hgvs_string:
-            allele.state.sequence = SequenceString(2 * _get_allele_sequence(allele) ) # type: ignore
+            allele.state.sequence = SequenceString(2 * _get_allele_sequence(allele)) # type: ignore
         if pre_map:
             allele.location.sequenceReference.refgetAccession = sequence_id  # type: ignore
         else:
@@ -350,23 +361,16 @@ def _get_variation(
                         alignment.query_subranges, alignment.hit_subranges
                     ):
                         if start >= query_subrange.start and start < query_subrange.end:
-                            query_subrange_start = query_subrange.start
-                            hit_subrange_start = hit_subrange.start
-                            hit_subrange_end = hit_subrange.end
                             break
-                    else:
-                        raise ValueError(
-                            "Could not find hit subrange compatible with allele position"
-                        )
-                    diff = start - query_subrange_start
+                    diff = start - query_subrange.start
                     diff2: int = allele.location.end - start  # type: ignore
                     if alignment.strand == Strand.POSITIVE:  # positive orientation
-                        allele.location.start = hit_subrange_start + diff
+                        allele.location.start = hit_subrange.start + diff
                         allele.location.end = allele.location.start + diff2  # type: ignore
                         if "dup" in hgvs_string:
                             allele.state.sequence = SequenceString(2 * _get_allele_sequence(allele))  # type: ignore
                     else:
-                        allele.location.start = hit_subrange_end - diff - diff2
+                        allele.location.start = hit_subrange.end - diff - diff2
                         allele.location.end = allele.location.start + diff2  # type: ignore
                         if "dup" in hgvs_string:
                             allele.state.sequence = SequenceString(2 * _get_allele_sequence(allele))  # type: ignore
@@ -380,10 +384,13 @@ def _get_variation(
         if '=' in hgvs_string and layer == AnnotationLayer.PROTEIN:
             allele.state.sequence = SequenceString(_get_allele_sequence(allele))
         allele = normalize(allele, data_proxy=sequence_store)
+
+        # Run ga4gh_identify to assign VA digest
         allele.id = ga4gh_identify(allele)
         alleles.append(allele)
 
-    if len(alleles) == 1:
-        return alleles[0]
+    if not alleles:
+        return None
     else:
         return alleles
+
