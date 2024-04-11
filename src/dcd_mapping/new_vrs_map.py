@@ -97,8 +97,8 @@ def _map_protein_coding_pro(
         vrs_variation = translate_hgvs_to_vrs(row.hgvs_pro)
         return VrsMapping(
             mavedb_id=row.accession,
-            pre_mapped_protein=vrs_variation,
-            post_mapped_protein=vrs_variation,
+            pre_mapped_protein=[vrs_variation],
+            post_mapped_protein=[vrs_variation],
             score=score,
         )
     layer = AnnotationLayer.PROTEIN
@@ -148,9 +148,11 @@ def _map_protein_coding(
 ) -> VrsMappingResult:
     """Perform mapping on protein coding experiment results
 
-    :param metadata:
-    :param records:
-    :param align_results:
+    :param metadata: The metadata for a score set
+    :param records: The list of MAVE variants in a given score set
+    :param transcript: The transcript data for a score set
+    :param align_results: The alignment data for a score set
+    :return: A VrsMappingResult object
     """
     variations = VrsMappingResult(variations=[])
     if metadata.target_sequence_type == TargetSequenceType.DNA:
@@ -219,8 +221,8 @@ def _map_regulatory_noncoding(
 
     :param metadata: metadata for URN
     :param records: list of MAVE experiment result rows
-    :param align_result:
-    :return: TODO
+    :param align_result: An AlignmentResult object for a score set
+    :return: A VrsMappingResult object
     """
     variations = VrsMappingResult(variations=[])
     sequence_id = f"SQ.{sha512t24u(metadata.target_sequence.encode('ascii'))}"
@@ -279,8 +281,8 @@ def vrs_map(
     :param metadata: salient MAVE scoreset metadata
     :param transcript: output of transcript selection process
     :param records: scoreset records
-    :param silent:
-    :return: TODO
+    :param silent: A boolean indicating whether output should be shown
+    :return: A VrsMappingResult object
     """
     msg = f"Mapping {metadata.urn} to VRS..."
     if not silent:
@@ -312,15 +314,17 @@ def _get_variation(
     * trim duplicate code
     * simply args
 
-    :param hgvs_strings:
+    :param hgvs_strings: The HGVS suffix that represents a variant
     :param layer: annotation layer
     :param sequence_id: target sequence digest eg ``"ga4gh:SQ.jUOcLPDjSqWFEo9kSOG8ITe1dr9QK3h6"``
     :param sequence: target sequence
-    :param alignment:
+    :param alignment: The AlignmentResult object for a score set
     :param pre_map: if True, return object for pre mapping stage. Otherwise return for
         post-mapping.
-    :param offset:
-    :return:
+    :param offset: The offset to adjust the start and end positions in allele. This
+    parameter is used if the annotation layer is protein. For genomic variants, the
+    offset is computed with respect to the alignment block.
+    :return: A list of VRS Alleles for a list of MAVE variants
     """
     if sequence_id.startswith("ga4gh:"):
         sequence_id = sequence_id[6:]
@@ -374,9 +378,8 @@ def _get_variation(
                         allele.location.end = allele.location.start + diff2  # type: ignore
                         if "dup" in hgvs_string:
                             allele.state.sequence = SequenceString(2 * _get_allele_sequence(allele))  # type: ignore
-                        temp_str = allele.state.sequence.root
                         temp_str = str(
-                            Seq(str(temp_str)).reverse_complement()
+                            Seq(str(allele.state.sequence.root)).reverse_complement()
                         )
                         allele.state.sequence = SequenceString(temp_str)
         if allele.state.sequence.root == "N" and layer == AnnotationLayer.GENOMIC:
