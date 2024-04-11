@@ -192,7 +192,7 @@ class VrsMapping(BaseModel):
         if layer == AnnotationLayer.GENOMIC:
             pre_mapped_2_0 = self.pre_mapped_genomic
             post_mapped_2_0 = self.post_mapped_genomic
-        else:  # protein coding
+        else:
             pre_mapped_2_0 = self.pre_mapped_protein
             post_mapped_2_0 = self.post_mapped_protein
 

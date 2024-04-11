@@ -71,6 +71,15 @@
       "target_sequence_type": "dna",
       "target_reference_genome": "hg38",
       "target_uniprot_ref": null
+    },
+    {
+      "urn": "urn:mavedb:00000093-a-1",
+      "target_gene_name": "BRCA1 translation start through RING domain",
+      "target_gene_category": "Protein coding",
+      "target_sequence": "ATGGATTTATCTGCTCTTCGCGTTGAAGAAGTACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGTCTGGAGTTGATCAAGGAACCTGTCTCCACAAAGTGTGACCACATATTTTGCAAATTTTGCATGCTGAAACTTCTCAACCAGAAGAAAGGGCCTTCACAGTGTCCTTTATGTAAGAATGATATAACCAAAAGGAGCCTACAAGAAAGTACGAGATTTAGTCAACTTGTTGAAGAGCTATTGAAAATCATTTGTGCTTTTCAGCTTGACACAGGTTTGGAG",
+      "target_sequence_type": "dna",
+      "target_reference_genome": "hg19",
+      "target_uniprot_ref": { "id": "uniprot:P38398", "offset": 0 }
     }
   ]
 }
