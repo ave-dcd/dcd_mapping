@@ -91,6 +91,24 @@ class MappedReferenceSequence(BaseModel):
     sequence_accessions: List[StrictStr]
 
 
+class VrsRefAlleleSeq(BaseModel):
+    """Define reference sequence indicated by sequence digest
+    and start and end positions in an allele
+    """
+
+    vrs_ref_allele_seq: StrictStr
+
+
+class HgvsExpression(BaseModel):
+    """Define class for defining an HGVS expression for a mapped
+    MAVE variant
+    """
+
+    type: StrictStr = "Expression"
+    syntax: StrictStr
+    value: StrictStr
+    syntax_version: StrictStr = None
+
 class AlignmentResult(BaseModel):
     """Define BLAT alignment output."""
 
@@ -181,6 +199,7 @@ class VrsMapping(BaseModel):
         :param var: A VRS 2.0alpha allele
         :return A dictionary
         """
+        sequence = "" if not var.state.sequence else var.state.sequence.root
         allele = {
                 "type": "Allele",
                 "location": {
@@ -195,7 +214,7 @@ class VrsMapping(BaseModel):
                 },
                 "state": {
                     "type": "LiteralSequenceExpression",
-                    "sequence": var.state.sequence.root,
+                    "sequence": sequence,
                 },
             }
         return allele
@@ -205,6 +224,11 @@ class VrsMapping(BaseModel):
         :param layer: The Annotation Layer (genomic or protein)
         :return A VrsObject1_x object
         """
+        if not self.pre_mapped_genomic and layer == AnnotationLayer.GENOMIC:
+            return None
+        if not self.pre_mapped_protein and layer == AnnotationLayer.PROTEIN:
+            return None
+
         if layer == AnnotationLayer.GENOMIC:
             pre_mapped_2_0 = self.pre_mapped_genomic
             post_mapped_2_0 = self.post_mapped_genomic
@@ -247,5 +271,5 @@ class VrsMappingResult(BaseModel):
     Might not be necessary (should just be list of VrsMappings?)
     """
 
-    variations: List[VrsMapping]
+    variations: List[VrsObject1_x]
 

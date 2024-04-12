@@ -102,7 +102,7 @@ def _map_protein_coding_pro(
             pre_mapped_protein=[vrs_variation],
             post_mapped_protein=[vrs_variation],
             score=score,
-        )
+        ).output_vrs_variations(AnnotationLayer.PROTEIN)
     layer = AnnotationLayer.PROTEIN
     hgvs_strings = _create_hgvs_strings(align_result, row.hgvs_pro, layer, transcript)
     mapping = VrsMapping(
@@ -125,7 +125,7 @@ def _map_protein_coding_pro(
             False,
             transcript.start,
         ),
-    )
+    ).output_vrs_variations(AnnotationLayer.PROTEIN)
     return mapping
 
 
@@ -213,7 +213,7 @@ def _map_protein_coding(
                         align_result,
                         False,
                     ),
-                )
+                ).output_vrs_variations(AnnotationLayer.GENOMIC)
             )
     return variations
 
@@ -272,7 +272,7 @@ def _map_regulatory_noncoding(
                 post_mapped_genomic=post_map_allele,
                 mavedb_id=row.accession,
                 score=score,
-            )
+            ).output_vrs_variations(AnnotationLayer.GENOMIC)
         )
     return variations
 
