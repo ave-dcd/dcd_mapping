@@ -75,6 +75,22 @@ class GeneLocation(BaseModel):
     end: Optional[int] = None
 
 
+class ComputedReferenceSequence(BaseModel):
+    """Define metadata describing a computed reference sequence"""
+
+    sequence: StrictStr
+    sequence_type: TargetSequenceType
+    sequence_id: StrictStr
+
+
+class MappedReferenceSequence(BaseModel):
+    """Define metadata describing a mapped, human reference sequence"""
+
+    sequence_id: StrictStr
+    sequence_type: TargetSequenceType
+    sequence_accessions: List[StrictStr]
+
+
 class AlignmentResult(BaseModel):
     """Define BLAT alignment output."""
 

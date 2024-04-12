@@ -341,7 +341,8 @@ def _get_variation(
     alleles = []
     sequence_store = get_seqrepo()
     for hgvs_string in hgvs_strings:
-        if hgvs_string.endswith(".=") or hgvs_string.endswith(".?"): # No variant
+        if (hgvs_string.endswith(".=") or hgvs_string.endswith(")")
+            or "?" in hgvs_string or hgvs_string.endswith("X")): # Invalid variant
             continue
 
         # Generate VRS Allele structure. Set VA digests and SL digests to None
