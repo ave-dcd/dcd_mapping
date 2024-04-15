@@ -1,11 +1,11 @@
 """Provide class definitions for commonly-used information objects."""
-import json
 from enum import StrEnum
 from typing import Dict, List, Literal, Optional, Tuple, Union
 
+from biocommons.seqrepo import SeqRepo
 from cool_seq_tool.schemas import AnnotationLayer, Strand, TranscriptPriority
 from ga4gh.core import sha512t24u
-from ga4gh.vrs._internal.models import Allele, Haplotype
+from ga4gh.vrs._internal.models import Allele
 from pydantic import BaseModel, StrictBool, StrictFloat, StrictInt, StrictStr
 
 
@@ -163,9 +163,10 @@ class VrsObject1_x(BaseModel):
     """Define response object for VRS 1.x object"""
 
     mavedb_id: StrictStr
-    pre_mapped_variants: List
-    post_mapped_variants: List
+    pre_mapped_variants: Dict
+    post_mapped_variants: Dict
     score: Union[StrictFloat, str]
+    layer: AnnotationLayer
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
 
 class VrsMapping(BaseModel):
@@ -219,9 +220,11 @@ class VrsMapping(BaseModel):
             }
         return allele
 
-    def output_vrs_variations(self, layer:AnnotationLayer) -> VrsObject1_x:
+    def output_vrs_variations(self, layer:AnnotationLayer,
+                              sr: SeqRepo) -> VrsObject1_x:
         """Construct VRS 1.3 compatible objects from 2.0a models.
         :param layer: The Annotation Layer (genomic or protein)
+        :param sr: A SeqRepo instance
         :return A VrsObject1_x object
         """
         if not self.pre_mapped_genomic and layer == AnnotationLayer.GENOMIC:
@@ -257,10 +260,21 @@ class VrsMapping(BaseModel):
             post_mapped["id"] = f"ga4gh:VA.{post_mapped_id}"
             post_mapped_variants.append(post_mapped)
 
+        if len(pre_mapped_variants) > 1:
+            pre_mapped_variants = {"type": "Haplotype", "members": pre_mapped_variants}
+        else:
+            pre_mapped_variants = pre_mapped_variants[0]
+
+        if len(post_mapped_variants) > 1:
+            post_mapped_variants = {"type": "Haplotype", "members": post_mapped_variants}
+        else:
+            post_mapped_variants = post_mapped_variants[0]
+
         return VrsObject1_x(
             mavedb_id=self.mavedb_id,
             pre_mapped_variants=pre_mapped_variants,
             post_mapped_variants=post_mapped_variants,
+            layer=layer,
             score=self.score,
         )
 

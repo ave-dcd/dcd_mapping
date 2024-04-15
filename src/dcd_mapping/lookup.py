@@ -346,8 +346,8 @@ def get_chromosome_identifier_from_vrs_id(sequence_id: str) -> Optional[str]:
 
 
 def get_sequence(
-    sequence_id: str, start: Optional[int] = None, end: Optional[int] = None
-) -> str:
+    sequence_id: str, start: Optional[int] = None,
+    end: Optional[int] = None,) -> str:
     """Get reference sequence given a sequence identifier.
 
     :param sequence_id: sequence identifier, e.g. ``"NP_938033.1"``
