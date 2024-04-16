@@ -46,7 +46,8 @@ tests = [
     "pytest",
     "pytest-mock",
     "pytest-cov",
-    "pytest-asyncio"
+    "pytest-asyncio",
+    "requests-mock"
 ]
 dev = [
     "ruff>=0.1.14",
@@ -111,4 +112,4 @@ ignore = [
 # ANN001 - missing-type-function-argument
 # ANN2 - missing-return-type
 # ANN102 - missing-type-cls
-"tests/*" = ["ANN001", "ANN102", "ANN2"]
+"tests/*" = ["ANN001", "ANN102", "ANN2", "D103"]

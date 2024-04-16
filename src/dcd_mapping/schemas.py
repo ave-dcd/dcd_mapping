@@ -17,14 +17,6 @@ class TargetSequenceType(StrEnum):
     DNA = "dna"
 
 
-class ReferenceGenome(StrEnum):
-    """Define known reference genome names."""
-
-    HG38 = "hg38"
-    HG19 = "hg19"
-    HG16 = "hg16"
-
-
 class TargetType(StrEnum):
     """Define target gene types."""
 
@@ -48,7 +40,6 @@ class ScoresetMetadata(BaseModel):
     target_gene_category: TargetType
     target_sequence: str
     target_sequence_type: TargetSequenceType
-    target_reference_genome: ReferenceGenome
     target_uniprot_ref: Optional[UniProtRef] = None
 
 
@@ -101,6 +92,7 @@ class MappedOutput(BaseModel):
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
     score: Union[StrictFloat, NoneType]
 
+
 class VrsRefAlleleSeq(BaseModel):
     """Define reference sequence indicated by sequence digest
     and start and end positions in an allele
@@ -118,6 +110,7 @@ class HgvsExpression(BaseModel):
     syntax: StrictStr
     value: StrictStr
     syntax_version: StrictStr = None
+
 
 class AlignmentResult(BaseModel):
     """Define BLAT alignment output."""
@@ -169,8 +162,9 @@ class TxSelectResult(BaseModel):
     transcript_mode: Optional[TranscriptPriority] = None
     sequence: str
 
-class VrsObject1_x(BaseModel):
-    """Define response object for VRS 1.x object"""
+
+class VrsObject1_x(BaseModel):  # noqa: N801
+    """Define response object for VRS 1.x object, including Allele"""
 
     mavedb_id: StrictStr
     pre_mapped_variants: Dict
@@ -178,6 +172,7 @@ class VrsObject1_x(BaseModel):
     score: Union[StrictFloat, str]
     layer: AnnotationLayer
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
+
 
 class VrsMapping(BaseModel):
     """Define pre-post mapping pair structure for VRS-structured variations."""
@@ -212,26 +207,27 @@ class VrsMapping(BaseModel):
         """
         sequence = "" if not var.state.sequence else var.state.sequence.root
         allele = {
-                "type": "Allele",
-                "location": {
-                    "id": None,
-                    "type": "SequenceLocation",
-                    "sequence_id": f"ga4gh:{var.location.sequenceReference.refgetAccession}",
-                    "interval": {
-                        "type": "SequenceInterval",
-                        "start": {"value": var.location.start, "type": "number"},
-                        "end": {"value": var.location.end, "type": "number"},
-                    }
+            "type": "Allele",
+            "location": {
+                "id": None,
+                "type": "SequenceLocation",
+                "sequence_id": f"ga4gh:{var.location.sequenceReference.refgetAccession}",
+                "interval": {
+                    "type": "SequenceInterval",
+                    "start": {"value": var.location.start, "type": "number"},
+                    "end": {"value": var.location.end, "type": "number"},
                 },
-                "state": {
-                    "type": "LiteralSequenceExpression",
-                    "sequence": sequence,
-                },
-            }
+            },
+            "state": {
+                "type": "LiteralSequenceExpression",
+                "sequence": sequence,
+            },
+        }
         return allele
 
-    def output_vrs_variations(self, layer:AnnotationLayer,
-                              sr: SeqRepo) -> VrsObject1_x:
+    def output_vrs_variations(
+        self, layer: AnnotationLayer, sr: SeqRepo
+    ) -> VrsObject1_x:
         """Construct VRS 1.3 compatible objects from 2.0a models.
         :param layer: The Annotation Layer (genomic or protein)
         :param sr: A SeqRepo instance
@@ -254,19 +250,23 @@ class VrsMapping(BaseModel):
 
         for var in pre_mapped_2_0:
             pre_mapped = self.generate_allele_structure(var)
-            pre_mapped_id = self.serialize(pre_mapped["state"]["sequence"],
-                                       pre_mapped["location"]["interval"]["start"]["value"],
-                                       pre_mapped["location"]["interval"]["end"]["value"],
-                                       pre_mapped["location"]["sequence_id"])
+            pre_mapped_id = self.serialize(
+                pre_mapped["state"]["sequence"],
+                pre_mapped["location"]["interval"]["start"]["value"],
+                pre_mapped["location"]["interval"]["end"]["value"],
+                pre_mapped["location"]["sequence_id"],
+            )
             pre_mapped["id"] = f"ga4gh:VA.{pre_mapped_id}"
             pre_mapped_variants.append(pre_mapped)
 
         for var in post_mapped_2_0:
             post_mapped = self.generate_allele_structure(var)
-            post_mapped_id = self.serialize(post_mapped["state"]["sequence"],
-                                       post_mapped["location"]["interval"]["start"]["value"],
-                                       post_mapped["location"]["interval"]["end"]["value"],
-                                       post_mapped["location"]["sequence_id"])
+            post_mapped_id = self.serialize(
+                post_mapped["state"]["sequence"],
+                post_mapped["location"]["interval"]["start"]["value"],
+                post_mapped["location"]["interval"]["end"]["value"],
+                post_mapped["location"]["sequence_id"],
+            )
             post_mapped["id"] = f"ga4gh:VA.{post_mapped_id}"
             post_mapped_variants.append(post_mapped)
 
@@ -276,7 +276,10 @@ class VrsMapping(BaseModel):
             pre_mapped_variants = pre_mapped_variants[0]
 
         if len(post_mapped_variants) > 1:
-            post_mapped_variants = {"type": "Haplotype", "members": post_mapped_variants}
+            post_mapped_variants = {
+                "type": "Haplotype",
+                "members": post_mapped_variants,
+            }
         else:
             post_mapped_variants = post_mapped_variants[0]
 
@@ -296,4 +299,3 @@ class VrsMappingResult(BaseModel):
     """
 
     variations: List[VrsObject1_x]
-

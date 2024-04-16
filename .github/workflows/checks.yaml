@@ -1,6 +1,27 @@
 name: Checks
 on: [push, pull_request]
 jobs:
+  test:
+    name: test py${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install ".[tests]"
+
+      - name: Run tests
+        # only run tests known to work in CI
+        run: python3 -m pytest tests/unit/test_resources.py
   lint:
     runs-on: ubuntu-latest
     steps:
