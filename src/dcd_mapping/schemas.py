@@ -1,5 +1,5 @@
 """Provide class definitions for commonly-used information objects."""
-from enum import StrEnum
+from enum import Enum
 from types import NoneType
 from typing import Dict, List, Literal, Optional, Union
 
@@ -10,14 +10,14 @@ from ga4gh.vrs._internal.models import Allele
 from pydantic import BaseModel, StrictBool, StrictFloat, StrictInt, StrictStr
 
 
-class TargetSequenceType(StrEnum):
+class TargetSequenceType(str, Enum):
     """Define target sequence type. Add more definitions as needed."""
 
     PROTEIN = "protein"
     DNA = "dna"
 
 
-class TargetType(StrEnum):
+class TargetType(str, Enum):
     """Define target gene types."""
 
     PROTEIN_CODING = "Protein coding"
