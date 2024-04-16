@@ -1,6 +1,5 @@
 """Provide class definitions for commonly-used information objects."""
 from enum import Enum
-from types import NoneType
 from typing import Dict, List, Literal, Optional, Union
 
 from biocommons.seqrepo import SeqRepo
@@ -90,7 +89,7 @@ class MappedOutput(BaseModel):
     post_mapped: Union[dict, List[dict]]
     mavedb_id: StrictStr
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
-    score: Union[StrictFloat, NoneType]
+    score: Optional[StrictFloat]
 
 
 class VrsRefAlleleSeq(BaseModel):

@@ -36,6 +36,7 @@ dependencies = [
     "gene-normalizer>=0.3.0-dev1",
     "pydantic>=2",
     "python-dotenv",
+    "setuptools>=68.0",  # tmp -- ensure 3.12 compatibility
 ]
 
 [project.scripts]
