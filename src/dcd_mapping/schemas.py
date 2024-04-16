@@ -17,14 +17,6 @@ class TargetSequenceType(StrEnum):
     DNA = "dna"
 
 
-class ReferenceGenome(StrEnum):
-    """Define known reference genome names."""
-
-    HG38 = "hg38"
-    HG19 = "hg19"
-    HG16 = "hg16"
-
-
 class TargetType(StrEnum):
     """Define target gene types."""
 
@@ -48,7 +40,6 @@ class ScoresetMetadata(BaseModel):
     target_gene_category: TargetType
     target_sequence: str
     target_sequence_type: TargetSequenceType
-    target_reference_genome: ReferenceGenome
     target_uniprot_ref: Optional[UniProtRef] = None
 
 
@@ -206,8 +197,7 @@ class VrsMapping(BaseModel):
         location_raw = f'{{"end":{{"type":"Number","value":{end}}},"sequence_id":"{sequence_id.split(".")[1]}","start":{{"type":"Number","value":{start}}},"type":"SequenceLocation"}}'
         location_serialized = sha512t24u(location_raw.encode("ascii"))
         allele_raw = f'{{"location":"{location_serialized}","state":{{"sequence":"{sequence}","type":"LiteralSequenceExpression"}},"type":"Allele"}}'
-        allele_serialized = sha512t24u(allele_raw.encode("ascii"))
-        return allele_serialized
+        return sha512t24u(allele_raw.encode("ascii"))
 
     def generate_allele_structure(self, var: Allele) -> Dict:
         """Generate VRS 1.x allele structure
@@ -215,7 +205,7 @@ class VrsMapping(BaseModel):
         :return A dictionary
         """
         sequence = "" if not var.state.sequence else var.state.sequence.root
-        allele = {
+        return {
             "type": "Allele",
             "location": {
                 "id": None,
@@ -232,7 +222,6 @@ class VrsMapping(BaseModel):
                 "sequence": sequence,
             },
         }
-        return allele
 
     def output_vrs_variations(
         self, layer: AnnotationLayer, sr: SeqRepo

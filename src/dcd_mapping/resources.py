@@ -21,7 +21,7 @@ import requests
 from pydantic import ValidationError
 from tqdm import tqdm
 
-from dcd_mapping.schemas import ReferenceGenome, ScoreRow, ScoresetMetadata, UniProtRef
+from dcd_mapping.schemas import ScoreRow, ScoresetMetadata, UniProtRef
 
 __all__ = [
     "get_scoreset_urns",
@@ -108,7 +108,7 @@ def _metadata_response_is_human(json_response: Dict) -> bool:
     for target_gene in json_response.get("targetGenes", []):
         organism = (
             target_gene.get("targetSequence", {})
-            .get("reference", {})
+            .get("taxonomy", {})
             .get("organismName")
         )
         if organism == "Homo sapiens":
@@ -155,7 +155,9 @@ def _get_uniprot_ref(scoreset_json: Dict[str, Any]) -> Optional[UniProtRef]:
             )
 
 
-def get_raw_scoreset_metadata(scoreset_urn: str) -> Dict:
+def get_raw_scoreset_metadata(
+    scoreset_urn: str, dcd_mapping_dir: Optional[Path] = None
+) -> Dict:
     """Get raw (original JSON) metadata for scoreset.
 
     Only hit the MaveDB API if unavailable locally. That means data must be refreshed
@@ -163,10 +165,13 @@ def get_raw_scoreset_metadata(scoreset_urn: str) -> Dict:
     fetch a new one). This could be improved in future versions.
 
     :param scoreset_urn: URN for scoreset
+    :param dcd_mapping_dir: optionally declare location to save metadata to.
     :return: Complete JSON response for object
     :raise ResourceAcquisitionError: if HTTP request fails
     """
-    metadata_file = LOCAL_STORE_PATH / f"{scoreset_urn}_metadata.json"
+    if not dcd_mapping_dir:
+        dcd_mapping_dir = LOCAL_STORE_PATH
+    metadata_file = dcd_mapping_dir / f"{scoreset_urn}_metadata.json"
     if not metadata_file.exists():
         url = f"https://api.mavedb.org/api/v1/score-sets/{scoreset_urn}"
         r = requests.get(url)
@@ -184,7 +189,9 @@ def get_raw_scoreset_metadata(scoreset_urn: str) -> Dict:
     return metadata
 
 
-def get_scoreset_metadata(scoreset_urn: str) -> ScoresetMetadata:
+def get_scoreset_metadata(
+    scoreset_urn: str, dcd_mapping_dir: Optional[Path] = None
+) -> ScoresetMetadata:
     """Acquire metadata for scoreset.
 
     Only hit the MaveDB API if unavailable locally. That means data must be refreshed
@@ -192,10 +199,11 @@ def get_scoreset_metadata(scoreset_urn: str) -> ScoresetMetadata:
     fetch a new one). This could be improved in future versions.
 
     :param scoreset_urn: URN for scoreset
+    :param dcd_mapping_dir: optionally declare location to save metadata to.
     :return: Object containing salient metadata
     :raise ResourceAcquisitionError: if unable to acquire metadata
     """
-    metadata = get_raw_scoreset_metadata(scoreset_urn)
+    metadata = get_raw_scoreset_metadata(scoreset_urn, dcd_mapping_dir)
 
     if not _metadata_response_is_human(metadata):
         raise ResourceAcquisitionError(
@@ -213,7 +221,6 @@ def get_scoreset_metadata(scoreset_urn: str) -> ScoresetMetadata:
             target_gene_category=gene["category"],
             target_sequence=gene["targetSequence"]["sequence"],
             target_sequence_type=gene["targetSequence"]["sequenceType"],
-            target_reference_genome=gene["targetSequence"]["reference"]["shortName"],
             target_uniprot_ref=_get_uniprot_ref(metadata),
         )
     except (KeyError, ValidationError) as e:
@@ -239,7 +246,9 @@ def _load_scoreset_records(path: Path) -> List[ScoreRow]:
     return scores_data
 
 
-def get_scoreset_records(scoreset_urn: str, silent: bool = True) -> List[ScoreRow]:
+def get_scoreset_records(
+    scoreset_urn: str, silent: bool = True, dcd_mapping_dir: Optional[Path] = None
+) -> List[ScoreRow]:
     """Get scoreset records.
 
     Only hit the MaveDB API if unavailable locally. That means data must be refreshed
@@ -247,11 +256,15 @@ def get_scoreset_records(scoreset_urn: str, silent: bool = True) -> List[ScoreRo
     fetch a new one). This could be improved in future versions.
 
     :param scoreset_urn: URN for scoreset
+    :param silent: if true, suppress console output
+    :param dcd_mapping_dir: optionally declare save location for records
     :return: Array of individual ScoreRow objects, containing information like protein
         changes and scores
     :raise ResourceAcquisitionError: if unable to fetch file
     """
-    scores_csv = LOCAL_STORE_PATH / f"{scoreset_urn}_scores.csv"
+    if not dcd_mapping_dir:
+        dcd_mapping_dir = LOCAL_STORE_PATH
+    scores_csv = dcd_mapping_dir / f"{scoreset_urn}_scores.csv"
     # TODO use smarter/more flexible caching methods
     if not scores_csv.exists():
         url = f"https://api.mavedb.org/api/v1/score-sets/{scoreset_urn}/scores"
@@ -265,25 +278,29 @@ def get_scoreset_records(scoreset_urn: str, silent: bool = True) -> List[ScoreRo
 
 
 def get_ref_genome_file(
-    build: ReferenceGenome = ReferenceGenome.HG38, silent: bool = True
+    silent: bool = True, dcd_mapping_dir: Optional[Path] = None
 ) -> Path:
     """Acquire reference genome file in 2bit format from UCSC.
 
     :param build: genome build to acquire
     :param silent: if True, suppress console output
+    :param dcd_mapping_dir: optionally declare genome file storage location
     :return: path to acquired file
     :raise ResourceAcquisitionError: if unable to acquire file.
     """
-    url = f"https://hgdownload.cse.ucsc.edu/goldenpath/{build.value.lower()}/bigZips/{build.value.lower()}.2bit"
+    url = "https://hgdownload.cse.ucsc.edu/goldenpath/hg38/bigZips/hg38.2bit"
     parsed_url = urlparse(url)
-    genome_file = LOCAL_STORE_PATH / os.path.basename(parsed_url.path)
+    if not dcd_mapping_dir:
+        dcd_mapping_dir = LOCAL_STORE_PATH
+    genome_file = dcd_mapping_dir / os.path.basename(parsed_url.path)
     # this file shouldn't change, so no need to think about more advanced caching
     if not genome_file.exists():
         try:
             _http_download(url, genome_file, silent)
         except requests.HTTPError:
-            _logger.error(f"HTTPError when fetching reference genome file from {url}")
-            raise ResourceAcquisitionError(f"Reference genome file at {url}")
+            msg = f"HTTPError when fetching reference genome file from {url}"
+            _logger.error(msg)
+            raise ResourceAcquisitionError(msg)
     return genome_file
 
 
