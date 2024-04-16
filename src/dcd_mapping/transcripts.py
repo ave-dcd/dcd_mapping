@@ -83,8 +83,7 @@ def _reduce_compatible_transcripts(matching_transcripts: List[List[str]]) -> Lis
     common_transcripts_set = set(matching_transcripts[0])
     for sublist in matching_transcripts[1:]:
         common_transcripts_set.intersection_update(sublist)
-    common_transcripts = list(common_transcripts_set)
-    return common_transcripts
+    return list(common_transcripts_set)
 
 
 def _choose_best_mane_transcript(
@@ -172,16 +171,16 @@ async def _select_protein_reference(
         common_transcripts = _reduce_compatible_transcripts(matching_transcripts)
     if not common_transcripts:
         if not metadata.target_uniprot_ref:
-            raise TxSelectError(
-                f"Unable to find matching transcripts for {metadata.urn}"
-            )
+            msg = f"Unable to find matching transcripts for {metadata.urn}"
+            raise TxSelectError(msg)
         protein_sequence = get_uniprot_sequence(metadata.target_uniprot_ref.id)
         np_accession = metadata.target_uniprot_ref.id
         ref_sequence = get_uniprot_sequence(metadata.target_uniprot_ref.id)
         if not ref_sequence:
-            raise ValueError(
+            msg = (
                 f"Unable to grab reference sequence from uniprot.org for {metadata.urn}"
             )
+            raise ValueError(msg)
         nm_accession = None
         tx_mode = None
     else:
@@ -201,7 +200,7 @@ async def _select_protein_reference(
     is_full_match = ref_sequence.find(protein_sequence) != -1
     start = ref_sequence.find(protein_sequence[:10])
 
-    protein_mapping_info = TxSelectResult(
+    return TxSelectResult(
         nm=nm_accession,
         np=np_accession,
         start=start,
@@ -209,7 +208,6 @@ async def _select_protein_reference(
         sequence=protein_sequence,
         transcript_mode=tx_mode,
     )
-    return protein_mapping_info
 
 
 def _offset_target_sequence(metadata: ScoresetMetadata, records: List[ScoreRow]) -> int:
@@ -236,10 +234,7 @@ def _offset_target_sequence(metadata: ScoresetMetadata, records: List[ScoreRow])
             aa = change[:3]
             if aa == "=" or change[-3:] not in IUPACData.protein_letters_3to1:
                 continue
-            if "=" in change:
-                loc = change[3:-1]
-            else:
-                loc = change[3:-3]
+            loc = change[3:-1] if "=" in change else change[3:-3]
             if loc not in amino_acids_by_position:
                 loc = re.sub("[^0-9]", "", loc)
                 if loc:

@@ -1,6 +1,6 @@
 """Utility functions for dcd_mapping package"""
-
 import json
+from pathlib import Path
 from typing import List, Optional
 
 import hgvs.edit
@@ -31,15 +31,13 @@ from dcd_mapping.schemas import (
 
 def get_hgvs_string(allele: dict, dp: SeqRepo, ac: str) -> str:
     """Return an HGVS string for a given VRS allele
+
     :param allele: A post-mapped VRS allele
     :param dp: A SeqRepo instance
     :param acc: A RefSeq accession
     :return An HGVS string
     """
-    if ac.startswith("NP"):
-        stype = "p"
-    else:
-        stype = "g"
+    stype = "p" if ac.startswith("NP") else "g"
     start = allele["location"]["interval"]["start"]["value"]
     end = allele["location"]["interval"]["end"]["value"]
 
@@ -69,25 +67,22 @@ def get_hgvs_string(allele: dict, dp: SeqRepo, ac: str) -> str:
     edit = ""  # Set default
     if alt == ref:
         edit = "="
-    if ref:
-        if 2 * ref == alt or len(ref) == 1 and set(ref) == set(alt):
-            edit = "dup"
+    if ref and (2 * ref == alt or len(ref) == 1 and set(ref) == set(alt)):
+        edit = "dup"
     if alt == "":
         edit = "del"
 
     if edit != "dup" or edit != "del" or edit != "=":
-        if stype == "p":
-            edit = hgvs.edit.AARefAlt(ref=ref, alt=alt)
-        else:
-            edit = hgvs.edit.NARefAlt(ref=ref, alt=alt)
+        edit = (
+            hgvs.edit.AARefAlt(ref=ref, alt=alt)
+            if stype == "p"
+            else hgvs.edit.NARefAlt(ref=ref, alt=alt)
+        )
 
     if alt != ref:
         posedit = hgvs.posedit.PosEdit(pos=ival, edit=edit)
     else:
-        if stype == "p":
-            posedit = seq3(ref) + str(start) + "="
-        else:
-            posedit = str(end) + ref + "="
+        posedit = f"{seq3(ref)}{start!s}=" if stype == "p" else f"{end!s}{ref}="
 
     var = str(hgvs.sequencevariant.SequenceVariant(ac=ac, type=stype, posedit=posedit))
     if var.endswith("delins"):
@@ -97,10 +92,11 @@ def get_hgvs_string(allele: dict, dp: SeqRepo, ac: str) -> str:
 
 def get_vod_premapped(allele: dict) -> dict:
     """Return a VariationDescriptor object given a VRS pre-mapped allele dict
+
     :param allele: A VRS allele dictionary
     :return A VariationDescriptor dictionary
     """
-    mod = {
+    return {
         "id": allele["id"],
         "type": "VariationDescriptor",
         "variation": {
@@ -129,15 +125,15 @@ def get_vod_premapped(allele: dict) -> dict:
         },
         "vrs_ref_allele_seq": allele["vrs_ref_allele_seq"],
     }
-    return mod
 
 
 def get_vod_postmapped(allele: dict) -> dict:
     """Return a VariationDescriptor object given a VRS pre-mapped allele dict
+
     :param allele: A VRS allele dictionary
     :return A VariationDescriptor dictionary
     """
-    mod = {
+    return {
         "id": allele["id"],
         "type": "VariationDescriptor",
         "variation": {
@@ -174,16 +170,15 @@ def get_vod_postmapped(allele: dict) -> dict:
         ],
         "vrs_ref_allele_seq": allele["vrs_ref_allele_seq"],
     }
-    return mod
 
 
 def get_vod_haplotype(allele_list: List[dict]) -> dict:
     """Define VOD model for haplotype
+
     :param allele_list: A list of VRS allele dictionaries
     :return A VRS Haplotype-like structure
     """
-    mod = {"type": "Haplotype", "members": allele_list}
-    return mod
+    return {"type": "Haplotype", "members": allele_list}
 
 
 def get_computed_reference_sequence(
@@ -192,6 +187,7 @@ def get_computed_reference_sequence(
     tx_output: Optional[TxSelectResult] = None,
 ) -> ComputedReferenceSequence:
     """Report the computed reference sequence for a score set
+
     :param ss: A score set string
     :param layer: AnnotationLayer
     :param tx_output: Transcript data for a score set
@@ -204,14 +200,13 @@ def get_computed_reference_sequence(
             sequence_type=TargetSequenceType.PROTEIN,
             sequence_id=seq_id,
         )
-    else:
-        metadata = get_scoreset_metadata(ss)
-        seq_id = f"ga4gh:SQ.{sha512t24u(metadata.target_sequence.encode('ascii'))}"
-        return ComputedReferenceSequence(
-            sequence=metadata.target_sequence,
-            sequence_type=TargetSequenceType.DNA,
-            sequence_id=seq_id,
-        )
+    metadata = get_scoreset_metadata(ss)
+    seq_id = f"ga4gh:SQ.{sha512t24u(metadata.target_sequence.encode('ascii'))}"
+    return ComputedReferenceSequence(
+        sequence=metadata.target_sequence,
+        sequence_type=TargetSequenceType.DNA,
+        sequence_id=seq_id,
+    )
 
 
 def get_mapped_reference_sequence(
@@ -220,6 +215,7 @@ def get_mapped_reference_sequence(
     align_result: Optional[AlignmentResult] = None,
 ) -> MappedReferenceSequence:
     """Report the mapped reference sequence for a score set
+
     :param ss: A score set string
     :param layer: AnnotationLayer
     :param tx_output: Transcript data for a score set
@@ -231,13 +227,12 @@ def get_mapped_reference_sequence(
             sequence_id=get_vrs_id_from_identifier(tx_output.np),
             sequence_accessions=[tx_output.sequence],
         )
-    else:
-        seq_id = get_chromosome_identifier(align_result.chrom)
-        return MappedReferenceSequence(
-            sequence_type=TargetSequenceType.DNA,
-            sequence_id=get_vrs_id_from_identifier(seq_id),
-            sequence_accessions=[seq_id],
-        )
+    seq_id = get_chromosome_identifier(align_result.chrom)
+    return MappedReferenceSequence(
+        sequence_type=TargetSequenceType.DNA,
+        sequence_id=get_vrs_id_from_identifier(seq_id),
+        sequence_accessions=[seq_id],
+    )
 
 
 def save_mapped_output_json(
@@ -247,6 +242,7 @@ def save_mapped_output_json(
     tx_output: Optional[TxSelectResult] = None,
 ) -> None:
     """Save mapping output for a score set in a JSON file
+
     :param ss: Score set accession
     :param mave_vrs_mappings: A dictionary of VrsObject1_x objects
     :param align_result: Alignment information for a score set
@@ -277,34 +273,33 @@ def save_mapped_output_json(
 
     mapped_scores = []
     for var in curr:
-        if var:
-            if var.layer == layer:
-                if "members" in var.pre_mapped_variants:
-                    pre_mapped_members = []
-                    post_mapped_members = []
-                    for sub_var in var.pre_mapped_variants["members"]:
-                        pre_mapped_members.append(get_vod_premapped(sub_var))
-                    for sub_var in var.post_mapped_variants["members"]:
-                        post_mapped_members.append(get_vod_postmapped(sub_var))
-                    mapped_scores.append(
-                        MappedOutput(
-                            pre_mapped=get_vod_haplotype(pre_mapped_members),
-                            post_mapped=get_vod_haplotype(post_mapped_members),
-                            mavedb_id=var.mavedb_id,
-                            score=None if var.score == "NA" else float(var.score),
-                        ).model_dump()
-                    )
-                else:
-                    mapped_scores.append(
-                        MappedOutput(
-                            pre_mapped=get_vod_premapped(var.pre_mapped_variants),
-                            post_mapped=get_vod_postmapped(var.post_mapped_variants),
-                            mavedb_id=var.mavedb_id,
-                            score=None if var.score == "NA" else float(var.score),
-                        ).model_dump()
-                    )
+        if var and var.layer == layer:
+            if "members" in var.pre_mapped_variants:
+                pre_mapped_members = []
+                post_mapped_members = []
+                for sub_var in var.pre_mapped_variants["members"]:
+                    pre_mapped_members.append(get_vod_premapped(sub_var))
+                for sub_var in var.post_mapped_variants["members"]:
+                    post_mapped_members.append(get_vod_postmapped(sub_var))
+                mapped_scores.append(
+                    MappedOutput(
+                        pre_mapped=get_vod_haplotype(pre_mapped_members),
+                        post_mapped=get_vod_haplotype(post_mapped_members),
+                        mavedb_id=var.mavedb_id,
+                        score=None if var.score == "NA" else float(var.score),
+                    ).model_dump()
+                )
+            else:
+                mapped_scores.append(
+                    MappedOutput(
+                        pre_mapped=get_vod_premapped(var.pre_mapped_variants),
+                        post_mapped=get_vod_postmapped(var.post_mapped_variants),
+                        mavedb_id=var.mavedb_id,
+                        score=None if var.score == "NA" else float(var.score),
+                    ).model_dump()
+                )
     mapped_ss_output["mapped_scores"] = mapped_scores
 
-    ss = ss.strip("urn:mavedb:")
-    with open(f"analysis_files/mappings/{ss}.json", "w") as file:
+    ss = ss.strip("urn:mavedb:")  # noqa: B005
+    with (Path("analysis_files") / "mappings" / f"{ss}.json").open("w") as file:
         json.dump(mapped_ss_output, file, indent=4)

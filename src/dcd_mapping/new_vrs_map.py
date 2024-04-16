@@ -97,7 +97,7 @@ def _map_protein_coding_pro(
         or len(row.hgvs_pro) == 3
     ):
         _logger.warning(
-            f"Can't process variant syntax {row.hgvs_pro} for {row.accession}"
+            "Can't process variant syntax %s for %s", row.hgvs_pro, row.accession
         )
         return None
     if row.hgvs_pro.startswith("NP_009225.1:p."):  # This is for experiment set 97
@@ -110,7 +110,7 @@ def _map_protein_coding_pro(
         ).output_vrs_variations(AnnotationLayer.PROTEIN, sr)
     layer = AnnotationLayer.PROTEIN
     hgvs_strings = _create_hgvs_strings(align_result, row.hgvs_pro, layer, transcript)
-    mapping = VrsMapping(
+    return VrsMapping(
         mavedb_id=row.accession,
         score=score,
         pre_mapped_protein=_get_variation(
@@ -131,7 +131,6 @@ def _map_protein_coding_pro(
             transcript.start,
         ),
     ).output_vrs_variations(AnnotationLayer.PROTEIN, sr)
-    return mapping
 
 
 def _get_allele_sequence(allele: Allele, sr: SeqRepoAccess) -> str:
@@ -141,11 +140,10 @@ def _get_allele_sequence(allele: Allele, sr: SeqRepoAccess) -> str:
     :param sr: SeqRepoAccess instance
     :return: sequence
     """
-    start = allele.location.start  # type: ignore
-    end = allele.location.end  # type: ignore
-    base = sr.sr[f"ga4gh:{allele.location.sequenceReference.refgetAccession}"]  # type: ignore
-    selection = base[start:end]
-    return selection
+    start = allele.location.start
+    end = allele.location.end
+    base = sr.sr[f"ga4gh:{allele.location.sequenceReference.refgetAccession}"]
+    return base[start:end]
 
 
 def _map_protein_coding(
@@ -195,31 +193,30 @@ def _map_protein_coding(
             or len(row.hgvs_nt) == 3
         ):
             continue
-        else:
-            layer = AnnotationLayer.GENOMIC
-            hgvs_strings = _create_hgvs_strings(align_result, row.hgvs_nt, layer)
-            variations.variations.append(
-                VrsMapping(
-                    mavedb_id=row.accession,
-                    score=score,
-                    pre_mapped_genomic=_get_variation(
-                        hgvs_strings,
-                        layer,
-                        gsequence_id,
-                        sr,
-                        align_result,
-                        True,
-                    ),
-                    post_mapped_genomic=_get_variation(
-                        hgvs_strings,
-                        layer,
-                        gsequence_id,
-                        sr,
-                        align_result,
-                        False,
-                    ),
-                ).output_vrs_variations(AnnotationLayer.GENOMIC, sr)
-            )
+        layer = AnnotationLayer.GENOMIC
+        hgvs_strings = _create_hgvs_strings(align_result, row.hgvs_nt, layer)
+        variations.variations.append(
+            VrsMapping(
+                mavedb_id=row.accession,
+                score=score,
+                pre_mapped_genomic=_get_variation(
+                    hgvs_strings,
+                    layer,
+                    gsequence_id,
+                    sr,
+                    align_result,
+                    True,
+                ),
+                post_mapped_genomic=_get_variation(
+                    hgvs_strings,
+                    layer,
+                    gsequence_id,
+                    sr,
+                    align_result,
+                    False,
+                ),
+            ).output_vrs_variations(AnnotationLayer.GENOMIC, sr)
+        )
     return variations
 
 
@@ -251,7 +248,7 @@ def _map_regulatory_noncoding(
             or len(row.hgvs_nt) == 3
         ):
             _logger.warning(
-                f"Can't process variant syntax {row.hgvs_nt} for {metadata.urn}"
+                "Can't process variant syntax %s for %s", row.hgvs_nt, metadata.urn
             )
             continue
         score = row.score
@@ -318,10 +315,9 @@ def vrs_map(
             align_result=align_result,
             sr=sr,
         )
-    else:
-        return _map_regulatory_noncoding(
-            metadata=metadata, records=records, align_result=align_result, sr=sr
-        )
+    return _map_regulatory_noncoding(
+        metadata=metadata, records=records, align_result=align_result, sr=sr
+    )
 
 
 def _get_variation(
@@ -362,10 +358,7 @@ def _get_variation(
     alleles = []
     for hgvs_string in hgvs_strings:
         if (
-            hgvs_string.endswith(".=")
-            or hgvs_string.endswith(")")
-            or "?" in hgvs_string
-            or hgvs_string.endswith("X")
+            hgvs_string.endswith((".=", ")", "X")) or "?" in hgvs_string
         ):  # Invalid variant
             continue
 
@@ -377,56 +370,56 @@ def _get_variation(
         allele.location.digest = None
 
         if "dup" in hgvs_string:
-            allele.state.sequence = SequenceString(2 * _get_allele_sequence(allele, sr))  # type: ignore
+            allele.state.sequence = SequenceString(2 * _get_allele_sequence(allele, sr))
         if pre_map:
-            allele.location.sequenceReference.refgetAccession = sequence_id  # type: ignore
+            allele.location.sequenceReference.refgetAccession = sequence_id
             if "dup" in hgvs_string:
                 allele.state.sequence = SequenceString(
                     2 * _get_allele_sequence(allele, sr)
-                )  # type: ignore
+                )
         else:
             if layer == AnnotationLayer.PROTEIN:
-                allele.location.start += offset  # type: ignore
-                allele.location.end += offset  # type: ignore
+                allele.location.start += offset
+                allele.location.end += offset
             else:
-                start: int = allele.location.start  # type: ignore
+                start: int = allele.location.start
                 if (
                     len(alignment.query_subranges) == 1
                     and alignment.strand == Strand.POSITIVE
                 ):
                     subrange_start = alignment.query_subranges[0].start
                     diff = start - subrange_start
-                    diff2: int = allele.location.end - start  # type: ignore
+                    diff2: int = allele.location.end - start
                     allele.location.start = alignment.hit_subranges[0].start + diff
-                    allele.location.end = allele.location.start + diff2  # type: ignore
+                    allele.location.end = allele.location.start + diff2
                 else:
-                    for query_subrange, hit_subrange in zip(
+                    for query_subrange, hit_subrange in zip(  # noqa: B007  # TODO remove hit_subrange?
                         alignment.query_subranges, alignment.hit_subranges
                     ):
                         if start >= query_subrange.start and start < query_subrange.end:
                             break
                     diff = start - query_subrange.start
-                    diff2: int = allele.location.end - start  # type: ignore
+                    diff2: int = allele.location.end - start
                     if alignment.strand == Strand.POSITIVE:  # positive orientation
                         allele.location.start = hit_subrange.start + diff
-                        allele.location.end = allele.location.start + diff2  # type: ignore
+                        allele.location.end = allele.location.start + diff2
                         if "dup" in hgvs_string:
                             allele.state.sequence = SequenceString(
                                 2 * _get_allele_sequence(allele, sr)
-                            )  # type: ignore
+                            )
                     else:
                         allele.location.start = hit_subrange.end - diff - diff2
-                        allele.location.end = allele.location.start + diff2  # type: ignore
+                        allele.location.end = allele.location.start + diff2
                         if "dup" in hgvs_string:
                             allele.state.sequence = SequenceString(
                                 2 * _get_allele_sequence(allele, sr)
-                            )  # type: ignore
+                            )
                         temp_str = str(
                             Seq(str(allele.state.sequence.root)).reverse_complement()
                         )
                         allele.state.sequence = SequenceString(temp_str)
         if "N" in allele.state.sequence.root and layer == AnnotationLayer.GENOMIC:
-            allele.state.sequence = SequenceString(_get_allele_sequence(allele, sr))  # type: ignore
+            allele.state.sequence = SequenceString(_get_allele_sequence(allele, sr))
         if "=" in hgvs_string and layer == AnnotationLayer.PROTEIN:
             allele.state.sequence = SequenceString(_get_allele_sequence(allele, sr))
         allele = normalize(allele, data_proxy=sr)
@@ -437,5 +430,4 @@ def _get_variation(
 
     if not alleles:
         return None
-    else:
-        return alleles
+    return alleles

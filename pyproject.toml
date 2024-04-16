@@ -151,4 +151,4 @@ ignore = [
 # ANN102 - missing-type-cls
 # S101 - assert
 # B011 - assert-false
-"tests/*" = ["ANN001", "ANN2", "ANN102", "S101", "B011"]
+"tests/*" = ["ANN001", "ANN2", "ANN102", "S101", "B011", "D103"]

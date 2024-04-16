@@ -112,10 +112,11 @@ async def get_protein_accession(transcript: str) -> Optional[str]:
     query = f"""
     SELECT pro_ac FROM {uta.schema}.associated_accessions
     WHERE tx_ac = '{transcript}'
-    """
+    """  # noqa: S608
     result = await uta.execute_query(query)
     if result:
         return result[0]["pro_ac"]
+    return None
 
 
 async def get_transcripts(
@@ -142,7 +143,7 @@ async def get_transcripts(
       AND ({start} BETWEEN alt_start_i AND alt_end_i OR {end} BETWEEN alt_start_i AND alt_end_i)
       AND alt_ac = '{chromosome_ac}'
       AND tx_ac NOT LIKE 'NR_%';
-    """
+    """  # noqa: S608
     result = await uta.execute_query(query)
     return [row["tx_ac"] for row in result]
 
@@ -185,6 +186,7 @@ def get_gene_symbol(metadata: ScoresetMetadata) -> Optional[str]:
     if metadata.target_gene_name:
         parsed_name = metadata.target_gene_name.split(" ")[0]
         return _get_hgnc_symbol(parsed_name)
+    return None
 
 
 def _normalize_gene(term: str) -> Optional[Gene]:
@@ -197,8 +199,7 @@ def _normalize_gene(term: str) -> Optional[Gene]:
     response = q.normalize(term)
     if response.match_type > 0:
         return response.gene
-    else:
-        return None
+    return None
 
 
 def _get_normalized_gene_response(
@@ -234,11 +235,9 @@ def _get_genomic_interval(
     :return: genomic interval if available
     """
     locations = [ext for ext in extensions if f"{src_name}_locations" in ext.name]
-    if locations and len(locations[0].value) > 0:  # type: ignore
+    if locations and len(locations[0].value) > 0:
         location_values = [
-            v
-            for v in locations[0].value
-            if v["type"] == "SequenceLocation"  # type: ignore
+            v for v in locations[0].value if v["type"] == "SequenceLocation"
         ]
         if location_values:
             return GeneLocation(
@@ -270,8 +269,8 @@ def get_gene_location(metadata: ScoresetMetadata) -> Optional[GeneLocation]:
     hgnc_locations: List[Extension] = [
         loc for loc in gene_descriptor.extensions if loc.name == "hgnc_locations"
     ]
-    if hgnc_locations and len(hgnc_locations[0].value) > 0:  # type: ignore
-        return GeneLocation(chromosome=hgnc_locations[0].value[0].chr)  # type: ignore
+    if hgnc_locations and len(hgnc_locations[0].value) > 0:
+        return GeneLocation(chromosome=hgnc_locations[0].value[0].chr)
 
     for src_name in ("ensembl", "ncbi"):
         loc = _get_genomic_interval(gene_descriptor.extensions, src_name)
@@ -325,8 +324,8 @@ def get_ucsc_chromosome_name(chromosome: str) -> str:
     sorted_results = sorted([r for r in result if "chr" in r])
     try:
         return sorted_results[-1].split(":")[1]
-    except IndexError:
-        raise KeyError
+    except IndexError as e:
+        raise KeyError from e
 
 
 def get_chromosome_identifier_from_vrs_id(sequence_id: str) -> Optional[str]:
@@ -373,11 +372,11 @@ def get_sequence(
     sr = CoolSeqToolBuilder().seqrepo_access
     try:
         sequence = sr.get_sequence(sequence_id, start, end)
-    except (KeyError, ValueError):
-        _logger.error(f"Unable to acquire sequence for ID: {sequence_id}")
-        raise KeyError
+    except (KeyError, ValueError) as e:
+        _logger.error("Unable to acquire sequence for ID: %s", sequence_id)
+        raise KeyError from e
     if sequence is None:
-        _logger.error(f"Unable to acquire sequence for ID: {sequence_id}")
+        _logger.error("Unable to acquire sequence for ID: %s", sequence_id)
         raise KeyError
     return sequence
 
@@ -422,15 +421,15 @@ def get_mane_transcripts(transcripts: List[str]) -> List[ManeDescription]:
     def _sort_mane_result(description: ManeDescription) -> int:
         if description.transcript_priority == TranscriptPriority.MANE_SELECT:
             return 2
-        elif description.transcript_priority == TranscriptPriority.MANE_PLUS_CLINICAL:
+        if description.transcript_priority == TranscriptPriority.MANE_PLUS_CLINICAL:
             return 1
-        else:  # should be impossible
-            _logger.warning(
-                "Unrecognized transcript priority value %s for transcript description of %s",
-                description.transcript_priority,
-                description.refseq_nuc,
-            )
-            return 0
+        # should be impossible
+        _logger.warning(
+            "Unrecognized transcript priority value %s for transcript description of %s",
+            description.transcript_priority,
+            description.refseq_nuc,
+        )
+        return 0
 
     mane_df = CoolSeqToolBuilder().mane_transcript_mappings.df
     mane_results = mane_df.filter(pl.col("RefSeq_nuc").is_in(transcripts))
@@ -471,7 +470,7 @@ def get_uniprot_sequence(uniprot_id: str) -> Optional[str]:
     :raise HTTPError: if response comes with an HTTP error code
     """
     url = f"https://www.ebi.ac.uk/proteins/api/proteins?accession={uniprot_id.split(':')[1]}&format=json"
-    response = requests.get(url)
+    response = requests.get(url, timeout=30)
     response.raise_for_status()
     json = response.json()
     return json[0]["sequence"]["sequence"]
