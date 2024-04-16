@@ -76,7 +76,7 @@ def _map_protein_coding_pro(
     sequence: str,
     sequence_id: str,
     transcript: TxSelectResult,
-    sr: SeqRepoAccess
+    sr: SeqRepoAccess,
 ) -> Optional[VrsMapping]:
     """Construct VRS object mapping for ``hgvs_pro`` variant column entry
 
@@ -91,8 +91,11 @@ def _map_protein_coding_pro(
     :param sr: A SeqRepo object
     :return: VRS mapping object if mapping succeeds
     """
-    if (row.hgvs_pro in {"_wt", "_sy","NA"}
-        or "fs" in row.hgvs_pro or len(row.hgvs_pro) == 3):
+    if (
+        row.hgvs_pro in {"_wt", "_sy", "NA"}
+        or "fs" in row.hgvs_pro
+        or len(row.hgvs_pro) == 3
+    ):
         _logger.warning(
             f"Can't process variant syntax {row.hgvs_pro} for {row.accession}"
         )
@@ -150,7 +153,7 @@ def _map_protein_coding(
     records: List[ScoreRow],
     transcript: TxSelectResult,
     align_result: AlignmentResult,
-    sr: SeqRepoAccess
+    sr: SeqRepoAccess,
 ) -> VrsMappingResult:
     """Perform mapping on protein coding experiment results
 
@@ -182,18 +185,15 @@ def _map_protein_coding(
         score = row.score
         # hgvs_pro
         hgvs_pro_mappings = _map_protein_coding_pro(
-            row,
-            score,
-            align_result,
-            sr,
-            psequence_id,
-            transcript,
-            sr
+            row, score, align_result, sr, psequence_id, transcript, sr
         )
         if hgvs_pro_mappings:
             variations.variations.append(hgvs_pro_mappings)
-        if (row.hgvs_nt == "NA" or row.hgvs_nt in {"_wt", "_sy", "="}
-            or len(row.hgvs_nt) == 3):
+        if (
+            row.hgvs_nt == "NA"
+            or row.hgvs_nt in {"_wt", "_sy", "="}
+            or len(row.hgvs_nt) == 3
+        ):
             continue
         else:
             layer = AnnotationLayer.GENOMIC
@@ -227,7 +227,7 @@ def _map_regulatory_noncoding(
     metadata: ScoresetMetadata,
     records: List[ScoreRow],
     align_result: AlignmentResult,
-    sr: SeqRepoAccess
+    sr: SeqRepoAccess,
 ) -> VrsMappingResult:
     """Perform mapping on noncoding/regulatory experiment results
 
@@ -245,8 +245,11 @@ def _map_regulatory_noncoding(
     )  # Add custom digest to SeqRepo
 
     for row in records:
-        if (row.hgvs_nt in {"_wt", "_sy", "="} or "fs" in row.hgvs_nt
-            or len(row.hgvs_nt) == 3):
+        if (
+            row.hgvs_nt in {"_wt", "_sy", "="}
+            or "fs" in row.hgvs_nt
+            or len(row.hgvs_nt) == 3
+        ):
             _logger.warning(
                 f"Can't process variant syntax {row.hgvs_nt} for {metadata.urn}"
             )
@@ -308,12 +311,17 @@ def vrs_map(
         click.echo(msg)
     _logger.info(msg)
     if metadata.target_gene_category == TargetType.PROTEIN_CODING and transcript:
-        return _map_protein_coding(metadata=metadata, records=records,
-                                   transcript=transcript, align_result=align_result,
-                                   sr=sr)
+        return _map_protein_coding(
+            metadata=metadata,
+            records=records,
+            transcript=transcript,
+            align_result=align_result,
+            sr=sr,
+        )
     else:
-        return _map_regulatory_noncoding(metadata=metadata, records=records,
-                                         align_result=align_result, sr=sr)
+        return _map_regulatory_noncoding(
+            metadata=metadata, records=records, align_result=align_result, sr=sr
+        )
 
 
 def _get_variation(
@@ -353,8 +361,12 @@ def _get_variation(
         sequence_id = sequence_id[6:]
     alleles = []
     for hgvs_string in hgvs_strings:
-        if (hgvs_string.endswith(".=") or hgvs_string.endswith(")")
-            or "?" in hgvs_string or hgvs_string.endswith("X")): # Invalid variant
+        if (
+            hgvs_string.endswith(".=")
+            or hgvs_string.endswith(")")
+            or "?" in hgvs_string
+            or hgvs_string.endswith("X")
+        ):  # Invalid variant
             continue
 
         # Generate VRS Allele structure. Set VA digests and SL digests to None
@@ -369,7 +381,9 @@ def _get_variation(
         if pre_map:
             allele.location.sequenceReference.refgetAccession = sequence_id  # type: ignore
             if "dup" in hgvs_string:
-                allele.state.sequence = SequenceString(2 * _get_allele_sequence(allele, sr))  # type: ignore
+                allele.state.sequence = SequenceString(
+                    2 * _get_allele_sequence(allele, sr)
+                )  # type: ignore
         else:
             if layer == AnnotationLayer.PROTEIN:
                 allele.location.start += offset  # type: ignore
@@ -404,7 +418,9 @@ def _get_variation(
                         allele.location.start = hit_subrange.end - diff - diff2
                         allele.location.end = allele.location.start + diff2  # type: ignore
                         if "dup" in hgvs_string:
-                            allele.state.sequence = SequenceString(2 * _get_allele_sequence(allele, sr))  # type: ignore
+                            allele.state.sequence = SequenceString(
+                                2 * _get_allele_sequence(allele, sr)
+                            )  # type: ignore
                         temp_str = str(
                             Seq(str(allele.state.sequence.root)).reverse_complement()
                         )
@@ -423,4 +439,3 @@ def _get_variation(
         return None
     else:
         return alleles
-

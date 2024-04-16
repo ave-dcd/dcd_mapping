@@ -56,7 +56,7 @@ class CoolSeqToolBuilder:
         :return: singleton instance of CoolSeqTool
         """
         if not hasattr(cls, "instance"):
-            sr = SeqRepo("/usr/local/share/seqrepo/latest", writeable = True)
+            sr = SeqRepo("/usr/local/share/seqrepo/latest", writeable=True)
             cls.instance = CoolSeqTool(sr=sr)
         return cls.instance
 
@@ -344,6 +344,7 @@ def get_chromosome_identifier_from_vrs_id(sequence_id: str) -> Optional[str]:
     sorted_results = sorted(result)
     return sorted_results[-1]
 
+
 def get_vrs_id_from_identifier(sequence_id: str) -> Optional[str]:
     """Get GA4GH SQ identifier given an NP_ sequence id:
     :param: GA4GH SQ digest
@@ -357,9 +358,12 @@ def get_vrs_id_from_identifier(sequence_id: str) -> Optional[str]:
     sorted_results = sorted(result)
     return sorted_results[-1]
 
+
 def get_sequence(
-    sequence_id: str, start: Optional[int] = None,
-    end: Optional[int] = None,) -> str:
+    sequence_id: str,
+    start: Optional[int] = None,
+    end: Optional[int] = None,
+) -> str:
     """Get reference sequence given a sequence identifier.
 
     :param sequence_id: sequence identifier, e.g. ``"NP_938033.1"``

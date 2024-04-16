@@ -49,7 +49,7 @@ tests = [
     "pytest-asyncio"
 ]
 dev = [
-    "ruff>=0.1.14",
+    "ruff==0.2.0",
     "pre-commit"
 ]
 

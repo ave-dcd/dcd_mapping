@@ -269,7 +269,7 @@ def _offset_target_sequence(metadata: ScoresetMetadata, records: List[ScoreRow])
     offset = 0
 
     if protein_sequence in seq:
-       return offset
+        return offset
 
     for i, base in enumerate(protein_sequence):
         if all(
@@ -317,12 +317,14 @@ async def select_transcript(
     if metadata.urn.startswith("urn:mavedb:00000097"):
         # Score Sets in Experiment 97 are expressed in full HGVS strings,
         # so additional mapping is not needed
-        return TxSelectResult(nm="NM_007294.3",
-                              np="NP_009225.1",
-                              start=0,
-                              is_full_match=False,
-                              transcript_mode=TranscriptPriority.MANE_SELECT,
-                              sequence=_get_protein_sequence(metadata.target_sequence))
+        return TxSelectResult(
+            nm="NM_007294.3",
+            np="NP_009225.1",
+            start=0,
+            is_full_match=False,
+            transcript_mode=TranscriptPriority.MANE_SELECT,
+            sequence=_get_protein_sequence(metadata.target_sequence),
+        )
 
     if metadata.target_gene_category == TargetType.PROTEIN_CODING:
         transcript_reference = await _select_protein_reference(metadata, align_result)
@@ -337,14 +339,15 @@ async def select_transcript(
         # can't provide transcripts for regulatory/noncoding scoresets
         return None
 
-    if (metadata.urn.startswith("urn:mavedb:00000047")
-        or metadata.urn.startswith("urn:mavedb:00000048")):
+    if metadata.urn.startswith("urn:mavedb:00000047") or metadata.urn.startswith(
+        "urn:mavedb:00000048"
+    ):
         # Set start = 0 as there is discordance between expected and actual
         # amino acid locations
         transcript_reference.start = 0
         transcript_reference.sequence = "M" + transcript_reference.sequence
 
-    if (metadata.urn.startswith("urn:mavedb:00000058-a-1")):
+    if metadata.urn.startswith("urn:mavedb:00000058-a-1"):
         # Edge case. The starting residue is D, but this is described as Asp2. The
         # offset should be reduced by 1 to reflect the start of Met1.
         transcript_reference.start = 670
