@@ -342,6 +342,13 @@ async def select_transcript(
         # Set start = 0 as there is discordance between expected and actual
         # amino acid locations
         transcript_reference.start = 0
+        transcript_reference.sequence = "M" + transcript_reference.sequence
+
+    if (metadata.urn.startswith("urn:mavedb:00000058-a-1")):
+        # Edge case. The starting residue is D, but this is described as Asp2. The
+        # offset should be reduced by 1 to reflect the start of Met1.
+        transcript_reference.start = 670
+        transcript_reference.sequence = "M" + transcript_reference.sequence
 
     msg = "Reference selection complete."
     if not silent:

@@ -368,6 +368,8 @@ def _get_variation(
             allele.state.sequence = SequenceString(2 * _get_allele_sequence(allele, sr))  # type: ignore
         if pre_map:
             allele.location.sequenceReference.refgetAccession = sequence_id  # type: ignore
+            if "dup" in hgvs_string:
+                allele.state.sequence = SequenceString(2 * _get_allele_sequence(allele, sr))  # type: ignore
         else:
             if layer == AnnotationLayer.PROTEIN:
                 allele.location.start += offset  # type: ignore
@@ -407,7 +409,7 @@ def _get_variation(
                             Seq(str(allele.state.sequence.root)).reverse_complement()
                         )
                         allele.state.sequence = SequenceString(temp_str)
-        if allele.state.sequence.root == "N" and layer == AnnotationLayer.GENOMIC:
+        if "N" in allele.state.sequence.root and layer == AnnotationLayer.GENOMIC:
             allele.state.sequence = SequenceString(_get_allele_sequence(allele, sr))  # type: ignore
         if "=" in hgvs_string and layer == AnnotationLayer.PROTEIN:
             allele.state.sequence = SequenceString(_get_allele_sequence(allele, sr))

@@ -1,6 +1,7 @@
 """Provide class definitions for commonly-used information objects."""
 from enum import StrEnum
-from typing import Dict, List, Literal, Optional, Tuple, Union
+from types import NoneType
+from typing import Dict, List, Literal, Optional, Union
 
 from biocommons.seqrepo import SeqRepo
 from cool_seq_tool.schemas import AnnotationLayer, Strand, TranscriptPriority
@@ -90,6 +91,15 @@ class MappedReferenceSequence(BaseModel):
     sequence_type: TargetSequenceType
     sequence_accessions: List[StrictStr]
 
+
+class MappedOutput(BaseModel):
+    """Define output format for mapped score set"""
+
+    pre_mapped: Union[dict, List[dict]]
+    post_mapped: Union[dict, List[dict]]
+    mavedb_id: StrictStr
+    relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
+    score: Union[StrictFloat, NoneType]
 
 class VrsRefAlleleSeq(BaseModel):
     """Define reference sequence indicated by sequence digest

@@ -344,6 +344,18 @@ def get_chromosome_identifier_from_vrs_id(sequence_id: str) -> Optional[str]:
     sorted_results = sorted(result)
     return sorted_results[-1]
 
+def get_vrs_id_from_identifier(sequence_id: str) -> Optional[str]:
+    """Get GA4GH SQ identifier given an NP_ sequence id:
+    :param: GA4GH SQ digest
+    :raise KeyError: if unable to retrieve identifier
+    """
+    sr = CoolSeqToolBuilder().seqrepo_access
+    result, _ = sr.translate_identifier(sequence_id, "ga4gh")
+    if not result:
+        raise KeyError
+
+    sorted_results = sorted(result)
+    return sorted_results[-1]
 
 def get_sequence(
     sequence_id: str, start: Optional[int] = None,
