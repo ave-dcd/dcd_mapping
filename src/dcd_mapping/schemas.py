@@ -1,6 +1,5 @@
 """Provide class definitions for commonly-used information objects."""
-from enum import StrEnum
-from types import NoneType
+from enum import Enum
 from typing import Dict, List, Literal, Optional, Union
 
 from biocommons.seqrepo import SeqRepo
@@ -10,14 +9,14 @@ from ga4gh.vrs._internal.models import Allele
 from pydantic import BaseModel, StrictBool, StrictFloat, StrictInt, StrictStr
 
 
-class TargetSequenceType(StrEnum):
+class TargetSequenceType(str, Enum):
     """Define target sequence type. Add more definitions as needed."""
 
     PROTEIN = "protein"
     DNA = "dna"
 
 
-class TargetType(StrEnum):
+class TargetType(str, Enum):
     """Define target gene types."""
 
     PROTEIN_CODING = "Protein coding"
@@ -90,7 +89,7 @@ class MappedOutput(BaseModel):
     post_mapped: Union[dict, List[dict]]
     mavedb_id: StrictStr
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
-    score: Union[StrictFloat, NoneType]
+    score: Optional[StrictFloat]
 
 
 class VrsRefAlleleSeq(BaseModel):
@@ -164,7 +163,7 @@ class TxSelectResult(BaseModel):
 
 
 class VrsObject1_x(BaseModel):  # noqa: N801
-    """Define response object for VRS 1.x object, including Allele"""
+    """Define response object for VRS 1.x object"""
 
     mavedb_id: StrictStr
     pre_mapped_variants: Dict
@@ -197,8 +196,7 @@ class VrsMapping(BaseModel):
         location_raw = f'{{"end":{{"type":"Number","value":{end}}},"sequence_id":"{sequence_id.split(".")[1]}","start":{{"type":"Number","value":{start}}},"type":"SequenceLocation"}}'
         location_serialized = sha512t24u(location_raw.encode("ascii"))
         allele_raw = f'{{"location":"{location_serialized}","state":{{"sequence":"{sequence}","type":"LiteralSequenceExpression"}},"type":"Allele"}}'
-        allele_serialized = sha512t24u(allele_raw.encode("ascii"))
-        return allele_serialized
+        return sha512t24u(allele_raw.encode("ascii"))
 
     def generate_allele_structure(self, var: Allele) -> Dict:
         """Generate VRS 1.x allele structure
@@ -206,7 +204,7 @@ class VrsMapping(BaseModel):
         :return A dictionary
         """
         sequence = "" if not var.state.sequence else var.state.sequence.root
-        allele = {
+        return {
             "type": "Allele",
             "location": {
                 "id": None,
@@ -223,7 +221,6 @@ class VrsMapping(BaseModel):
                 "sequence": sequence,
             },
         }
-        return allele
 
     def output_vrs_variations(
         self, layer: AnnotationLayer, sr: SeqRepo

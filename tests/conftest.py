@@ -38,7 +38,7 @@ def fixture_data_dir():
 def scoreset_metadata_fixture(fixture_data_dir: Path):
     """Provide scoreset metadata fixtures."""
     fixture_file = fixture_data_dir / "scoreset_metadata.json"
-    with open(fixture_file, "r") as f:
+    with fixture_file.open() as f:
         data = json.load(f)
     results = {}
     for d in data["scoreset_metadata"]:
@@ -51,7 +51,7 @@ def scoreset_metadata_fixture(fixture_data_dir: Path):
 def align_result_fixture(fixture_data_dir: Path):
     """Provide fixtures for alignment results."""
     fixture_file = fixture_data_dir / "align_result.json"
-    with open(fixture_file, "r") as f:
+    with fixture_file.open() as f:
         data = json.load(f)
     results = {}
     for urn, result in data.items():
@@ -64,7 +64,7 @@ def align_result_fixture(fixture_data_dir: Path):
 def transcript_results_fixture(fixture_data_dir: Path):
     """Provide fixtures for transcript selection results."""
     fixture_file = fixture_data_dir / "transcript_result.json"
-    with open(fixture_file, "r") as f:
+    with fixture_file.open() as f:
         data = json.load(f)
     results = {}
     for urn, result in data.items():

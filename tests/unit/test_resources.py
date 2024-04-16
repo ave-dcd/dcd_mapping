@@ -10,7 +10,7 @@ import requests_mock
 from dcd_mapping.resources import get_scoreset_metadata, get_scoreset_records
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def resources_data_dir():
     """Temporarily store data resources"""
     path = Path(__file__).parent / "tmp"

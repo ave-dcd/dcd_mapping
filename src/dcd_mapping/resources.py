@@ -60,10 +60,10 @@ def _http_download(url: str, out_path: Path, silent: bool = True) -> Path:
     :raise requests.HTTPError: if request is unsuccessful
     """
     click.echo(f"Downloading {out_path.name} to {out_path.parents[0].absolute()}")
-    with requests.get(url, stream=True) as r:
+    with requests.get(url, stream=True, timeout=30) as r:
         r.raise_for_status()
         total_size = int(r.headers.get("content-length", 0))
-        with open(out_path, "wb") as h:
+        with out_path.open("wb") as h:
             if not silent:
                 with tqdm(
                     total=total_size,
@@ -89,14 +89,14 @@ def get_scoreset_urns() -> Set[str]:
 
     :return: set of URN strings
     """
-    r = requests.get("https://api.mavedb.org/api/v1/experiments/")
+    r = requests.get("https://api.mavedb.org/api/v1/experiments/", timeout=30)
     r.raise_for_status()
     scoreset_urn_lists = [
         experiment["scoreSetUrns"]
         for experiment in r.json()
         if experiment.get("scoreSetUrns")
     ]
-    return set([urn for urns in scoreset_urn_lists for urn in urns])
+    return {urn for urns in scoreset_urn_lists for urn in urns}
 
 
 def _metadata_response_is_human(json_response: Dict) -> bool:
@@ -125,11 +125,11 @@ def get_human_urns() -> List[str]:
     scoreset_urns = get_scoreset_urns()
     human_scoresets: List[str] = []
     for urn in scoreset_urns:
-        r = requests.get(f"https://api.mavedb.org/api/v1/score-sets/{urn}")
+        r = requests.get(f"https://api.mavedb.org/api/v1/score-sets/{urn}", timeout=30)
         try:
             r.raise_for_status()
         except requests.exceptions.HTTPError:
-            _logger.info(f"Unable to retrieve scoreset data for URN {urn}")
+            _logger.info("Unable to retrieve scoreset data for URN %s", urn)
             continue
         data = r.json()
 
@@ -153,6 +153,7 @@ def _get_uniprot_ref(scoreset_json: Dict[str, Any]) -> Optional[UniProtRef]:
                 id=f"uniprot:{ext_id['identifier']['identifier']}",
                 offset=ext_id["offset"],
             )
+    return None
 
 
 def get_raw_scoreset_metadata(
@@ -174,17 +175,18 @@ def get_raw_scoreset_metadata(
     metadata_file = dcd_mapping_dir / f"{scoreset_urn}_metadata.json"
     if not metadata_file.exists():
         url = f"https://api.mavedb.org/api/v1/score-sets/{scoreset_urn}"
-        r = requests.get(url)
+        r = requests.get(url, timeout=30)
         try:
             r.raise_for_status()
-        except requests.HTTPError:
-            _logger.error(f"Received HTTPError from {url}")
-            raise ResourceAcquisitionError(f"Metadata for scoreset {scoreset_urn}")
+        except requests.HTTPError as e:
+            msg = f"Received HTTPError from {url} for scoreset {scoreset_urn}"
+            _logger.error(msg)
+            raise ResourceAcquisitionError(msg) from e
         metadata = r.json()
-        with open(metadata_file, "w") as f:
+        with metadata_file.open("w") as f:
             json.dump(metadata, f)
     else:
-        with open(metadata_file, "r") as f:
+        with metadata_file.open() as f:
             metadata = json.load(f)
     return metadata
 
@@ -206,13 +208,11 @@ def get_scoreset_metadata(
     metadata = get_raw_scoreset_metadata(scoreset_urn, dcd_mapping_dir)
 
     if not _metadata_response_is_human(metadata):
-        raise ResourceAcquisitionError(
-            f"Experiment for {scoreset_urn} contains no human targets"
-        )
+        msg = f"Experiment for {scoreset_urn} contains no human targets"
+        raise ResourceAcquisitionError(msg)
     if len(metadata["targetGenes"]) > 1:
-        raise ResourceAcquisitionError(
-            f"Multiple target genes for {scoreset_urn} -- look into this."
-        )
+        msg = f"Multiple target genes for {scoreset_urn} -- look into this."
+        raise ResourceAcquisitionError(msg)
     gene = metadata["targetGenes"][0]
     try:
         structured_data = ScoresetMetadata(
@@ -224,10 +224,9 @@ def get_scoreset_metadata(
             target_uniprot_ref=_get_uniprot_ref(metadata),
         )
     except (KeyError, ValidationError) as e:
-        _logger.error(
-            f"Unable to extract metadata from API response for scoreset {scoreset_urn}: {e}"
-        )
-        raise ResourceAcquisitionError(f"Metadata for scoreset {scoreset_urn}")
+        msg = f"Unable to extract metadata from API response for scoreset {scoreset_urn}: {e}"
+        _logger.error(msg)
+        raise ResourceAcquisitionError(msg) from e
 
     return structured_data
 
@@ -270,9 +269,10 @@ def get_scoreset_records(
         url = f"https://api.mavedb.org/api/v1/score-sets/{scoreset_urn}/scores"
         try:
             _http_download(url, scores_csv, silent)
-        except requests.HTTPError:
-            _logger.error(f"HTTPError when fetching scores CSV from {url}")
-            raise ResourceAcquisitionError(f"Scores CSV for scoreset {scoreset_urn}")
+        except requests.HTTPError as e:
+            msg = f"HTTPError when fetching scores CSV from {url}"
+            _logger.error(msg)
+            raise ResourceAcquisitionError(msg) from e
 
     return _load_scoreset_records(scores_csv)
 
@@ -292,15 +292,15 @@ def get_ref_genome_file(
     parsed_url = urlparse(url)
     if not dcd_mapping_dir:
         dcd_mapping_dir = LOCAL_STORE_PATH
-    genome_file = dcd_mapping_dir / os.path.basename(parsed_url.path)
+    genome_file = dcd_mapping_dir / Path(parsed_url.path).name
     # this file shouldn't change, so no need to think about more advanced caching
     if not genome_file.exists():
         try:
             _http_download(url, genome_file, silent)
-        except requests.HTTPError:
+        except requests.HTTPError as e:
             msg = f"HTTPError when fetching reference genome file from {url}"
             _logger.error(msg)
-            raise ResourceAcquisitionError(msg)
+            raise ResourceAcquisitionError(msg) from e
     return genome_file
 
 

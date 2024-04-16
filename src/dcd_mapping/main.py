@@ -34,9 +34,10 @@ def _save_results(
     :param metadata: scoreset metadata
     :param mapping results: mapped objects
     :return: path to saved file
+
     """
     outfile = LOCAL_STORE_PATH / f"{metadata.urn}_mapping_results.json"
-    with open(outfile, "w") as f:
+    with outfile.open("w") as f:
         json.dump(mapping_results.model_dump(exclude_none=True), f, indent=2)
     return outfile
 
@@ -57,22 +58,22 @@ async def map_scoreset(
     try:
         alignment_result = align(metadata, silent, cache_align)
     except AlignmentError as e:
-        _logger.error(f"Alignment failed for scoreset {metadata.urn}: {e}")
-        return None
+        _logger.error("Alignment failed for scoreset %s: %s", metadata.urn, e)
+        return
 
     try:
         transcript = await select_transcript(
             metadata, records, alignment_result, silent
         )
     except TxSelectError:
-        _logger.error(f"Transcript selection failed for scoreset {metadata.urn}")
-        return None
+        _logger.error("Transcript selection failed for scoreset %s", metadata.urn)
+        return
 
     try:
         vrs_results = vrs_map(metadata, alignment_result, transcript, records, silent)
     except VrsMapError:
-        _logger.error(f"VRS mapping failed for scoreset {metadata.urn}")
-        return None
+        _logger.error("VRS mapping failed for scoreset %s", metadata.urn)
+        return
 
     if vrs_results:
         _save_results(metadata, vrs_results)
@@ -94,5 +95,5 @@ async def map_scoreset_urn(
         msg = f"Unable to acquire resource from MaveDB: {e}"
         _logger.critical(msg)
         click.echo(f"Error: {msg}")
-        return None
+        return
     await map_scoreset(metadata, records, silent, cache_align)

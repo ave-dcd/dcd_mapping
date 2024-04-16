@@ -43,7 +43,7 @@ def _write_query_file(file: Path, lines: List[str]) -> None:
     :param file: path to query file
     :param lines: list of lines to write (should be header and then sequence)
     """
-    with open(file, "w") as f:
+    with file.open("w") as f:
         for line in lines:
             f.write(f"{line}\n")
 
@@ -83,20 +83,19 @@ def _run_blat(
     :return: process result
     """
     reference_genome_file = get_ref_genome_file(silent=silent)
-    if "BLAT_BIN_PATH" in os.environ:
-        bin_name = os.environ["BLAT_BIN_PATH"]
-    else:
-        bin_name = "blat"
+    bin_name = os.environ["BLAT_BIN_PATH"] if "BLAT_BIN_PATH" in os.environ else "blat"  # noqa: SIM401
     command = f"{bin_name} {reference_genome_file} {target_args} -minScore=20 {query_file} {out_file}"
     _logger.debug("Running BLAT command: %s", command)
-    result = subprocess.run(
-        command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    result = subprocess.run(  # noqa: UP022
+        command,
+        shell=True,  # noqa: S602
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
     _logger.debug("BLAT command finished with result %s", result.returncode)
     if result.returncode != 0:
-        raise AlignmentError(
-            f"BLAT process returned error code {result.returncode}: {target_args} {query_file} {out_file}"
-        )
+        msg = f"BLAT process returned error code {result.returncode}: {target_args} {query_file} {out_file}"
+        raise AlignmentError(msg)
     return result
 
 
@@ -128,10 +127,9 @@ def _get_cached_blat_output(metadata: ScoresetMetadata, silent: bool) -> QueryRe
         _run_blat(target_args, query_file, str(out_file.absolute()), silent)
         try:
             output = read_blat(out_file.absolute(), "blat-psl")
-        except ValueError:
-            raise AlignmentError(
-                f"Unable to get valid BLAT response for {metadata.urn}"
-            )
+        except ValueError as e:
+            msg = f"Unable to get valid BLAT response for {metadata.urn}"
+            raise AlignmentError(msg) from e
     return output
 
 
@@ -175,8 +173,9 @@ def _get_blat_output(metadata: ScoresetMetadata, silent: bool) -> QueryResult:
         out_file = _write_blat_output_tempfile(process_result)
         try:
             output = read_blat(out_file, "blat-psl")
-        except ValueError:
-            raise AlignmentError(f"Unable to run successful BLAT on {metadata.urn}")
+        except ValueError as e:
+            msg = f"Unable to run successful BLAT on {metadata.urn}"
+            raise AlignmentError(msg) from e
 
     return output
 
@@ -209,8 +208,10 @@ def _get_best_hit(output: QueryResult, urn: str, chromosome: Optional[str]) -> H
             if list(output):
                 hit_chrs = [h.id for h in output]
                 _logger.warning(
-                    f"Failed to match hit chromosomes during alignment. URN: "
-                    f"{urn}, expected chromosome: {chromosome}, hit chromosomes: {hit_chrs}"
+                    "Failed to match hit chromosomes during alignment. URN: %s, expected chromosome: %s, hit chromosomes: %s",
+                    urn,
+                    chromosome,
+                    hit_chrs,
                 )
 
     best_score = 0
@@ -222,7 +223,7 @@ def _get_best_hit(output: QueryResult, urn: str, chromosome: Optional[str]) -> H
             best_score_hit = hit
 
     if best_score_hit is None:
-        _logger.error(f"Couldn't get hits from {urn} -- check BLAT output.")
+        _logger.error("Couldn't get hits from %s -- check BLAT output.", urn)
         raise AlignmentError
 
     return best_score_hit
@@ -248,7 +249,9 @@ def _get_best_hsp(hit: Hit, urn: str, gene_location: Optional[GeneLocation]) -> 
         best_hsp = max(hit, key=lambda hsp: hsp.score)
     if best_hsp is None:
         _logger.error(
-            f"Unable to get best HSP from hit -- this should be impossible? urn: {urn}, hit: {str(hit)}"
+            "Unable to get best HSP from hit -- this should be impossible? urn: %s, hit: %s",
+            urn,
+            hit,
         )
         raise AlignmentError
     return best_hsp
@@ -262,16 +265,13 @@ def _get_best_match(output: QueryResult, metadata: ScoresetMetadata) -> Alignmen
     :return: alignment result ??
     """
     location = get_gene_location(metadata)
-    if location:
-        chromosome = location.chromosome
-    else:
-        chromosome = None
+    chromosome = location.chromosome if location else None
     best_hit = _get_best_hit(output, metadata.urn, chromosome)
     best_hsp = _get_best_hsp(best_hit, metadata.urn, location)
 
     strand = Strand.POSITIVE if best_hsp[0].query_strand == 1 else Strand.NEGATIVE
-    coverage = 100 * (best_hsp.query_end - best_hsp.query_start) / output.seq_len  # type: ignore
-    identity = best_hsp.ident_pct  # type: ignore
+    coverage = 100 * (best_hsp.query_end - best_hsp.query_start) / output.seq_len
+    identity = best_hsp.ident_pct
     chrom = best_hsp.hit_id
 
     query_subranges = []
@@ -284,7 +284,7 @@ def _get_best_match(output: QueryResult, metadata: ScoresetMetadata) -> Alignmen
             SequenceRange(start=fragment.hit_start, end=fragment.hit_end)
         )
 
-    result = AlignmentResult(
+    return AlignmentResult(
         chrom=chrom,
         strand=strand,
         ident_pct=identity,
@@ -294,7 +294,6 @@ def _get_best_match(output: QueryResult, metadata: ScoresetMetadata) -> Alignmen
         hit_range=SequenceRange(start=best_hsp.hit_start, end=best_hsp.hit_end),
         hit_subranges=hit_subranges,
     )
-    return result
 
 
 def align(
