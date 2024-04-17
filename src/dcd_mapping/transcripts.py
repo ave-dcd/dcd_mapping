@@ -348,6 +348,12 @@ async def select_transcript(
         transcript_reference.start = 670
         transcript_reference.sequence = "M" + transcript_reference.sequence
 
+    if metadata.urn.startswith("urn:mavedb:00000053"):
+        # Edge case. The target sequence is missing the start residue, E, so the offset
+        # should be reduced by 1.
+        transcript_reference.start = 309
+        transcript_reference.sequence = "E" + transcript_reference.sequence
+
     msg = "Reference selection complete."
     if not silent:
         click.echo(msg)
