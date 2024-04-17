@@ -377,7 +377,7 @@ def _get_variation(
                         )
         if allele.state.sequence == "N" and layer != AnnotationLayer.PROTEIN:
             allele.state.sequence = _get_allele_sequence(allele)  # type: ignore
-        if '=' in hgvs_string and layer == AnnotationLayer.PROTEIN:
+        if "=" in hgvs_string and layer == AnnotationLayer.PROTEIN:
             allele.state.sequence = _get_allele_sequence(allele)
         allele = normalize(allele, data_proxy=sequence_store)
         allele.id = ga4gh_identify(allele)

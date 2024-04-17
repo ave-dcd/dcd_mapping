@@ -39,10 +39,7 @@ def cli(urn: str, debug: bool, cache_align: bool) -> None:
     :param debug: if True, enable debug logging
     :param cache_align: if True, save alignment output and reuse when available
     """  # noqa: D301
-    if debug:
-        log_level = logging.DEBUG
-    else:
-        log_level = logging.INFO
+    log_level = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(
         filename="dcd-mapping.log",
         format="%(asctime)s %(levelname)s:%(name)s:%(message)s",
