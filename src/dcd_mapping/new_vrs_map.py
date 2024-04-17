@@ -409,7 +409,7 @@ def _get_variation(
                             Seq(str(allele.state.sequence.root)).reverse_complement()
                         )
                         allele.state.sequence = SequenceString(temp_str)
-        if "N" in allele.state.sequence.root and layer == AnnotationLayer.GENOMIC:
+        if allele.state.sequence.root == "N" and layer == AnnotationLayer.GENOMIC:
             allele.state.sequence = SequenceString(_get_allele_sequence(allele, sr))  # type: ignore
         if "=" in hgvs_string and layer == AnnotationLayer.PROTEIN:
             allele.state.sequence = SequenceString(_get_allele_sequence(allele, sr))

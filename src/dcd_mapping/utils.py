@@ -241,11 +241,13 @@ def save_mapped_output_json(ss: str, mave_vrs_mappings: List[VrsObject1_x],
     for var in curr:
         if ss.startswith("urn:mavedb:00000097"):
             layer = AnnotationLayer.PROTEIN
+            break
         else:
             if var.layer == AnnotationLayer.GENOMIC:
                 layer = AnnotationLayer.GENOMIC
                 break
-    layer = AnnotationLayer.PROTEIN if layer is None else AnnotationLayer.GENOMIC
+    if not ss.startswith("urn:mavedb:00000097") and layer is None:
+        layer = AnnotationLayer.PROTEIN
 
     mapped_ss_output = {}
     mapped_ss_output["metadata"] = get_raw_scoreset_metadata(ss)
