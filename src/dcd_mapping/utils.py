@@ -225,7 +225,7 @@ def get_mapped_reference_sequence(
         return MappedReferenceSequence(
             sequence_type=TargetSequenceType.PROTEIN,
             sequence_id=get_vrs_id_from_identifier(tx_output.np),
-            sequence_accessions=[tx_output.sequence],
+            sequence_accessions=[tx_output.np],
         )
     seq_id = get_chromosome_identifier(align_result.chrom)
     return MappedReferenceSequence(
