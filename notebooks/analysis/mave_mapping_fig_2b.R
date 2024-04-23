@@ -36,7 +36,7 @@ names = names(table(mave_assay$context))
 df <- data.frame('Experiment Cellular Context' = names, 'value' = context_counts)
 
 ggplot(df, aes(x = factor(Experiment.Cellular.Context, levels = c('Human', 'Yeast', 'Bacteria', 'Mouse', 'Bacteriophage', 'N/A')), y = value, fill = rownames(df))) +
-  geom_bar(stat = 'identity') +
+  geom_bar(stat = 'identity', fill = c("#F8766D","#B79F00","#90ee90","#00BFC4","#619CFF","#F564E3")) +
   geom_text(aes(label = value), vjust = ifelse(df$value != 92, -1, 3), size = 10, colour = ifelse(df$value == 97, 'white', 'black')) + 
   xlab('MAVE Experiment Cellular Context') +
   ylab('Number of Experiments') +
