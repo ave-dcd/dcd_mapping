@@ -7,11 +7,10 @@ from typing import List
 import click
 
 from dcd_mapping.align import AlignmentError, align
-from dcd_mapping.resources import (
+from dcd_mapping.mavedb_data import get_scoreset_metadata, get_scoreset_records
+from dcd_mapping.resource_utils import (
     LOCAL_STORE_PATH,
     ResourceAcquisitionError,
-    get_scoreset_metadata,
-    get_scoreset_records,
 )
 from dcd_mapping.schemas import ScoreRow, ScoresetMetadata, VrsMappingResult
 from dcd_mapping.transcripts import TxSelectError, select_transcript

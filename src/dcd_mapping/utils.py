@@ -17,7 +17,7 @@ from dcd_mapping.lookup import (
     get_chromosome_identifier,
     get_vrs_id_from_identifier,
 )
-from dcd_mapping.resources import get_raw_scoreset_metadata, get_scoreset_metadata
+from dcd_mapping.mavedb_data import get_raw_scoreset_metadata, get_scoreset_metadata
 from dcd_mapping.schemas import (
     AlignmentResult,
     ComputedReferenceSequence,
@@ -255,10 +255,9 @@ def save_mapped_output_json(
         if ss.startswith("urn:mavedb:00000097"):
             layer = AnnotationLayer.PROTEIN
             break
-        else:
-            if var.layer == AnnotationLayer.GENOMIC:
-                layer = AnnotationLayer.GENOMIC
-                break
+        if var.layer == AnnotationLayer.GENOMIC:
+            layer = AnnotationLayer.GENOMIC
+            break
     if not ss.startswith("urn:mavedb:00000097") and layer is None:
         layer = AnnotationLayer.PROTEIN
 
