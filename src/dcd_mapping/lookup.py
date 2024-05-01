@@ -8,6 +8,7 @@ Data sources/handlers include:
 * the UniProt web API
 """
 import logging
+import os
 from typing import List, Optional
 
 import polars as pl
@@ -56,7 +57,10 @@ class CoolSeqToolBuilder:
         :return: singleton instance of CoolSeqTool
         """
         if not hasattr(cls, "instance"):
-            sr = SeqRepo("/usr/local/share/seqrepo/latest", writeable=True)
+            root_dir = os.environ.get(
+                "SEQREPO_ROOT_DIR", "/usr/local/share/seqrepo/latest"
+            )
+            sr = SeqRepo(root_dir, writeable=True)
             cls.instance = CoolSeqTool(sr=sr)
         return cls.instance
 

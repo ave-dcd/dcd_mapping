@@ -20,6 +20,7 @@ from ga4gh.vrs.normalize import normalize
 
 from dcd_mapping.lookup import (
     get_chromosome_identifier,
+    get_seqrepo,
     translate_hgvs_to_vrs,
 )
 from dcd_mapping.schemas import (
@@ -151,7 +152,6 @@ def _map_protein_coding(
     records: List[ScoreRow],
     transcript: TxSelectResult,
     align_result: AlignmentResult,
-    sr: SeqRepoAccess,
 ) -> VrsMappingResult:
     """Perform mapping on protein coding experiment results
 
@@ -159,7 +159,6 @@ def _map_protein_coding(
     :param records: The list of MAVE variants in a given score set
     :param transcript: The transcript data for a score set
     :param align_results: The alignment data for a score set
-    :param sr: A SeqRepo object
     :return: A VrsMappingResult object
     """
     variations = VrsMappingResult(variations=[])
@@ -173,6 +172,7 @@ def _map_protein_coding(
     # Add custom digest to SeqRepo for both Protein and DNA Sequence
     psequence_id = f"SQ.{sha512t24u(sequence.encode('ascii'))}"
     alias_dict_list = [{"namespace": "ga4gh", "alias": psequence_id}]
+    sr = get_seqrepo()
     sr.sr.store(sequence, nsaliases=alias_dict_list)
 
     gsequence_id = f"SQ.{sha512t24u(metadata.target_sequence.encode('ascii'))}"
@@ -224,19 +224,18 @@ def _map_regulatory_noncoding(
     metadata: ScoresetMetadata,
     records: List[ScoreRow],
     align_result: AlignmentResult,
-    sr: SeqRepoAccess,
 ) -> VrsMappingResult:
     """Perform mapping on noncoding/regulatory experiment results
 
     :param metadata: metadata for URN
     :param records: list of MAVE experiment result rows
     :param align_result: An AlignmentResult object for a score set
-    :param sr: A SeqRepo object
     :return: A VrsMappingResult object
     """
     variations = VrsMappingResult(variations=[])
     sequence_id = f"SQ.{sha512t24u(metadata.target_sequence.encode('ascii'))}"
     alias_dict_list = [{"namespace": "ga4gh", "alias": sequence_id}]
+    sr = get_seqrepo()
     sr.sr.store(
         metadata.target_sequence, nsaliases=alias_dict_list
     )  # Add custom digest to SeqRepo
@@ -282,42 +281,6 @@ def _map_regulatory_noncoding(
             ).output_vrs_variations(AnnotationLayer.GENOMIC, sr)
         )
     return variations
-
-
-def vrs_map(
-    metadata: ScoresetMetadata,
-    align_result: AlignmentResult,
-    records: List[ScoreRow],
-    sr: SeqRepoAccess,
-    silent: bool = True,
-    transcript: Optional[TxSelectResult] = None,
-) -> Optional[VrsMappingResult]:
-    """Given a description of a MAVE scoreset and an aligned transcript, generate
-    the corresponding VRS objects.
-
-    :param metadata: salient MAVE scoreset metadata
-    :param align_result: output from the sequence alignment process
-    :param records: scoreset records
-    :param sr: A SeqRepo object
-    :param silent: A boolean indicating whether output should be shown
-    :param transcript: output of transcript selection process
-    :return: A VrsMappingResult object
-    """
-    msg = f"Mapping {metadata.urn} to VRS..."
-    if not silent:
-        click.echo(msg)
-    _logger.info(msg)
-    if metadata.target_gene_category == TargetType.PROTEIN_CODING and transcript:
-        return _map_protein_coding(
-            metadata=metadata,
-            records=records,
-            transcript=transcript,
-            align_result=align_result,
-            sr=sr,
-        )
-    return _map_regulatory_noncoding(
-        metadata=metadata, records=records, align_result=align_result, sr=sr
-    )
 
 
 def _get_variation(
@@ -431,3 +394,47 @@ def _get_variation(
     if not alleles:
         return None
     return alleles
+
+
+def vrs_map(
+    metadata: ScoresetMetadata,
+    align_result: AlignmentResult,
+    records: List[ScoreRow],
+    silent: bool = True,
+    transcript: Optional[TxSelectResult] = None,
+) -> Optional[VrsMappingResult]:
+    """Given a description of a MAVE scoreset and an aligned transcript, generate
+    the corresponding VRS objects.
+
+    :param metadata: salient MAVE scoreset metadata
+    :param align_result: output from the sequence alignment process
+    :param records: scoreset records
+    :param sr: A SeqRepo object
+    :param silent: A boolean indicating whether output should be shown
+    :param transcript: output of transcript selection process
+    :return: A VrsMappingResult object
+    """
+    msg = f"Mapping {metadata.urn} to VRS..."
+    if not silent:
+        click.echo(msg)
+    _logger.info(msg)
+
+    if metadata.urn == "urn:mavedb:00000072-a-1":
+        msg = f"No RefSeq accession is available for {metadata.urn}."
+        if not silent:
+            click.echo(msg)
+        _logger.warning(msg)
+        return None
+
+    if metadata.target_gene_category == TargetType.PROTEIN_CODING and transcript:
+        return _map_protein_coding(
+            metadata,
+            records,
+            transcript,
+            align_result,
+        )
+    return _map_regulatory_noncoding(
+        metadata,
+        records,
+        align_result,
+    )
