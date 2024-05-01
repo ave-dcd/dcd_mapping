@@ -51,16 +51,3 @@ def http_download(url: str, out_path: Path, silent: bool = True) -> Path:
                     if chunk:
                         h.write(chunk)
     return out_path
-
-
-def get_mapping_tmp_dir() -> Path:
-    """Acquire app-specific "tmp" directory. It's not actually temporary because it's
-    manually maintained, but we need a slightly more durable file location than what the
-    system tmp directory can provide. Used for storing small, consistently-named files
-    like the BLAT query and results files.
-
-    :return: path to temporary file directory
-    """
-    tmp = LOCAL_STORE_PATH / "tmp"
-    tmp.mkdir(exist_ok=True)
-    return tmp

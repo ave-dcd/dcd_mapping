@@ -45,17 +45,15 @@ async def map_scoreset(
     metadata: ScoresetMetadata,
     records: List[ScoreRow],
     silent: bool = True,
-    cache_align: bool = False,
 ) -> None:
     """Given information about a MAVE experiment, map to VRS and save output as JSON.
 
     :param metadata: salient data gathered from scoreset on MaveDB
     :param records: experiment scoring results
     :param silent: if True, suppress console output
-    :param cache_align: if True, save alignment output and reuse when available
     """
     try:
-        alignment_result = align(metadata, silent, cache_align)
+        alignment_result = align(metadata, silent)
     except AlignmentError as e:
         _logger.error("Alignment failed for scoreset %s: %s", metadata.urn, e)
         return
@@ -78,14 +76,11 @@ async def map_scoreset(
         _save_results(metadata, vrs_results)
 
 
-async def map_scoreset_urn(
-    urn: str, silent: bool = True, cache_align: bool = False
-) -> None:
+async def map_scoreset_urn(urn: str, silent: bool = True) -> None:
     """Perform end-to-end mapping for a scoreset.
 
     :param urn: identifier for a scoreset.
     :param silent: if True, suppress console output
-    :param cache_align: if True, save alignment output and reuse when available
     """
     try:
         metadata = get_scoreset_metadata(urn)
@@ -95,4 +90,4 @@ async def map_scoreset_urn(
         _logger.critical(msg)
         click.echo(f"Error: {msg}")
         return
-    await map_scoreset(metadata, records, silent, cache_align)
+    await map_scoreset(metadata, records, silent)

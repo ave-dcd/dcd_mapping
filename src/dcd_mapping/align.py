@@ -3,9 +3,8 @@ import logging
 import os
 import subprocess
 import tempfile
-import uuid
 from pathlib import Path
-from typing import Any, Generator, List, Optional
+from typing import List, Optional
 from urllib.parse import urlparse
 
 import requests
@@ -21,7 +20,6 @@ from dcd_mapping.mavedb_data import (
 )
 from dcd_mapping.resource_utils import (
     ResourceAcquisitionError,
-    get_mapping_tmp_dir,
     http_download,
 )
 from dcd_mapping.schemas import (
@@ -53,20 +51,17 @@ def _write_query_file(file: Path, lines: List[str]) -> None:
             f.write(f"{line}\n")
 
 
-def _build_query_file(scoreset_metadata: ScoresetMetadata) -> Generator[Path, Any, Any]:
+def _build_query_file(scoreset_metadata: ScoresetMetadata, query_file: Path) -> Path:
     """Construct BLAT query file.
 
     :param scoreset_metadata: MaveDB scoreset metadata object
+    :param query_file: path for query file
     :return: Yielded Path to constructed file. Deletes file once complete.
     """
-    query_file = (
-        get_mapping_tmp_dir() / f"blat_query_{scoreset_metadata.urn}_{uuid.uuid1()}.fa"
-    )
     _logger.debug("Writing BLAT query to %s", query_file)
     lines = [">query", scoreset_metadata.target_sequence]
     _write_query_file(query_file, lines)
-    yield query_file
-    query_file.unlink()
+    return query_file
 
 
 def get_ref_genome_file(
@@ -131,40 +126,6 @@ def _run_blat(
     return result
 
 
-def _get_cached_blat_output(metadata: ScoresetMetadata, silent: bool) -> QueryResult:
-    """Get a BLAT output object for the given scoreset -- either reusing a previously-
-    run query output file, or making a new one if unavailable.
-
-    This method is broken out from ``_get_blat_output`` because it was getting pretty
-    messy to handle differing file management logic between the two of them. However,
-    query/command generation logic should be shared.
-
-    :param metadata:
-    :param silent:
-    :return:
-    """
-    out_file = LOCAL_STORE_PATH / f"{metadata.urn}_blat_output.psl"
-    if out_file.exists():
-        return read_blat(out_file.absolute(), "blat-psl")
-    query_file = next(_build_query_file(metadata))
-    if metadata.target_sequence_type == TargetSequenceType.PROTEIN:
-        target_args = "-q=prot -t=dnax"
-    else:
-        target_args = ""
-    _run_blat(target_args, query_file, str(out_file.absolute()), silent)
-    try:
-        output = read_blat(out_file.absolute(), "blat-psl")
-    except ValueError:
-        target_args = "-q=dnax -t=dnax"
-        _run_blat(target_args, query_file, str(out_file.absolute()), silent)
-        try:
-            output = read_blat(out_file.absolute(), "blat-psl")
-        except ValueError as e:
-            msg = f"Unable to get valid BLAT response for {metadata.urn}"
-            raise AlignmentError(msg) from e
-    return output
-
-
 def _write_blat_output_tempfile(result: subprocess.CompletedProcess) -> str:
     """Create temp BLAT output file. Not immediately deleted, but should eventually
     be cleared by the OS.
@@ -189,25 +150,26 @@ def _get_blat_output(metadata: ScoresetMetadata, silent: bool) -> QueryResult:
     :return: BLAT query result
     :raise AlignmentError: if BLAT subprocess returns error code
     """
-    query_file = next(_build_query_file(metadata))
-    if metadata.target_sequence_type == TargetSequenceType.PROTEIN:
-        target_args = "-q=prot -t=dnax"
-    else:
-        target_args = ""
-    process_result = _run_blat(target_args, query_file, "/dev/stdout", silent)
-    out_file = _write_blat_output_tempfile(process_result)
-
-    try:
-        output = read_blat(out_file, "blat-psl")
-    except ValueError:
-        target_args = "-q=dnax -t=dnax"
+    with tempfile.NamedTemporaryFile() as query_file:
+        query_file = _build_query_file(metadata, Path(query_file.name))
+        if metadata.target_sequence_type == TargetSequenceType.PROTEIN:
+            target_args = "-q=prot -t=dnax"
+        else:
+            target_args = ""
         process_result = _run_blat(target_args, query_file, "/dev/stdout", silent)
         out_file = _write_blat_output_tempfile(process_result)
+
         try:
             output = read_blat(out_file, "blat-psl")
-        except ValueError as e:
-            msg = f"Unable to run successful BLAT on {metadata.urn}"
-            raise AlignmentError(msg) from e
+        except ValueError:
+            target_args = "-q=dnax -t=dnax"
+            process_result = _run_blat(target_args, query_file, "/dev/stdout", silent)
+            out_file = _write_blat_output_tempfile(process_result)
+            try:
+                output = read_blat(out_file, "blat-psl")
+            except ValueError as e:
+                msg = f"Unable to run successful BLAT on {metadata.urn}"
+                raise AlignmentError(msg) from e
 
     return output
 
@@ -328,16 +290,11 @@ def _get_best_match(output: QueryResult, metadata: ScoresetMetadata) -> Alignmen
     )
 
 
-def align(
-    scoreset_metadata: ScoresetMetadata, silent: bool = True, use_cached: bool = False
-) -> AlignmentResult:
+def align(scoreset_metadata: ScoresetMetadata, silent: bool = True) -> AlignmentResult:
     """Align target sequence to a reference genome.
 
     :param scoreset_metadata: object containing scoreset metadata
     :param silent: suppress BLAT process output if true
-    :param use_cached: make use of permanent mapping storage for intermediary files rather
-        than rebuilding new output and storing in tmp directory. Mostly useful for
-        development/testing.
     :return: data wrapper containing alignment results
     """
     msg = f"Performing alignment for {scoreset_metadata.urn}..."
@@ -345,10 +302,7 @@ def align(
         click.echo(msg)
     _logger.info(msg)
 
-    if use_cached:
-        blat_output = _get_cached_blat_output(scoreset_metadata, silent)
-    else:
-        blat_output = _get_blat_output(scoreset_metadata, silent)
+    blat_output = _get_blat_output(scoreset_metadata, silent)
     match = _get_best_match(blat_output, scoreset_metadata)
 
     msg = "Alignment complete."
