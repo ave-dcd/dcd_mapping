@@ -67,7 +67,7 @@ async def map_scoreset(
         return
 
     try:
-        vrs_results = vrs_map(metadata, alignment_result, records, silent, transcript)
+        vrs_results = vrs_map(metadata, alignment_result, records, transcript, silent)
     except VrsMapError:
         _logger.error("VRS mapping failed for scoreset %s", metadata.urn)
         return

@@ -400,8 +400,8 @@ def vrs_map(
     metadata: ScoresetMetadata,
     align_result: AlignmentResult,
     records: List[ScoreRow],
-    silent: bool = True,
     transcript: Optional[TxSelectResult] = None,
+    silent: bool = True,
 ) -> Optional[VrsMappingResult]:
     """Given a description of a MAVE scoreset and an aligned transcript, generate
     the corresponding VRS objects.
@@ -409,9 +409,8 @@ def vrs_map(
     :param metadata: salient MAVE scoreset metadata
     :param align_result: output from the sequence alignment process
     :param records: scoreset records
-    :param sr: A SeqRepo object
-    :param silent: A boolean indicating whether output should be shown
     :param transcript: output of transcript selection process
+    :param silent: A boolean indicating whether output should be shown
     :return: A VrsMappingResult object
     """
     msg = f"Mapping {metadata.urn} to VRS..."
