@@ -9,7 +9,7 @@ import hgvs.parser
 import hgvs.posedit
 import hgvs.sequencevariant
 from Bio.SeqUtils import seq3
-from biocommons.seqrepo import SeqRepo
+from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
 from cool_seq_tool.schemas import AnnotationLayer
 from ga4gh.core import sha512t24u
 
@@ -29,7 +29,7 @@ from dcd_mapping.schemas import (
 )
 
 
-def get_hgvs_string(allele: dict, dp: SeqRepo, ac: str) -> str:
+def get_hgvs_string(allele: dict, sr: SeqRepoAccess, ac: str) -> str:
     """Return an HGVS string for a given VRS allele
 
     :param allele: A post-mapped VRS allele
@@ -43,13 +43,13 @@ def get_hgvs_string(allele: dict, dp: SeqRepo, ac: str) -> str:
 
     if start == end:
         ref = None
-        aas = dp.get_sequence(ac, start - 1, start)
-        aae = dp.get_sequence(ac, end, end + 1)
+        aas = sr.get_sequence(ac, start - 1, start)
+        aae = sr.get_sequence(ac, end, end + 1)
         end += 1
     else:
-        ref = dp.get_sequence(ac, start, end)
-        aas = dp.get_sequence(ac, start, start + 1)
-        aae = dp.get_sequence(ac, end - 1, end)
+        ref = sr.get_sequence(ac, start, end)
+        aas = sr.get_sequence(ac, start, start + 1)
+        aae = sr.get_sequence(ac, end - 1, end)
         start += 1
 
     if stype == "p":
