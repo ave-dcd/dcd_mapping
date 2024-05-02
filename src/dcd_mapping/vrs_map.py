@@ -31,7 +31,6 @@ from dcd_mapping.schemas import (
     TargetType,
     TxSelectResult,
     VrsMapping,
-    VrsMappingResult,
 )
 
 __all__ = ["vrs_map"]
@@ -152,16 +151,16 @@ def _map_protein_coding(
     records: List[ScoreRow],
     transcript: TxSelectResult,
     align_result: AlignmentResult,
-) -> VrsMappingResult:
+) -> List[VrsMapping]:
     """Perform mapping on protein coding experiment results
 
     :param metadata: The metadata for a score set
     :param records: The list of MAVE variants in a given score set
     :param transcript: The transcript data for a score set
     :param align_results: The alignment data for a score set
-    :return: A VrsMappingResult object
+    :return: A list of mappings
     """
-    variations = VrsMappingResult(variations=[])
+    variations = []
     if metadata.target_sequence_type == TargetSequenceType.DNA:
         sequence = str(
             Seq(metadata.target_sequence).translate(table="1", stop_symbol="")
@@ -186,7 +185,7 @@ def _map_protein_coding(
             row, score, align_result, sr, psequence_id, transcript, sr
         )
         if hgvs_pro_mappings:
-            variations.variations.append(hgvs_pro_mappings)
+            variations.append(hgvs_pro_mappings)
         if (
             row.hgvs_nt == "NA"
             or row.hgvs_nt in {"_wt", "_sy", "="}
@@ -195,7 +194,7 @@ def _map_protein_coding(
             continue
         layer = AnnotationLayer.GENOMIC
         hgvs_strings = _create_hgvs_strings(align_result, row.hgvs_nt, layer)
-        variations.variations.append(
+        variations.append(
             VrsMapping(
                 mavedb_id=row.accession,
                 score=score,
@@ -224,15 +223,15 @@ def _map_regulatory_noncoding(
     metadata: ScoresetMetadata,
     records: List[ScoreRow],
     align_result: AlignmentResult,
-) -> VrsMappingResult:
+) -> List[VrsMapping]:
     """Perform mapping on noncoding/regulatory experiment results
 
     :param metadata: metadata for URN
     :param records: list of MAVE experiment result rows
     :param align_result: An AlignmentResult object for a score set
-    :return: A VrsMappingResult object
+    :return: A list of VRS mappings
     """
-    variations = VrsMappingResult(variations=[])
+    variations = []
     sequence_id = f"SQ.{sha512t24u(metadata.target_sequence.encode('ascii'))}"
     alias_dict_list = [{"namespace": "ga4gh", "alias": sequence_id}]
     sr = get_seqrepo()
@@ -272,7 +271,7 @@ def _map_regulatory_noncoding(
             pre_map=False,
             offset=0,
         )
-        variations.variations.append(
+        variations.append(
             VrsMapping(
                 pre_mapped_genomic=pre_map_allele,
                 post_mapped_genomic=post_map_allele,
@@ -402,7 +401,7 @@ def vrs_map(
     records: List[ScoreRow],
     transcript: Optional[TxSelectResult] = None,
     silent: bool = True,
-) -> Optional[VrsMappingResult]:
+) -> Optional[List[VrsMapping]]:
     """Given a description of a MAVE scoreset and an aligned transcript, generate
     the corresponding VRS objects.
 
@@ -411,7 +410,7 @@ def vrs_map(
     :param records: scoreset records
     :param transcript: output of transcript selection process
     :param silent: A boolean indicating whether output should be shown
-    :return: A VrsMappingResult object
+    :return: A list of mapping results
     """
     msg = f"Mapping {metadata.urn} to VRS..."
     if not silent:

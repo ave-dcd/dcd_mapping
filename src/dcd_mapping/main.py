@@ -13,7 +13,7 @@ from dcd_mapping.schemas import (
     ScoreRow,
     ScoresetMetadata,
     TxSelectResult,
-    VrsMappingResult,
+    VrsMapping,
 )
 from dcd_mapping.transcripts import TxSelectError, select_transcript
 from dcd_mapping.utils import get_hgvs_string
@@ -45,12 +45,12 @@ def _format_start_end(ss: str, start: int, end: int) -> List[int]:
 
 def annotate(
     tx_select_results: TxSelectResult,
-    vrs_results: VrsMappingResult,
+    vrs_results: List[VrsMapping],
     metadata: ScoresetMetadata,
 ) -> None:
     """TODO"""
     sr = get_seqrepo()
-    for var in vrs_results.variations:
+    for var in vrs_results:
         if not var:
             continue
         variant_list = var.pre_mapped_variants

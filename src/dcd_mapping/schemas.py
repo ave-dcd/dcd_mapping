@@ -287,12 +287,3 @@ class VrsMapping(BaseModel):
             layer=layer,
             score=self.score,
         )
-
-
-class VrsMappingResult(BaseModel):
-    """Define response object from VRS mappings method.
-
-    Might not be necessary (should just be list of VrsMappings?)
-    """
-
-    variations: List[VrsObject1_x]
