@@ -2,7 +2,6 @@
 from enum import Enum
 from typing import Dict, List, Literal, Optional, Union
 
-from biocommons.seqrepo import SeqRepo
 from cool_seq_tool.schemas import AnnotationLayer, Strand, TranscriptPriority
 from ga4gh.core import sha512t24u
 from ga4gh.vrs._internal.models import Allele
@@ -66,19 +65,22 @@ class GeneLocation(BaseModel):
     end: Optional[int] = None
 
 
-class ComputedReferenceSequence(BaseModel):
+class ReferenceSequence(BaseModel):
+    """Base reference sequence class."""
+
+    sequence_type: TargetSequenceType
+    sequence_id: StrictStr
+
+
+class ComputedReferenceSequence(ReferenceSequence):
     """Define metadata describing a computed reference sequence"""
 
     sequence: StrictStr
-    sequence_type: TargetSequenceType
-    sequence_id: StrictStr
 
 
-class MappedReferenceSequence(BaseModel):
+class MappedReferenceSequence(ReferenceSequence):
     """Define metadata describing a mapped, human reference sequence"""
 
-    sequence_id: StrictStr
-    sequence_type: TargetSequenceType
     sequence_accessions: List[StrictStr]
 
 
@@ -222,12 +224,10 @@ class VrsMapping(BaseModel):
             },
         }
 
-    def output_vrs_variations(
-        self, layer: AnnotationLayer, sr: SeqRepo
-    ) -> VrsObject1_x:
+    def output_vrs_variations(self, layer: AnnotationLayer) -> VrsObject1_x:
         """Construct VRS 1.3 compatible objects from 2.0a models.
+
         :param layer: The Annotation Layer (genomic or protein)
-        :param sr: A SeqRepo instance
         :return A VrsObject1_x object
         """
         if not self.pre_mapped_genomic and layer == AnnotationLayer.GENOMIC:
