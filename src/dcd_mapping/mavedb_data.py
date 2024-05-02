@@ -7,6 +7,7 @@ import json
 import logging
 import tempfile
 import zipfile
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
@@ -190,7 +191,14 @@ def _load_scoreset_records(path: Path) -> List[ScoreRow]:
     with path.open() as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            scores_data.append(ScoreRow(**row))
+            scores_data.append(
+                ScoreRow(
+                    hgvs_pro=row["hgvs_pro"],
+                    hgvs_nt=row["hgvs_nt"],
+                    score=Decimal(row["score"]),
+                    accession=row["accession"],
+                )
+            )
     return scores_data
 
 
