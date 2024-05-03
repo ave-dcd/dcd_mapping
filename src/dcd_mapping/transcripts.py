@@ -280,6 +280,36 @@ def _offset_target_sequence(metadata: ScoresetMetadata, records: List[ScoreRow])
     return offset
 
 
+def _handle_edge_cases(
+    urn: str, transcript_reference: TxSelectResult
+) -> TxSelectResult:
+    """Handle a few edge case scoresets
+
+    A handful of scoresets have known issues that require minor alterations of
+    start position and sequence values. This method performs them if necessary and
+    returns a transcript selection object.
+    """
+    if urn.startswith(("urn:mavedb:00000047", "urn:mavedb:00000048")):
+        _logger.warning(
+            "Setting transcript start = 0 -- there is discordance between actual and expected amino acid locations in experiments 47 and 48"
+        )
+        transcript_reference.start = 0
+        transcript_reference.sequence = "M" + transcript_reference.sequence
+    elif urn.startswith("urn:mavedb:00000058-a-1"):
+        _logger.warning(
+            "urn:mavedb:00000058-a-1 describes the starting residue as Asp2, but the starting residue is D -- manually reducing offset by 1 to reflect start of Met1."
+        )
+        transcript_reference.start = 670
+        transcript_reference.sequence = "M" + transcript_reference.sequence
+    elif urn.startswith("urn:mavedb:00000053"):
+        _logger.warning(
+            "Experiment 53's target sequence is missing start residue E -- manually reducing offset by 1"
+        )
+        transcript_reference.start = 309
+        transcript_reference.sequence = "E" + transcript_reference.sequence
+    return transcript_reference
+
+
 async def select_transcript(
     metadata: ScoresetMetadata,
     records: List[ScoreRow],
@@ -315,39 +345,16 @@ async def select_transcript(
             sequence=_get_protein_sequence(metadata.target_sequence),
         )
 
-    if metadata.target_gene_category == TargetType.PROTEIN_CODING:
-        transcript_reference = await _select_protein_reference(metadata, align_result)
-        if (
-            transcript_reference
-            and metadata.target_sequence_type == TargetSequenceType.DNA
-        ):
-            offset = _offset_target_sequence(metadata, records)
-            if offset:
-                transcript_reference.start = offset
-    else:
+    if metadata.target_gene_category != TargetType.PROTEIN_CODING:
         _logger.debug("%s is regulatory/noncoding -- skipping transcript selection")
         return None
+    transcript_reference = await _select_protein_reference(metadata, align_result)
+    if transcript_reference and metadata.target_sequence_type == TargetSequenceType.DNA:
+        offset = _offset_target_sequence(metadata, records)
+        if offset:
+            transcript_reference.start = offset
 
-    if metadata.urn.startswith("urn:mavedb:00000047") or metadata.urn.startswith(
-        "urn:mavedb:00000048"
-    ):
-        _logger.warning(
-            "Setting transcript start = 0 -- there is discordance between actual and expected amino acid locations in experiments 47 and 48"
-        )
-        transcript_reference.start = 0
-        transcript_reference.sequence = "M" + transcript_reference.sequence
-    elif metadata.urn.startswith("urn:mavedb:00000058-a-1"):
-        _logger.warning(
-            "urn:mavedb:00000058-a-1 describes the starting residue as Asp2, but the starting residue is D -- manually reducing offset by 1 to reflect start of Met1."
-        )
-        transcript_reference.start = 670
-        transcript_reference.sequence = "M" + transcript_reference.sequence
-    elif metadata.urn.startswith("urn:mavedb:00000053"):
-        _logger.warning(
-            "Experiment 53's target sequence is missing start residue E -- manually reducing offset by 1"
-        )
-        transcript_reference.start = 309
-        transcript_reference.sequence = "E" + transcript_reference.sequence
+    transcript_reference = _handle_edge_cases(metadata.urn, transcript_reference)
 
     msg = "Reference selection complete."
     if not silent:
