@@ -23,22 +23,22 @@ _logger = logging.getLogger(__name__)
 
 
 def _format_start_end(ss: str, start: int, end: int) -> List[int]:
-    """Format start and end coordinates for vrs_ref_allele_seq for known edge
-    cases
+    """Format start and end coordinates for vrs_ref_allele_seq for known edge cases
+
     :param ss: score set
     :param start: start coordinate
     :param end: end coordinate
     :return A list of start and end coordinates
     """
     if ss.startswith("urn:mavedb:00000060-a-1"):
-        # This score set set reports the entire human reference sequence as the
-        # target sequence, but the positions in the score set occur with an offset
-        # of 289
+        _logger.warning(
+            "urn:mavedb:00000060-a-1 reports the entire human reference sequence as the target sequence, but the start and end positions need to be manually offset by 289"
+        )
         return [start + 289, end + 289]
     if ss.startswith("urn:mavedb:00000060-a-2"):
-        # This score set set reports the entire human reference sequence as the
-        # target sequence, but the positions in the score set occur with an offset
-        # of 331
+        _logger.warning(
+            "urn:mavedb:00000060-a-2 reports the entire human reference sequence as the target sequence, but the start and end positions need to be manually offset by 331"
+        )
         return [start + 331, end + 331]
     return [start, end]
 
