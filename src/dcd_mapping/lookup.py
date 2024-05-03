@@ -270,12 +270,6 @@ def get_gene_location(metadata: ScoresetMetadata) -> Optional[GeneLocation]:
     if not gene_descriptor or not gene_descriptor.extensions:
         return None
 
-    hgnc_locations: List[Extension] = [
-        loc for loc in gene_descriptor.extensions if loc.name == "hgnc_locations"
-    ]
-    if hgnc_locations and len(hgnc_locations[0].value) > 0:
-        return GeneLocation(chromosome=hgnc_locations[0].value[0].chr)
-
     for src_name in ("ensembl", "ncbi"):
         loc = _get_genomic_interval(gene_descriptor.extensions, src_name)
         if loc:
