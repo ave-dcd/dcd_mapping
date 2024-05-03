@@ -1,11 +1,4 @@
-"""Select best reference sequence.
-
-Outstanding questions/confusion
--------------------------------
-* ``urn:mavedb:00000097-n-1``: unable to find any matching transcripts
-* Lots of scoresets (esp. 2023-) giving index errors in offset calculation
-* Remove MANE sorting once upstream sorting is confirmed
-"""
+"""Select best reference sequence."""
 import logging
 import re
 from typing import List, Optional
@@ -37,7 +30,7 @@ from dcd_mapping.schemas import (
     TxSelectResult,
 )
 
-__all__ = ["select_transcript"]
+__all__ = ["select_transcript", "TxSelectError"]
 
 _logger = logging.getLogger(__name__)
 
@@ -310,8 +303,9 @@ async def select_transcript(
     _logger.info(msg)
 
     if metadata.urn.startswith("urn:mavedb:00000097"):
-        # Score Sets in Experiment 97 are expressed in full HGVS strings,
-        # so additional mapping is not needed
+        _logger.info(
+            "Score sets in urn:mavedb:00000097 are already expressed in full HGVS strings -- using predefined results because additional hard-coding is unnecessary"
+        )
         return TxSelectResult(
             nm="NM_007294.3",
             np="NP_009225.1",
@@ -331,26 +325,27 @@ async def select_transcript(
             if offset:
                 transcript_reference.start = offset
     else:
-        # can't provide transcripts for regulatory/noncoding scoresets
+        _logger.debug("%s is regulatory/noncoding -- skipping transcript selection")
         return None
 
     if metadata.urn.startswith("urn:mavedb:00000047") or metadata.urn.startswith(
         "urn:mavedb:00000048"
     ):
-        # Set start = 0 as there is discordance between expected and actual
-        # amino acid locations
+        _logger.warning(
+            "Setting transcript start = 0 -- there is discordance between actual and expected amino acid locations in experiments 47 and 48"
+        )
         transcript_reference.start = 0
         transcript_reference.sequence = "M" + transcript_reference.sequence
-
-    if metadata.urn.startswith("urn:mavedb:00000058-a-1"):
-        # Edge case. The starting residue is D, but this is described as Asp2. The
-        # offset should be reduced by 1 to reflect the start of Met1.
+    elif metadata.urn.startswith("urn:mavedb:00000058-a-1"):
+        _logger.warning(
+            "urn:mavedb:00000058-a-1 describes the starting residue as Asp2, but the starting residue is D -- manually reducing offset by 1 to reflect start of Met1."
+        )
         transcript_reference.start = 670
         transcript_reference.sequence = "M" + transcript_reference.sequence
-
-    if metadata.urn.startswith("urn:mavedb:00000053"):
-        # Edge case. The target sequence is missing the start residue, E, so the offset
-        # should be reduced by 1.
+    elif metadata.urn.startswith("urn:mavedb:00000053"):
+        _logger.warning(
+            "Experiment 53's target sequence is missing start residue E -- manually reducing offset by 1"
+        )
         transcript_reference.start = 309
         transcript_reference.sequence = "E" + transcript_reference.sequence
 
