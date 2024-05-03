@@ -1,6 +1,6 @@
 """Provide core MaveDB mapping methods."""
 import logging
-from typing import List
+from typing import List, Optional
 
 import click
 from cool_seq_tool.schemas import AnnotationLayer
@@ -13,10 +13,10 @@ from dcd_mapping.schemas import (
     ScoreRow,
     ScoresetMetadata,
     TxSelectResult,
-    VrsMapping,
+    VrsObject1_x,
 )
 from dcd_mapping.transcripts import TxSelectError, select_transcript
-from dcd_mapping.utils import get_hgvs_string
+from dcd_mapping.utils import get_hgvs_string, save_mapped_output_json
 from dcd_mapping.vrs_map import VrsMapError, vrs_map
 
 _logger = logging.getLogger(__name__)
@@ -44,10 +44,10 @@ def _format_start_end(ss: str, start: int, end: int) -> List[int]:
 
 
 def annotate(
-    tx_select_results: TxSelectResult,
-    vrs_results: List[VrsMapping],
+    tx_select_results: Optional[TxSelectResult],
+    vrs_results: List[VrsObject1_x],
     metadata: ScoresetMetadata,
-) -> None:
+) -> List[VrsObject1_x]:
     """TODO"""
     sr = get_seqrepo()
     for var in vrs_results:
@@ -69,6 +69,8 @@ def annotate(
                         "urn:mavedb:00000058-a-1",
                     )
                 ):
+                    if tx_select_results is None:
+                        raise ValueError  # these scoresets are all protein coding
                     seq = tx_select_results.sequence
                     sub_var["vrs_ref_allele_seq"] = seq[start_end[0] : start_end[1]]
                 else:
@@ -90,6 +92,8 @@ def annotate(
                     "urn:mavedb:00000058-a-1",
                 )
             ):
+                if tx_select_results is None:
+                    raise ValueError  # these scoresets are all protein coding
                 seq = tx_select_results.sequence
                 variant_list["vrs_ref_allele_seq"] = seq[start_end[0] : start_end[1]]
             else:
@@ -104,15 +108,21 @@ def annotate(
                 acc = get_chromosome_identifier_from_vrs_id(
                     var.post_mapped_variants["members"][0]["location"]["sequence_id"]
                 )
+                if acc is None:
+                    raise ValueError
                 if acc.startswith("refseq:"):
                     acc = acc[7:]
             else:
                 acc = get_chromosome_identifier_from_vrs_id(
                     var.post_mapped_variants["location"]["sequence_id"]
                 )
+                if acc is None:
+                    raise ValueError
                 if acc.startswith("refseq"):
                     acc = acc[7:]
         else:
+            if tx_select_results is None:
+                raise ValueError  # impossible by definition
             acc = tx_select_results.np
 
         # Add vrs_ref_allele_seq annotation and hgvs string to post-mapped variants
@@ -132,6 +142,8 @@ def annotate(
                 variant_list["location"]["interval"]["end"]["value"],
             )
             variant_list["hgvs"] = get_hgvs_string(variant_list, sr, acc)
+
+    return vrs_results
 
 
 async def map_scoreset(
@@ -164,9 +176,17 @@ async def map_scoreset(
     except VrsMapError:
         _logger.error("VRS mapping failed for scoreset %s", metadata.urn)
         return
+    if vrs_results is None:
+        _logger.info("No mapping available for %s", metadata.urn)
+        return
 
-    if transcript and vrs_results:
-        annotate(transcript, vrs_results, metadata)
+    vrs_results = annotate(transcript, vrs_results, metadata)
+    save_mapped_output_json(
+        ss=metadata.urn,
+        mave_vrs_mappings=vrs_results,
+        align_result=alignment_result,
+        tx_output=transcript,
+    )
 
 
 async def map_scoreset_urn(urn: str, silent: bool = True) -> None:

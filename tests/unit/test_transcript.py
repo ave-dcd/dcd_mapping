@@ -1,9 +1,10 @@
 """Test ``transcripts`` module."""
+from pathlib import Path
 from typing import Dict
 
 import pytest
 
-from dcd_mapping.resources import get_scoreset_records
+from dcd_mapping.mavedb_data import _load_scoreset_records, get_scoreset_records
 from dcd_mapping.schemas import AlignmentResult, ScoresetMetadata, TxSelectResult
 from dcd_mapping.transcripts import select_transcript
 
@@ -15,6 +16,23 @@ def check_transcript_results_equality(actual: TxSelectResult, expected: TxSelect
     assert actual.is_full_match is expected.is_full_match
     assert actual.nm == expected.nm
     assert actual.transcript_mode == expected.transcript_mode
+
+
+@pytest.mark.asyncio()
+async def test_1_b_2(
+    fixture_data_dir: Path,
+    scoreset_metadata_fixture: Dict[str, ScoresetMetadata],
+    align_result_fixture: Dict[str, AlignmentResult],
+    transcript_results_fixture: Dict[str, TxSelectResult],
+):
+    urn = "urn:mavedb:00000001-b-2"
+    metadata = scoreset_metadata_fixture[urn]
+    records = _load_scoreset_records(fixture_data_dir / f"{urn}_scores.csv")
+    align_result = align_result_fixture[urn]
+    expected = transcript_results_fixture[urn]
+    actual = await select_transcript(metadata, records, align_result)
+    assert actual, "`select_transcript()` should return a transcript selection result"
+    check_transcript_results_equality(actual, expected)
 
 
 @pytest.mark.asyncio(scope="module")

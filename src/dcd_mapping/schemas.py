@@ -165,6 +165,9 @@ class TxSelectResult(BaseModel):
     sequence: str
 
 
+###################### WORKING: ################################
+
+
 class VrsObject1_x(BaseModel):  # noqa: N801
     """Define response object for VRS 1.x object"""
 
@@ -174,6 +177,39 @@ class VrsObject1_x(BaseModel):  # noqa: N801
     score: Decimal
     layer: AnnotationLayer
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
+
+
+class VrsVersion(str, Enum):
+    """Constrain VRS versions to translate between"""
+
+    V1_X = "V1_X"
+    V2_X = "V2_X"
+
+
+def to_schema(allele: Allele, schema_from: VrsVersion, schema_to: VrsVersion) -> Dict:
+    """Convert alleles to/from different versions of VRS"""
+    if schema_from == VrsVersion.V2_X and schema_to == VrsVersion.V1_X:
+        sequence = "" if not allele.state.sequence else allele.state.sequence.root
+        new_allele = {
+            "type": "Allele",
+            "location": {
+                "id": None,
+                "type": "SequenceLocation",
+                "sequence_id": f"ga4gh:{allele.location.sequenceReference.refgetAccession}",
+                "interval": {
+                    "type": "SequenceInterval",
+                    "start": {"value": allele.location.start, "type": "number"},
+                    "end": {"value": allele.location.end, "type": "number"},
+                },
+            },
+            "state": {
+                "type": "LiteralSequenceExpression",
+                "sequence": sequence,
+            },
+        }
+        # WIP identify
+        return new_allele  # noqa: RET504
+    raise NotImplementedError
 
 
 class VrsMapping(BaseModel):
@@ -232,9 +268,11 @@ class VrsMapping(BaseModel):
         :return A VrsObject1_x object
         """
         if not self.pre_mapped_genomic and layer == AnnotationLayer.GENOMIC:
-            return None
+            msg = f"Cannot map on {AnnotationLayer.GENOMIC} for mapping with no genomic variations"
+            raise ValueError(msg)
         if not self.pre_mapped_protein and layer == AnnotationLayer.PROTEIN:
-            return None
+            msg = f"Cannot map on {AnnotationLayer.PROTEIN} for mapping with no protein variations"
+            raise ValueError(msg)
 
         if layer == AnnotationLayer.GENOMIC:
             pre_mapped_2_0 = self.pre_mapped_genomic

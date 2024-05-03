@@ -23,6 +23,7 @@ from dcd_mapping.schemas import (
     TargetType,
     TxSelectResult,
     VrsMapping,
+    VrsObject1_x,
 )
 
 __all__ = ["vrs_map"]
@@ -49,6 +50,9 @@ def _create_hgvs_strings(
     :return A list of processed variants
     """
     if layer == AnnotationLayer.PROTEIN:
+        if not tx:
+            msg = "Can't get protein layer if no transcript selection results given"
+            raise VrsMapError(msg)
         acc = tx.np
     else:
         acc = get_chromosome_identifier(alignment.chrom)
@@ -67,7 +71,7 @@ def _map_protein_coding_pro(
     align_result: AlignmentResult,
     sequence_id: str,
     transcript: TxSelectResult,
-) -> Optional[VrsMapping]:
+) -> Optional[VrsObject1_x]:
     """Construct VRS object mapping for ``hgvs_pro`` variant column entry
 
     These arguments are a little lazy and could be pruned down later
@@ -89,7 +93,8 @@ def _map_protein_coding_pro(
             "Can't process variant syntax %s for %s", row.hgvs_pro, row.accession
         )
         return None
-    if row.hgvs_pro.startswith("NP_009225.1:p."):  # This is for experiment set 97
+    # Special case for experiment set urn:mavedb:0000097
+    if row.hgvs_pro.startswith("NP_009225.1:p."):
         vrs_variation = translate_hgvs_to_vrs(row.hgvs_pro)
         return VrsMapping(
             mavedb_id=row.accession,
@@ -142,7 +147,7 @@ def store_sequence(sequence: str) -> str:
     sequence_id = f"SQ.{sha512t24u(sequence.encode('ascii'))}"
     alias_dict_list = [{"namespace": "ga4gh", "alias": sequence_id}]
     sr = get_seqrepo()
-    sr.sr.store(sequence, nsaliases=alias_dict_list)
+    sr.sr.store(sequence, alias_dict_list)
     return sequence_id
 
 
@@ -151,7 +156,7 @@ def _map_protein_coding(
     records: List[ScoreRow],
     transcript: TxSelectResult,
     align_result: AlignmentResult,
-) -> List[VrsMapping]:
+) -> List[VrsObject1_x]:
     """Perform mapping on protein coding experiment results
 
     :param metadata: The metadata for a score set
@@ -160,7 +165,7 @@ def _map_protein_coding(
     :param align_results: The alignment data for a score set
     :return: A list of mappings
     """
-    variations = []
+    variations: List[VrsObject1_x] = []
     if metadata.target_sequence_type == TargetSequenceType.DNA:
         sequence = str(
             Seq(metadata.target_sequence).translate(table="1", stop_symbol="")
@@ -215,7 +220,7 @@ def _map_regulatory_noncoding(
     metadata: ScoresetMetadata,
     records: List[ScoreRow],
     align_result: AlignmentResult,
-) -> List[VrsMapping]:
+) -> List[VrsObject1_x]:
     """Perform mapping on noncoding/regulatory experiment results
 
     :param metadata: metadata for URN
@@ -223,7 +228,7 @@ def _map_regulatory_noncoding(
     :param align_result: An AlignmentResult object for a score set
     :return: A list of VRS mappings
     """
-    variations = []
+    variations: List[VrsObject1_x] = []
     sequence_id = store_sequence(metadata.target_sequence)
 
     for row in records:
@@ -372,7 +377,7 @@ def vrs_map(
     records: List[ScoreRow],
     transcript: Optional[TxSelectResult] = None,
     silent: bool = True,
-) -> Optional[List[VrsMapping]]:
+) -> Optional[List[VrsObject1_x]]:
     """Given a description of a MAVE scoreset and an aligned transcript, generate
     the corresponding VRS objects.
 
