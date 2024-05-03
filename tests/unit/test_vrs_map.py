@@ -1,14 +1,7 @@
-"""Test ``vrs_map.py``
-
-Todo:
-----
-* Sample a second mapping row for each test case (also, order shouldn't matter)
-* Add a few more test cases
-
-
-"""
+"""Test ``vrs_map.py``"""
 from pathlib import Path
 from typing import Dict
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -22,7 +15,7 @@ from dcd_mapping.vrs_map import vrs_map
 
 
 @pytest.fixture()
-def mock_seqrepo(mocker):
+def mock_seqrepo(mocker: MagicMock):
     mock_seqrepo_instance = mocker.MagicMock()
 
     def _get_sequence(identifier, start=None, end=None):
@@ -48,7 +41,7 @@ def test_41_a_1(
     scoreset_metadata_fixture: Dict[str, ScoresetMetadata],
     align_result_fixture: Dict[str, AlignmentResult],
     transcript_results_fixture: Dict[str, TxSelectResult],
-    mock_seqrepo,
+    mock_seqrepo: MagicMock,
 ):
     urn = "urn:mavedb:00000041-a-1"
     records = _load_scoreset_records(fixture_data_dir / f"{urn}_scores.csv")
