@@ -204,14 +204,14 @@ async def _select_protein_reference(
 
 
 def _offset_target_sequence(metadata: ScoresetMetadata, records: List[ScoreRow]) -> int:
-    """Find start location in target sequence (it's not always 0)
+    """Find start location in target sequence
 
-    :param metadata:
-    :param records:
+    :param metadata: MaveDB metadata for score set
+    :param records: individual score records (including MAVE-HGVS descriptions)
     :return: starting index position (may be 0)
     """
     if not isinstance(records[0].hgvs_pro, str) or records[0].hgvs_pro.startswith("NP"):
-        return 0  # TODO explain?
+        return 0
     protein_change_list = [rec.hgvs_pro.lstrip("p.") for rec in records]
 
     # build table of parseable amino acids by reference location on target sequence
@@ -266,8 +266,7 @@ def _offset_target_sequence(metadata: ScoresetMetadata, records: List[ScoreRow])
                 protein_sequence[i + p1 - p0] == amino_acids_by_position[p1],
                 protein_sequence[i + p2 - p0] == amino_acids_by_position[p2],
                 protein_sequence[i + p3 - p0] == amino_acids_by_position[p3],
-                protein_sequence[i + p4 - p0]
-                == amino_acids_by_position[p4],  # TODO problem here-ish
+                protein_sequence[i + p4 - p0] == amino_acids_by_position[p4],
             ]
         ):
             if i + 1 == min(amino_acids_by_position.keys()) or i + 2 == min(
