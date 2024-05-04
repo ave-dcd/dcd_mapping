@@ -1,7 +1,7 @@
 """Map transcripts to VRS objects."""
 import logging
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import click
 from Bio.Seq import Seq
@@ -279,8 +279,8 @@ def _get_variation(
     alignment: AlignmentResult,
     pre_map: bool,
     offset: int = 0,
-) -> Optional[List[Dict]]:
-    """Create variation (haplotype/allele).
+) -> Optional[List[Allele]]:
+    """Create variation (allele).
 
     :param hgvs_strings: The HGVS suffix that represents a variant
     :param layer: annotation layer
@@ -295,7 +295,7 @@ def _get_variation(
     """
     if sequence_id.startswith("ga4gh:"):
         sequence_id = sequence_id[6:]
-    alleles = []
+    alleles: List[Allele] = []
     for hgvs_string in hgvs_strings:
         if (
             hgvs_string.endswith((".=", ")", "X")) or "?" in hgvs_string

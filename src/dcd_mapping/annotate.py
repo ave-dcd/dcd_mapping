@@ -1,5 +1,6 @@
-"""Utility functions for dcd_mapping package"""
+"""Annotate MaveDB score set metadata with mapped scores."""
 import json
+import logging
 from pathlib import Path
 from typing import List, Optional
 
@@ -15,6 +16,8 @@ from ga4gh.core import sha512t24u
 
 from dcd_mapping.lookup import (
     get_chromosome_identifier,
+    get_chromosome_identifier_from_vrs_id,
+    get_seqrepo,
     get_vrs_id_from_identifier,
 )
 from dcd_mapping.mavedb_data import get_raw_scoreset_metadata, get_scoreset_metadata
@@ -23,10 +26,13 @@ from dcd_mapping.schemas import (
     ComputedReferenceSequence,
     MappedOutput,
     MappedReferenceSequence,
+    ScoresetMetadata,
     TargetSequenceType,
     TxSelectResult,
     VrsObject1_x,
 )
+
+_logger = logging.getLogger(__name__)
 
 
 def get_hgvs_string(allele: dict, sr: SeqRepoAccess, ac: str) -> str:
@@ -304,3 +310,127 @@ def save_mapped_output_json(
     ss = ss.strip("urn:mavedb:")  # noqa: B005
     with (Path("analysis_files") / "mappings" / f"{ss}.json").open("w") as file:
         json.dump(mapped_ss_output, file, indent=4)
+
+
+def _format_start_end(ss: str, start: int, end: int) -> List[int]:
+    """Format start and end coordinates for vrs_ref_allele_seq for known edge cases
+
+    :param ss: score set
+    :param start: start coordinate
+    :param end: end coordinate
+    :return A list of start and end coordinates
+    """
+    if ss.startswith("urn:mavedb:00000060-a-1"):
+        _logger.warning(
+            "urn:mavedb:00000060-a-1 reports the entire human reference sequence as the target sequence, but the start and end positions need to be manually offset by 289"
+        )
+        return [start + 289, end + 289]
+    if ss.startswith("urn:mavedb:00000060-a-2"):
+        _logger.warning(
+            "urn:mavedb:00000060-a-2 reports the entire human reference sequence as the target sequence, but the start and end positions need to be manually offset by 331"
+        )
+        return [start + 331, end + 331]
+    return [start, end]
+
+
+def annotate(
+    tx_select_results: Optional[TxSelectResult],
+    vrs_results: List[VrsObject1_x],
+    metadata: ScoresetMetadata,
+) -> List[VrsObject1_x]:
+    """TODO"""
+    sr = get_seqrepo()
+    for var in vrs_results:
+        if not var:
+            continue
+        variant_list = var.pre_mapped_variants
+        if "members" in variant_list:
+            for sub_var in variant_list["members"]:
+                start_end = _format_start_end(
+                    metadata.urn,
+                    start=sub_var["location"]["interval"]["start"]["value"],
+                    end=sub_var["location"]["interval"]["end"]["value"],
+                )
+                if metadata.urn.startswith(
+                    (
+                        "urn:mavedb:00000047",
+                        "urn:mavedb:00000048",
+                        "urn:mavedb:00000053",
+                        "urn:mavedb:00000058-a-1",
+                    )
+                ):
+                    if tx_select_results is None:
+                        raise ValueError  # these scoresets are all protein coding
+                    seq = tx_select_results.sequence
+                    sub_var["vrs_ref_allele_seq"] = seq[start_end[0] : start_end[1]]
+                else:
+                    seq = sub_var["location"]["sequence_id"]
+                    sub_var["vrs_ref_allele_seq"] = sr.get_sequence(
+                        seq, start_end[0], start_end[1]
+                    )
+        else:
+            start_end = _format_start_end(
+                metadata.urn,
+                start=variant_list["location"]["interval"]["start"]["value"],
+                end=variant_list["location"]["interval"]["end"]["value"],
+            )
+            if metadata.urn.startswith(
+                (
+                    "urn:mavedb:00000047",
+                    "urn:mavedb:00000048",
+                    "urn:mavedb:00000053",
+                    "urn:mavedb:00000058-a-1",
+                )
+            ):
+                if tx_select_results is None:
+                    raise ValueError  # these scoresets are all protein coding
+                seq = tx_select_results.sequence
+                variant_list["vrs_ref_allele_seq"] = seq[start_end[0] : start_end[1]]
+            else:
+                seq = variant_list["location"]["sequence_id"]
+                variant_list["vrs_ref_allele_seq"] = sr.get_sequence(
+                    seq, start_end[0], start_end[1]
+                )
+
+        # Determine reference sequence
+        if var.layer == AnnotationLayer.GENOMIC:
+            if "members" in variant_list:
+                acc = get_chromosome_identifier_from_vrs_id(
+                    var.post_mapped_variants["members"][0]["location"]["sequence_id"]
+                )
+                if acc is None:
+                    raise ValueError
+                if acc.startswith("refseq:"):
+                    acc = acc[7:]
+            else:
+                acc = get_chromosome_identifier_from_vrs_id(
+                    var.post_mapped_variants["location"]["sequence_id"]
+                )
+                if acc is None:
+                    raise ValueError
+                if acc.startswith("refseq"):
+                    acc = acc[7:]
+        else:
+            if tx_select_results is None:
+                raise ValueError  # impossible by definition
+            acc = tx_select_results.np
+
+        # Add vrs_ref_allele_seq annotation and hgvs string to post-mapped variants
+        variant_list = var.post_mapped_variants
+        if "members" in variant_list:
+            for sub_var in variant_list["members"]:
+                sub_var["vrs_ref_allele_seq"] = sr.get_sequence(
+                    sub_var["location"]["sequence_id"],
+                    sub_var["location"]["interval"]["start"]["value"],
+                    sub_var["location"]["interval"]["end"]["value"],
+                )
+                sub_var["hgvs"] = get_hgvs_string(sub_var, sr, acc)
+        else:
+            variant_list["vrs_ref_allele_seq"] = sr.get_sequence(
+                variant_list["location"]["sequence_id"],
+                variant_list["location"]["interval"]["start"]["value"],
+                variant_list["location"]["interval"]["end"]["value"],
+            )
+            variant_list["hgvs"] = get_hgvs_string(variant_list, sr, acc)
+
+    return vrs_results
