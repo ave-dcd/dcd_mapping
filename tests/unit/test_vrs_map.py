@@ -32,8 +32,7 @@ def mock_seqrepo(mocker: MagicMock):
 
     So far, it seems like the DataProxy `get_sequence` method is all that needs mocking;
     to add new test cases, throw some print/breakpoint statements into the original
-    method and capture results there. (Or, more accurately, Add the pre- and post-mapped
-    sequence ID and the mapped positions on that sequence.)
+    methods and capture results there.
     """
     mock_seqrepo_instance = mocker.MagicMock()
 
@@ -71,10 +70,31 @@ def mock_seqrepo(mocker: MagicMock):
         }
         return calls[(identifier, start, end)]
 
+    def _translate_sequence_identifier(identifier, namespace=None):
+        calls = {
+            ("refseq:NP_938033.1", "ga4gh"): [
+                "ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye"
+            ],
+            ("refseq:NP_003343.1", "ga4gh"): [
+                "ga4gh:SQ.VkCzFNsbifqfq61Mud6oGmz0ID6CLIip"
+            ],
+            ("refseq:NC_000002.12", "ga4gh"): [
+                "ga4gh:SQ.pnAqCRBrTsUoBghSD1yp_jXWSmlbdh4g"
+            ],
+            ("refseq:NP_002736.3", "ga4gh"): [
+                "ga4gh:SQ.N-m1tI22kffhKfdRZK8wCOR3QfI-1lfr"
+            ],
+        }
+        return calls[(identifier, namespace)]
+
     mock_seqrepo_access = mocker.MagicMock()
     mock_seqrepo_access.get_sequence.side_effect = _get_sequence
+    mock_seqrepo_access.translate_sequence_identifier.side_effect = (
+        _translate_sequence_identifier
+    )
     mock_seqrepo_access.sr = mock_seqrepo_instance
     mocker.patch("dcd_mapping.vrs_map.get_seqrepo", return_value=mock_seqrepo_access)
+    mocker.patch("dcd_mapping.lookup.get_seqrepo", return_value=mock_seqrepo_access)
     return mock_seqrepo_access
 
 
@@ -117,7 +137,7 @@ def test_41_a_1(
     mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
     assert mappings is not None
 
-    for m in mappings[:2]:
+    for m in mappings:
         _assert_correct_vrs_map(m, expected_mappings_data)
 
     store_calls = [
@@ -177,7 +197,7 @@ def test_103_c_1(
         assert mapping.pre_mapped_variants["id"] == expected["pre_mapped"]
         assert mapping.post_mapped_variants["id"] == expected["post_mapped"]
 
-    for m in mappings[:2]:
+    for m in mappings:
         _assert_correct_vrs_map(m)
 
     store_calls = [
@@ -205,3 +225,49 @@ def test_1_b_2(
 
     mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
     assert mappings is not None
+
+    expected_mappings_data = {
+        "urn:mavedb:00000001-b-2#444": {
+            "pre_mapped": "ga4gh:VA.1XfnARSJMWLoHTQDJU-m0ZYLUsj-qRNM",
+            "post_mapped": "ga4gh:VA.ifSwfAlXaZWIcTQaXrZv7LCsa6sywRvw",
+        },
+        "urn:mavedb:00000001-b-2#57": {
+            "pre_mapped": "ga4gh:VA.-zYenjM1Wsuu5Ia06nn856cn4JKEjMwR",
+            "post_mapped": "ga4gh:VA.LODyOWFdnBsGn7dciC-MCSLHCNtoyjaf",
+        },
+        "urn:mavedb:00000001-b-2#2311": {
+            "pre_mapped": "ga4gh:VA.kdSdynoQvgoau0GqsUzhduF7riQVvx5-",
+            "post_mapped": "ga4gh:VA.LdKB-BHsNMueerA0u4ngGU1oxK2oBDHs",
+        },
+        "urn:mavedb:00000001-b-2#2312": {
+            "pre_mapped": "ga4gh:VA.pkEhKe6fG7eWaUTA7DJG2v-zggeP5N1m",
+            "post_mapped": "ga4gh:VA.R4iEL0X_2Mr4o4cmuLE4AW_UrTotjZ8M",
+        },
+    }
+
+    mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
+    assert mappings is not None
+
+    def _assert_correct_vrs_map(mapping: VrsObject1_x):
+        assert (
+            mapping.mavedb_id in expected_mappings_data
+        ), "Score row is in expected mappings"
+        expected = expected_mappings_data[mapping.mavedb_id]
+        assert mapping.pre_mapped_variants["id"] == expected["pre_mapped"]
+        assert mapping.post_mapped_variants["id"] == expected["post_mapped"]
+
+    for m in mappings[:2]:
+        _assert_correct_vrs_map(m)
+
+    store_calls = [
+        (
+            "ATGTCTGACCAGGAGGCAAAACCTTCAACTGAGGACTTGGGGGATAAGAAGGAAGGTGAATATATTAAACTCAAAGTCATTGGACAGGATAGCAGTGAGATTCACTTCAAAGTGAAAATGACAACACATCTCAAGAAACTCAAAGAATCATACTGTCAAAGACAGGGTGTTCCAATGAATTCACTCAGGTTTCTCTTTGAGGGTCAGAGAATTGCTGATAATCATACTCCAAAAGAACTGGGAATGGAGGAAGAAGATGTGATTGAAGTTTATCAGGAACAAACGGGGGGTCATTCAACAGTTTAG",
+            [{"namespace": "ga4gh", "alias": "SQ.i1KiGldkfULl1XcEI-XBwhiM7x3PK5Xk"}],
+        ),
+        (
+            "sdlkfsdlksdflk",  # TODO -- update once this test is passing above
+            [{"namespace": "ga4gh", "alias": "SQ.pnAqCRBrTsUoBghSD1yp_jXWSmlbdh4g"}],
+        ),
+    ]
+    for call in store_calls:
+        mock_seqrepo.sr.store.assert_any_call(*call)
