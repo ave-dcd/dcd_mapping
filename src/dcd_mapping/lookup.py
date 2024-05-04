@@ -96,7 +96,7 @@ class TranslatorBuilder:
         :return: singleton instance of ``AlleleTranslator``
         """
         if not hasattr(cls, "instance"):
-            tr = AlleleTranslator(data_proxy, normalize=False)
+            tr = AlleleTranslator(data_proxy)
             cls.instance = tr
         else:
             cls.instance.data_proxy = data_proxy
@@ -389,7 +389,7 @@ def translate_hgvs_to_vrs(hgvs: str) -> Allele:
     :return: Corresponding VRS allele as a Pydantic class
     """
     tr = TranslatorBuilder(get_seqrepo())
-    allele = tr.translate_from(hgvs, "hgvs")
+    allele = tr.translate_from(hgvs, "hgvs", do_normalize=False)
 
     if (
         not isinstance(allele.location, SequenceLocation)
