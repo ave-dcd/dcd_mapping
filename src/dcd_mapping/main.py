@@ -5,7 +5,7 @@ from typing import List
 import click
 
 from dcd_mapping.align import AlignmentError, align
-from dcd_mapping.annotate import annotate
+from dcd_mapping.annotate import annotate, save_mapped_output_json
 from dcd_mapping.mavedb_data import get_scoreset_metadata, get_scoreset_records
 from dcd_mapping.resource_utils import ResourceAcquisitionError
 from dcd_mapping.schemas import (
@@ -13,7 +13,6 @@ from dcd_mapping.schemas import (
     ScoresetMetadata,
 )
 from dcd_mapping.transcripts import TxSelectError, select_transcript
-from dcd_mapping.utils import save_mapped_output_json
 from dcd_mapping.vrs_map import VrsMapError, vrs_map
 
 _logger = logging.getLogger(__name__)
