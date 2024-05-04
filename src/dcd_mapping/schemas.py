@@ -1,5 +1,4 @@
 """Provide class definitions for commonly-used information objects."""
-from decimal import Decimal
 from enum import Enum
 from typing import Dict, List, Literal, Optional, Union
 
@@ -47,7 +46,8 @@ class ScoreRow(BaseModel):
 
     hgvs_pro: str
     hgvs_nt: str
-    score: Decimal
+    # sometimes the score is "NA" or other strings, so this can't be a Decimal
+    score: str
     accession: str
 
 
@@ -174,7 +174,7 @@ class VrsObject1_x(BaseModel):  # noqa: N801
     mavedb_id: StrictStr
     pre_mapped_variants: Dict
     post_mapped_variants: Dict
-    score: Decimal
+    score: str
     layer: AnnotationLayer
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
 
@@ -221,7 +221,7 @@ class VrsMapping(BaseModel):
     pre_mapped_genomic: Optional[Union[Allele, List[Allele]]] = None
     post_mapped_genomic: Optional[Union[Allele, List[Allele]]] = None
     mapped_transcript: Optional[TranscriptDescription] = None
-    score: Decimal
+    score: str
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
 
     def serialize(self, sequence: str, start: int, end: int, sequence_id: str) -> str:
