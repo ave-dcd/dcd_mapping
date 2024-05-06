@@ -478,6 +478,10 @@ def translate_hgvs_to_vrs(hgvs: str) -> Allele:
     :param hgvs: MAVE-HGVS variation string
     :return: Corresponding VRS allele as a Pydantic class
     """
+    # coerce tmp HGVS string into formally correct term
+    if hgvs.startswith("NC_") and ":c." in hgvs:
+        hgvs = hgvs.replace(":c.", ":g.")
+
     tr = TranslatorBuilder(get_seqrepo())
     allele = tr.translate_from(hgvs, "hgvs", do_normalize=False)
 

@@ -4,6 +4,7 @@ from typing import Dict, Optional
 from unittest.mock import MagicMock
 
 import pytest
+from cool_seq_tool.schemas import AnnotationLayer
 
 from dcd_mapping.mavedb_data import _load_scoreset_records
 from dcd_mapping.schemas import (
@@ -21,7 +22,10 @@ def _assert_correct_vrs_map(
     assert (
         mapping.mavedb_id in expected_mappings_data
     ), "Score row is in expected mappings"
-    expected = expected_mappings_data[mapping.mavedb_id]
+    assert (
+        mapping.layer in expected_mappings_data[mapping.mavedb_id]
+    ), "Includes expected mapping layer for score row"
+    expected = expected_mappings_data[mapping.mavedb_id][mapping.layer]
     assert mapping.pre_mapped_variants["id"] == expected["pre_mapped"]
     assert mapping.post_mapped_variants["id"] == expected["post_mapped"]
 
@@ -53,12 +57,23 @@ def mock_seqrepo(mocker: MagicMock):
             # 99-a-1
             ("NP_000530.1", 329, 330): "D",
             ("ga4gh:SQ.kntF3MvVMQFzU94f0QegL_ktmT5f2Dk9", 329, 330): "D",
+            ("ga4gh:SQ.RtClQI6dD3uj5T-DyOr9P9_-sYR2aHJX", 989, 990): "C",
+            ("ga4gh:SQ.Zu7h9AggXxhTaGVsy7h_EZSChSZGcmgX", 129533660, 129533661): "C",
+            ("ga4gh:SQ.kntF3MvVMQFzU94f0QegL_ktmT5f2Dk9", 339, 340): "T",
+            ("ga4gh:SQ.RtClQI6dD3uj5T-DyOr9P9_-sYR2aHJX", 1018, 1019): "C",
+            ("ga4gh:SQ.Zu7h9AggXxhTaGVsy7h_EZSChSZGcmgX", 129533689, 129533690): "C",
+            ("ga4gh:SQ.kntF3MvVMQFzU94f0QegL_ktmT5f2Dk9", 55, 56): "F",
+            ("ga4gh:SQ.RtClQI6dD3uj5T-DyOr9P9_-sYR2aHJX", 166, 167): "T",
+            ("ga4gh:SQ.Zu7h9AggXxhTaGVsy7h_EZSChSZGcmgX", 129528899, 129528900): "T",
+            ("ga4gh:SQ.kntF3MvVMQFzU94f0QegL_ktmT5f2Dk9", 3, 4): "T",
+            ("ga4gh:SQ.RtClQI6dD3uj5T-DyOr9P9_-sYR2aHJX", 10, 11): "C",
+            ("ga4gh:SQ.Zu7h9AggXxhTaGVsy7h_EZSChSZGcmgX", 129528743, 129528744): "C",
             # 103-c-1
             ("ga4gh:SQ.N-m1tI22kffhKfdRZK8wCOR3QfI-1lfr", 336, 337): "D",
             ("ga4gh:SQ.N-m1tI22kffhKfdRZK8wCOR3QfI-1lfr", 352, 353): "R",
             ("ga4gh:SQ.N-m1tI22kffhKfdRZK8wCOR3QfI-1lfr", 220, 221): "M",
             ("ga4gh:SQ.N-m1tI22kffhKfdRZK8wCOR3QfI-1lfr", 1, 2): "A",
-            # 1-b-2 (WIP)
+            # 1-b-2
             ("ga4gh:SQ.VkCzFNsbifqfq61Mud6oGmz0ID6CLIip", 75, 76): "T",
             ("ga4gh:SQ.i1KiGldkfULl1XcEI-XBwhiM7x3PK5Xk", 225, 228): "ACT",
             ("ga4gh:SQ.pnAqCRBrTsUoBghSD1yp_jXWSmlbdh4g", 202210743, 202210746): "AGT",
@@ -135,29 +150,40 @@ def test_41_a_1(
 
     expected_mappings_data = {
         "urn:mavedb:00000041-a-1#548": {
-            "pre_mapped": "ga4gh:VA.NJgaCF0JPFERdw9Y7fW4bXkaP1tSa5fv",
-            "post_mapped": "ga4gh:VA.csCB31gWoiiD38TlR35dZnyAI156YWgW",
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": "ga4gh:VA.NJgaCF0JPFERdw9Y7fW4bXkaP1tSa5fv",
+                "post_mapped": "ga4gh:VA.csCB31gWoiiD38TlR35dZnyAI156YWgW",
+            }
         },
         "urn:mavedb:00000041-a-1#50": {
-            "pre_mapped": "ga4gh:VA.RfNyaPcZg8o9f3YK0qa4Vu3LwBEQdmVf",
-            "post_mapped": "ga4gh:VA.QP9KLxvN6_b7sWeY7L8FBs5XKMxsCiLE",
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": "ga4gh:VA.RfNyaPcZg8o9f3YK0qa4Vu3LwBEQdmVf",
+                "post_mapped": "ga4gh:VA.QP9KLxvN6_b7sWeY7L8FBs5XKMxsCiLE",
+            }
         },
         "urn:mavedb:00000041-a-1#51": {
-            "pre_mapped": "ga4gh:VA.sZNa3SNPlv_gU2JSiH7Q03nNT7oFy1NX",
-            "post_mapped": "ga4gh:VA.2kmNV4T4Bp_UAnI002QOfrzd_yqb21vs",
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": "ga4gh:VA.sZNa3SNPlv_gU2JSiH7Q03nNT7oFy1NX",
+                "post_mapped": "ga4gh:VA.2kmNV4T4Bp_UAnI002QOfrzd_yqb21vs",
+            }
         },
         "urn:mavedb:00000041-a-1#977": {
-            "pre_mapped": "ga4gh:VA.h7QtWm0WzlOr0zbB9y4tJOIEUet6VLcB",
-            "post_mapped": "ga4gh:VA.bakDMkeUFIa46_HAwXb7gUjhywggVNIN",
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": "ga4gh:VA.h7QtWm0WzlOr0zbB9y4tJOIEUet6VLcB",
+                "post_mapped": "ga4gh:VA.bakDMkeUFIa46_HAwXb7gUjhywggVNIN",
+            }
         },
         "urn:mavedb:00000041-a-1#52": {
-            "pre_mapped": "ga4gh:VA.gl5xiWNmwUfEMZe5Aub15HIiztUaizay",
-            "post_mapped": "ga4gh:VA.3Pp5-tRnYkmm8f6qxk06GvTpn81DqiQV",
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": "ga4gh:VA.gl5xiWNmwUfEMZe5Aub15HIiztUaizay",
+                "post_mapped": "ga4gh:VA.3Pp5-tRnYkmm8f6qxk06GvTpn81DqiQV",
+            }
         },
     }
 
     mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
     assert mappings is not None
+    assert len(mappings) == 5
 
     for m in mappings:
         _assert_correct_vrs_map(m, expected_mappings_data)
@@ -192,30 +218,63 @@ def test_99_a_1(
 
     expected_mappings_data = {
         "urn:mavedb:00000099-a-1#8": {
-            "pre_mapped": "ga4gh:VA.T8SkVZHuAF9J23etkAXG2Sz2w2yJMSO4",
-            "post_mapped": "ga4gh:VA.dw7KwkqdRsRL5UU55KznGYFqGCK6sWgt",
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": "ga4gh:VA.ES3p2PRZ6Lhial9xnlVxV8uXUbl03ESx",
+                "post_mapped": "ga4gh:VA.ES3p2PRZ6Lhial9xnlVxV8uXUbl03ESx",
+            },
+            AnnotationLayer.GENOMIC: {
+                "pre_mapped": "ga4gh:VA.dw7KwkqdRsRL5UU55KznGYFqGCK6sWgt",
+                "post_mapped": "ga4gh:VA.T8SkVZHuAF9J23etkAXG2Sz2w2yJMSO4",
+            },
         },
         "urn:mavedb:00000099-a-1#96": {
-            "pre_mapped": "ga4gh:VA.4-NsddlZX70Jzi7OxSL6KYRe8T-h4rwT",
-            "post_mapped": "ga4gh:VA.4cQNoG_u6yGDk_GMmVvbYX-8EniN6RKd",
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": "ga4gh:VA.bu9RmB2kvJiTFKfThhtpYam50_GrIkbx",
+                "post_mapped": "ga4gh:VA.bu9RmB2kvJiTFKfThhtpYam50_GrIkbx",
+            },
+            AnnotationLayer.GENOMIC: {
+                "pre_mapped": "ga4gh:VA.4cQNoG_u6yGDk_GMmVvbYX-8EniN6RKd",
+                "post_mapped": "ga4gh:VA.4-NsddlZX70Jzi7OxSL6KYRe8T-h4rwT",
+            },
         },
         "urn:mavedb:00000099-a-1#194": {
-            "pre_mapped": "ga4gh:VA.gRO5ANz9hJ6y6NuyzHOzl94b39SAbbIE",
-            "post_mapped": "ga4gh:VA.JSmTABIybCChEE6mmjnPuubOt9eRWj_4",
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": "ga4gh:VA.eT6tN7HdCmDQnTHuetRHtRZRHPxpO53x",
+                "post_mapped": "ga4gh:VA.eT6tN7HdCmDQnTHuetRHtRZRHPxpO53x",
+            },
+            AnnotationLayer.GENOMIC: {
+                "pre_mapped": "ga4gh:VA.gRO5ANz9hJ6y6NuyzHOzl94b39SAbbIE",
+                "post_mapped": "ga4gh:VA.JSmTABIybCChEE6mmjnPuubOt9eRWj_4",
+            },
         },
         "urn:mavedb:00000099-a-1#211": {
-            "pre_mapped": "ga4gh:VA.K4bnyLQ5M3WCmli8lvAqHfqkZuk4KvwP",
-            "post_mapped": "ga4gh:VA.HSfipwsg28LbqwITCawzumz_OWZYu_jM",
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": "ga4gh:VA.MdeuhDWe0mccL5lPkb5J3d_I39m-Zg1R",
+                "post_mapped": "ga4gh:VA.MdeuhDWe0mccL5lPkb5J3d_I39m-Zg1R",
+            },
+            AnnotationLayer.GENOMIC: {
+                "pre_mapped": "ga4gh:VA.K4bnyLQ5M3WCmli8lvAqHfqkZuk4KvwP",
+                "post_mapped": "ga4gh:VA.HSfipwsg28LbqwITCawzumz_OWZYu_jM",
+            },
         },
     }
     mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
     assert mappings is not None
+    assert len(mappings) == 8  # includes protein and genomic for all 4 rows
 
     for m in mappings:
         _assert_correct_vrs_map(m, expected_mappings_data)
 
-    # TODO fill in once passing
-    store_calls = []
+    store_calls = [
+        (
+            "MNGTEGPNFYVPFSNATGVVRSPFEYPQYYLAEPWQFSMLAAYMFLLIVLGFPINFLTLYVTVQHKKLRTPLNYILLNLAVADLFMVLGGFTSTLYTSLHGYFVFGPTGCNLEGFFATLGGEIALWSLVVLAIERYVVVCKPMSNFRFGENHAIMGVAFTWVMALACAAPPLAGWSRYIPEGLQCSCGIDYYTLKPEVNNESFVIYMFVVHFTIPMIIIFFCYGQLVFTVKEAAAQQQESATTQKAEKEVTRMVIIMVIAFLICWVPYASVAFYIFTHQGSNFGPIFMTIPAFFAKSAAIYNPVIYIMMNKQFRNCMLTTICCGKNPLGDDEASATVSKTETSQVAPA",
+            [{"namespace": "ga4gh", "alias": "SQ.kntF3MvVMQFzU94f0QegL_ktmT5f2Dk9"}],
+        ),
+        (
+            "ATGAATGGCACAGAAGGCCCTAACTTCTACGTGCCCTTCTCCAATGCGACGGGTGTGGTACGCAGCCCCTTCGAGTACCCACAGTACTACCTGGCTGAGCCATGGCAGTTCTCCATGCTGGCCGCCTACATGTTTCTGCTGATCGTGCTGGGCTTCCCCATCAACTTCCTCACGCTCTACGTCACCGTCCAGCACAAGAAGCTGCGCACGCCTCTCAACTACATCCTGCTCAACCTAGCCGTGGCTGACCTCTTCATGGTCCTAGGTGGCTTCACCAGCACCCTCTACACCTCTCTGCATGGATACTTCGTCTTCGGGCCCACAGGATGCAATTTGGAGGGCTTCTTTGCCACCCTGGGCGGTGAAATTGCCCTGTGGTCCTTGGTGGTCCTGGCCATCGAGCGGTACGTGGTGGTGTGTAAGCCCATGAGCAACTTCCGCTTCGGGGAGAACCATGCCATCATGGGCGTTGCCTTCACCTGGGTCATGGCGCTGGCCTGCGCCGCACCCCCACTCGCCGGCTGGTCCAGGTACATCCCCGAGGGCCTGCAGTGCTCGTGTGGAATCGACTACTACACGCTCAAGCCGGAGGTCAACAACGAGTCTTTTGTCATCTACATGTTCGTGGTCCACTTCACCATCCCCATGATTATCATCTTTTTCTGCTATGGGCAGCTCGTCTTCACCGTCAAGGAGGCCGCTGCCCAGCAGCAGGAGTCAGCCACCACACAGAAGGCAGAGAAGGAGGTCACCCGCATGGTCATCATCATGGTCATCGCTTTCCTGATCTGCTGGGTGCCCTACGCCAGCGTGGCATTCTACATCTTCACCCACCAGGGCTCCAACTTCGGTCCCATCTTCATGACCATCCCAGCGTTCTTTGCCAAGAGCGCCGCCATCTACAACCCTGTCATCTATATCATGATGAACAAGCAGTTCCGGAACTGCATGCTCACCACCATCTGCTGCGGCAAGAACCCACTGGGTGACGATGAGGCCTCTGCTACCGTGTCCAAGACGGAGACGAGCCAGGTGGCCCCGGCCTAA",
+            [{"namespace": "ga4gh", "alias": "SQ.RtClQI6dD3uj5T-DyOr9P9_-sYR2aHJX"}],
+        ),
+    ]
     for call in store_calls:
         mock_seqrepo.sr.store.assert_any_call(*call)
     assert len(store_calls) == len(mock_seqrepo.sr.store.call_args_list)
@@ -236,26 +295,34 @@ def test_103_c_1(
 
     expected_mappings_data = {
         "urn:mavedb:00000103-c-1#376": {
-            "pre_mapped": "ga4gh:VA.KPfJzFOpDl49yIPqqeF07BsnCsOPbf5Z",
-            "post_mapped": "ga4gh:VA.KPfJzFOpDl49yIPqqeF07BsnCsOPbf5Z",
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": "ga4gh:VA.KPfJzFOpDl49yIPqqeF07BsnCsOPbf5Z",
+                "post_mapped": "ga4gh:VA.KPfJzFOpDl49yIPqqeF07BsnCsOPbf5Z",
+            }
         },
         "urn:mavedb:00000103-c-1#55": {
-            "pre_mapped": "ga4gh:VA.AVg1O4zA7DP71z-QZD7-5864A52Cp4RO",
-            "post_mapped": "ga4gh:VA.AVg1O4zA7DP71z-QZD7-5864A52Cp4RO",
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": "ga4gh:VA.AVg1O4zA7DP71z-QZD7-5864A52Cp4RO",
+                "post_mapped": "ga4gh:VA.AVg1O4zA7DP71z-QZD7-5864A52Cp4RO",
+            }
         },
         "urn:mavedb:00000103-c-1#2548": {
-            "pre_mapped": "ga4gh:VA.4dd3ml7ZuqyoMhwJhMOWi2n1729MtE-6",
-            "post_mapped": "ga4gh:VA.4dd3ml7ZuqyoMhwJhMOWi2n1729MtE-6",
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": "ga4gh:VA.4dd3ml7ZuqyoMhwJhMOWi2n1729MtE-6",
+                "post_mapped": "ga4gh:VA.4dd3ml7ZuqyoMhwJhMOWi2n1729MtE-6",
+            }
         },
         "urn:mavedb:00000103-c-1#6810": {
-            "pre_mapped": "ga4gh:VA.H_7xCjw--slTAAKFwP42WCUo1tITw39d",
-            "post_mapped": "ga4gh:VA.H_7xCjw--slTAAKFwP42WCUo1tITw39d",
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": "ga4gh:VA.H_7xCjw--slTAAKFwP42WCUo1tITw39d",
+                "post_mapped": "ga4gh:VA.H_7xCjw--slTAAKFwP42WCUo1tITw39d",
+            }
         },
     }
 
     mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
     assert mappings is not None
-
+    assert len(mappings) == 4
     for m in mappings:
         _assert_correct_vrs_map(m, expected_mappings_data)
 
@@ -293,39 +360,71 @@ def test_1_b_2(
 
     expected_mappings_data = {
         "urn:mavedb:00000001-b-2#444": {
-            "pre_mapped": "ga4gh:VA.1XfnARSJMWLoHTQDJU-m0ZYLUsj-qRNM",
-            "post_mapped": "ga4gh:VA.ifSwfAlXaZWIcTQaXrZv7LCsa6sywRvw",
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": "ga4gh:VA.ojIs4GEPbxiMt5E6InnF6k6m9ix_z3SH",
+                "post_mapped": "ga4gh:VA.ojIs4GEPbxiMt5E6InnF6k6m9ix_z3SH",
+            },
+            AnnotationLayer.GENOMIC: {
+                "pre_mapped": "ga4gh:VA.1XfnARSJMWLoHTQDJU-m0ZYLUsj-qRNM",
+                "post_mapped": "ga4gh:VA.ifSwfAlXaZWIcTQaXrZv7LCsa6sywRvw",
+            },
         },
         "urn:mavedb:00000001-b-2#57": {
-            "pre_mapped": "ga4gh:VA.-zYenjM1Wsuu5Ia06nn856cn4JKEjMwR",
-            "post_mapped": "ga4gh:VA.LODyOWFdnBsGn7dciC-MCSLHCNtoyjaf",
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": "ga4gh:VA.EwrANE7HrTJ3OidbdJcL4DAfiYiAJ0Zn",
+                "post_mapped": "ga4gh:VA.EwrANE7HrTJ3OidbdJcL4DAfiYiAJ0Zn",
+            },
+            AnnotationLayer.GENOMIC: {
+                "pre_mapped": "ga4gh:VA.-zYenjM1Wsuu5Ia06nn856cn4JKEjMwR",
+                "post_mapped": "ga4gh:VA.LODyOWFdnBsGn7dciC-MCSLHCNtoyjaf",
+            },
         },
         "urn:mavedb:00000001-b-2#2311": {
-            "pre_mapped": "ga4gh:VA.kdSdynoQvgoau0GqsUzhduF7riQVvx5-",
-            "post_mapped": "ga4gh:VA.LdKB-BHsNMueerA0u4ngGU1oxK2oBDHs",
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": "ga4gh:VA.KQrLWh1WBJNOO7tEkJ7ujkkHCEGGTSCo",
+                "post_mapped": "ga4gh:VA.KQrLWh1WBJNOO7tEkJ7ujkkHCEGGTSCo",
+            },
+            AnnotationLayer.GENOMIC: {
+                "pre_mapped": "ga4gh:VA.kdSdynoQvgoau0GqsUzhduF7riQVvx5-",
+                "post_mapped": "ga4gh:VA.LdKB-BHsNMueerA0u4ngGU1oxK2oBDHs",
+            },
         },
         "urn:mavedb:00000001-b-2#2312": {
-            "pre_mapped": "ga4gh:VA.pkEhKe6fG7eWaUTA7DJG2v-zggeP5N1m",
-            "post_mapped": "ga4gh:VA.R4iEL0X_2Mr4o4cmuLE4AW_UrTotjZ8M",
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": "ga4gh:VA.ZdHxEMecv2kdYzRJz5iaqiS5qUd05Wim",
+                "post_mapped": "ga4gh:VA.ZdHxEMecv2kdYzRJz5iaqiS5qUd05Wim",
+            },
+            AnnotationLayer.GENOMIC: {
+                "pre_mapped": "ga4gh:VA.pkEhKe6fG7eWaUTA7DJG2v-zggeP5N1m",
+                "post_mapped": "ga4gh:VA.R4iEL0X_2Mr4o4cmuLE4AW_UrTotjZ8M",
+            },
         },
     }
 
     mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
     assert mappings is not None
+    assert len(mappings) == 8
+    for m in mappings:
+        _assert_correct_vrs_map(m, expected_mappings_data)
 
-    def _assert_correct_vrs_map(mapping: VrsObject1_x):
-        assert (
-            mapping.mavedb_id in expected_mappings_data
-        ), "Score row is in expected mappings"
-        expected = expected_mappings_data[mapping.mavedb_id]
-        assert mapping.pre_mapped_variants["id"] == expected["pre_mapped"]
-        assert mapping.post_mapped_variants["id"] == expected["post_mapped"]
-
-    for m in mappings[:2]:
-        _assert_correct_vrs_map(m)
-
-    # TODO fill in once pasing
-    store_calls = []
+    store_calls = [
+        (
+            "MSDQEAKPSTEDLGDKKEGEYIKLKVIGQDSSEIHFKVKMTTHLKKLKESYCQRQGVPMNSLRFLFEGQRIADNHTPKELGMEEEDVIEVYQEQTGGHSTV",
+            [{"namespace": "ga4gh", "alias": "SQ.VkCzFNsbifqfq61Mud6oGmz0ID6CLIip"}],
+        ),
+        (
+            "ATGTCTGACCAGGAGGCAAAACCTTCAACTGAGGACTTGGGGGATAAGAAGGAAGGTGAATATATTAAACTCAAAGTCATTGGACAGGATAGCAGTGAGATTCACTTCAAAGTGAAAATGACAACACATCTCAAGAAACTCAAAGAATCATACTGTCAAAGACAGGGTGTTCCAATGAATTCACTCAGGTTTCTCTTTGAGGGTCAGAGAATTGCTGATAATCATACTCCAAAAGAACTGGGAATGGAGGAAGAAGATGTGATTGAAGTTTATCAGGAACAAACGGGGGGTCATTCAACAGTTTAG",
+            [{"namespace": "ga4gh", "alias": "SQ.i1KiGldkfULl1XcEI-XBwhiM7x3PK5Xk"}],
+        ),
+        (
+            "MSDQEAKPSTEDLGDKKEGEYIKLKVIGQDSSEIHFKVKMTTHLKKLKESYCQRQGVPMNSLRFLFEGQRIADNHTPKELGMEEEDVIEVYQEQTGGHSTV",
+            [{"namespace": "ga4gh", "alias": "SQ.VkCzFNsbifqfq61Mud6oGmz0ID6CLIip"}],
+        ),
+        (
+            "ATGTCTGACCAGGAGGCAAAACCTTCAACTGAGGACTTGGGGGATAAGAAGGAAGGTGAATATATTAAACTCAAAGTCATTGGACAGGATAGCAGTGAGATTCACTTCAAAGTGAAAATGACAACACATCTCAAGAAACTCAAAGAATCATACTGTCAAAGACAGGGTGTTCCAATGAATTCACTCAGGTTTCTCTTTGAGGGTCAGAGAATTGCTGATAATCATACTCCAAAAGAACTGGGAATGGAGGAAGAAGATGTGATTGAAGTTTATCAGGAACAAACGGGGGGTCATTCAACAGTTTAG",
+            [{"namespace": "ga4gh", "alias": "SQ.i1KiGldkfULl1XcEI-XBwhiM7x3PK5Xk"}],
+        ),
+    ]
     for call in store_calls:
         mock_seqrepo.sr.store.assert_any_call(*call)
     assert len(store_calls) == len(mock_seqrepo.sr.store.call_args_list)
