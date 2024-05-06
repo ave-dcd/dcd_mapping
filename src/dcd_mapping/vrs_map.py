@@ -1,6 +1,5 @@
 """Map transcripts to VRS objects."""
 import logging
-from decimal import Decimal
 from typing import List, Optional
 
 import click
@@ -67,7 +66,7 @@ def _create_hgvs_strings(
 
 def _map_protein_coding_pro(
     row: ScoreRow,
-    score: Decimal,
+    score: str,
     align_result: AlignmentResult,
     sequence_id: str,
     transcript: TxSelectResult,
