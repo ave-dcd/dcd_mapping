@@ -167,6 +167,7 @@ def test_41_a_1(
     ]
     for call in store_calls:
         mock_seqrepo.sr.store.assert_any_call(*call)
+    assert len(store_calls) == len(mock_seqrepo.sr.store.call_args_list)
 
 
 def test_103_c_1(
@@ -215,6 +216,7 @@ def test_103_c_1(
     ]
     for call in store_calls:
         mock_seqrepo.sr.store.assert_any_call(*call)
+    assert len(store_calls) == len(mock_seqrepo.sr.store.call_args_list)
 
 
 # def test_1_b_2(

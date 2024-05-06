@@ -9,17 +9,33 @@ Data sources/handlers include:
 """
 import logging
 import os
+from pathlib import Path
 from typing import List, Optional
 
 import polars as pl
 import requests
 from biocommons.seqrepo import SeqRepo
-from cool_seq_tool.app import CoolSeqTool
+from cool_seq_tool.app import (
+    LRG_REFSEQGENE_PATH,
+    MANE_SUMMARY_PATH,
+    SEQREPO_ROOT_DIR,
+    TRANSCRIPT_MAPPINGS_PATH,
+    UTA_DB_URL,
+    CoolSeqTool,
+)
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
+from cool_seq_tool.mappers import (
+    AlignmentMapper,
+    ExonGenomicCoordsMapper,
+    ManeTranscript,
+)
 from cool_seq_tool.schemas import TranscriptPriority
+from cool_seq_tool.sources.mane_transcript_mappings import ManeTranscriptMappings
+from cool_seq_tool.sources.transcript_mappings import TranscriptMappings
+from cool_seq_tool.sources.uta_database import UtaDatabase
 from ga4gh.core._internal.models import Extension, Gene
 from ga4gh.vrs._internal.models import Allele, SequenceLocation
-from ga4gh.vrs.dataproxy import SeqRepoDataProxy
+from ga4gh.vrs.dataproxy import SeqRepoDataProxy, coerce_namespace
 from ga4gh.vrs.extras.translator import AlleleTranslator
 from gene.database import create_db
 from gene.query import QueryHandler
@@ -54,14 +70,88 @@ class CoolSeqToolBuilder:
     def __new__(cls) -> CoolSeqTool:
         """Provide ``CoolSeqTool`` instance. Construct it if unavailable.
 
+        This class temporarily includes some very obnoxious reimplementations of
+        CoolSeqTool classes, because VRS-Python 2a6 introduced a breaking change to the
+        DataProxy interface and requires it for translation, but CoolSeqTool implements
+        its augmented DataProxy on top of the SeqRepo class, not the VRS-Python class.
+        This should be changed... somewhere, and then this code can be simplified or
+        done away with.
+
         :return: singleton instance of CoolSeqTool
         """
+
+        class _AugmentedSeqRepoAccess(SeqRepoAccess):
+            def derive_refget_accession(self, ac: str) -> Optional[str]:
+                if ac is None:
+                    return None
+
+                if ":" not in ac[1:]:
+                    # always coerce the namespace if none provided
+                    ac = coerce_namespace(ac)
+
+                refget_accession = None
+                try:
+                    aliases = self.translate_sequence_identifier(ac, namespace="ga4gh")
+                except KeyError:
+                    _logger.error("KeyError when getting refget accession: %s", ac)
+                else:
+                    if aliases:
+                        refget_accession = aliases[0].split("ga4gh:")[-1]
+
+                return refget_accession
+
+        class _AugmentedCoolSeqTool(CoolSeqTool):
+            def __init__(
+                self,
+                transcript_file_path: Path = TRANSCRIPT_MAPPINGS_PATH,
+                lrg_refseqgene_path: Path = LRG_REFSEQGENE_PATH,
+                mane_data_path: Path = MANE_SUMMARY_PATH,
+                db_url: str = UTA_DB_URL,
+                sr: Optional[SeqRepo] = None,
+            ) -> None:
+                """Initialize CoolSeqTool class
+
+                :param transcript_file_path: The path to ``transcript_mapping.tsv``
+                :param lrg_refseqgene_path: The path to the LRG_RefSeqGene file
+                :param mane_data_path: Path to RefSeq MANE summary data
+                :param db_url: PostgreSQL connection URL
+                    Format: ``driver://user:password@host/database/schema``
+                :param sr: SeqRepo instance. If this is not provided, will create a new instance
+                """
+                if not sr:
+                    sr = SeqRepo(root_dir=SEQREPO_ROOT_DIR)
+                self.seqrepo_access = _AugmentedSeqRepoAccess(sr)
+                self.transcript_mappings = TranscriptMappings(
+                    transcript_file_path=transcript_file_path,
+                    lrg_refseqgene_path=lrg_refseqgene_path,
+                )
+                self.mane_transcript_mappings = ManeTranscriptMappings(
+                    mane_data_path=mane_data_path
+                )
+                self.uta_db = UtaDatabase(db_url=db_url)
+                self.alignment_mapper = AlignmentMapper(
+                    self.seqrepo_access, self.transcript_mappings, self.uta_db
+                )
+                self.mane_transcript = ManeTranscript(
+                    self.seqrepo_access,
+                    self.transcript_mappings,
+                    self.mane_transcript_mappings,
+                    self.uta_db,
+                )
+                self.ex_g_coords_mapper = ExonGenomicCoordsMapper(
+                    self.seqrepo_access,
+                    self.uta_db,
+                    self.mane_transcript,
+                    self.mane_transcript_mappings,
+                )
+
         if not hasattr(cls, "instance"):
             root_dir = os.environ.get(
                 "SEQREPO_ROOT_DIR", "/usr/local/share/seqrepo/latest"
             )
             sr = SeqRepo(root_dir, writeable=True)
-            cls.instance = CoolSeqTool(sr=sr)
+            cls.instance = _AugmentedCoolSeqTool(sr=sr)
+
         return cls.instance
 
 
