@@ -50,6 +50,9 @@ def mock_seqrepo(mocker: MagicMock):
             ("ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye", 283, 284): "V",
             ("ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye", 372, 373): "I",
             ("ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye", 418, 419): "Y",
+            # 99-a-1
+            ("NP_000530.1", 329, 330): "D",
+            ("ga4gh:SQ.kntF3MvVMQFzU94f0QegL_ktmT5f2Dk9", 329, 330): "D",
             # 103-c-1
             ("ga4gh:SQ.N-m1tI22kffhKfdRZK8wCOR3QfI-1lfr", 336, 337): "D",
             ("ga4gh:SQ.N-m1tI22kffhKfdRZK8wCOR3QfI-1lfr", 352, 353): "R",
@@ -98,6 +101,10 @@ def mock_seqrepo(mocker: MagicMock):
         calls = {
             "NP_938033.1": "SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye",
             "NP_002736.3": "SQ.N-m1tI22kffhKfdRZK8wCOR3QfI-1lfr",
+            "NP_000530.1": "SQ.kntF3MvVMQFzU94f0QegL_ktmT5f2Dk9",
+            "NP_003343.1": "SQ.VkCzFNsbifqfq61Mud6oGmz0ID6CLIip",
+            "NC_000002.12": "SQ.pnAqCRBrTsUoBghSD1yp_jXWSmlbdh4g",
+            "NC_000003.12": "SQ.Zu7h9AggXxhTaGVsy7h_EZSChSZGcmgX",
         }
         return calls[ac]
 
@@ -170,6 +177,50 @@ def test_41_a_1(
     assert len(store_calls) == len(mock_seqrepo.sr.store.call_args_list)
 
 
+def test_99_a_1(
+    fixture_data_dir: Path,
+    scoreset_metadata_fixture: Dict[str, ScoresetMetadata],
+    align_result_fixture: Dict[str, AlignmentResult],
+    transcript_results_fixture: Dict[str, TxSelectResult],
+    mock_seqrepo: MagicMock,
+):
+    urn = "urn:mavedb:00000099-a-1"
+    records = _load_scoreset_records(fixture_data_dir / f"{urn}_scores.csv")
+    metadata = scoreset_metadata_fixture[urn]
+    align_result = align_result_fixture[urn]
+    tx_result = transcript_results_fixture[urn]
+
+    expected_mappings_data = {
+        "urn:mavedb:00000099-a-1#8": {
+            "pre_mapped": "ga4gh:VA.T8SkVZHuAF9J23etkAXG2Sz2w2yJMSO4",
+            "post_mapped": "ga4gh:VA.dw7KwkqdRsRL5UU55KznGYFqGCK6sWgt",
+        },
+        "urn:mavedb:00000099-a-1#96": {
+            "pre_mapped": "ga4gh:VA.4-NsddlZX70Jzi7OxSL6KYRe8T-h4rwT",
+            "post_mapped": "ga4gh:VA.4cQNoG_u6yGDk_GMmVvbYX-8EniN6RKd",
+        },
+        "urn:mavedb:00000099-a-1#194": {
+            "pre_mapped": "ga4gh:VA.gRO5ANz9hJ6y6NuyzHOzl94b39SAbbIE",
+            "post_mapped": "ga4gh:VA.JSmTABIybCChEE6mmjnPuubOt9eRWj_4",
+        },
+        "urn:mavedb:00000099-a-1#211": {
+            "pre_mapped": "ga4gh:VA.K4bnyLQ5M3WCmli8lvAqHfqkZuk4KvwP",
+            "post_mapped": "ga4gh:VA.HSfipwsg28LbqwITCawzumz_OWZYu_jM",
+        },
+    }
+    mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
+    assert mappings is not None
+
+    for m in mappings:
+        _assert_correct_vrs_map(m, expected_mappings_data)
+
+    # TODO fill in once passing
+    store_calls = []
+    for call in store_calls:
+        mock_seqrepo.sr.store.assert_any_call(*call)
+    assert len(store_calls) == len(mock_seqrepo.sr.store.call_args_list)
+
+
 def test_103_c_1(
     fixture_data_dir: Path,
     scoreset_metadata_fixture: Dict[str, ScoresetMetadata],
@@ -208,75 +259,73 @@ def test_103_c_1(
     for m in mappings:
         _assert_correct_vrs_map(m, expected_mappings_data)
 
+    # makes the same `store()` call twice
     store_calls = [
         (
             "MAAAAAAGAGPEMVRGQVFDVGPRYTNLSYIGEGAYGMVCSAYDNVNKVRVAIKKISPFEHQTYCQRTLREIKILLRFRHENIIGINDIIRAPTIEQMKDVYIVQDLMETDLYKLLKTQHLSNDHICYFLYQILRGLKYIHSANVLHRDLKPSNLLLNTTCDLKICDFGLARVADPDHDHTGFLTEYVATRWYRAPEIMLNSKGYTKSIDIWSVGCILAEMLSNRPIFPGKHYLDQLNHILGILGSPSQEDLNCIINLKARNYLLSLPHKNKVPWNRLFPNADSKALDLLDKMLTFNPHKRIEVEQALAHPYLEQYYDPSDEPIAEAPFKFDMELDDLPKEKLKELIFEETARFQPGYRS",
             [{"namespace": "ga4gh", "alias": "SQ.N-m1tI22kffhKfdRZK8wCOR3QfI-1lfr"}],
-        )
+        ),
+        (
+            "MAAAAAAGAGPEMVRGQVFDVGPRYTNLSYIGEGAYGMVCSAYDNVNKVRVAIKKISPFEHQTYCQRTLREIKILLRFRHENIIGINDIIRAPTIEQMKDVYIVQDLMETDLYKLLKTQHLSNDHICYFLYQILRGLKYIHSANVLHRDLKPSNLLLNTTCDLKICDFGLARVADPDHDHTGFLTEYVATRWYRAPEIMLNSKGYTKSIDIWSVGCILAEMLSNRPIFPGKHYLDQLNHILGILGSPSQEDLNCIINLKARNYLLSLPHKNKVPWNRLFPNADSKALDLLDKMLTFNPHKRIEVEQALAHPYLEQYYDPSDEPIAEAPFKFDMELDDLPKEKLKELIFEETARFQPGYRS",
+            [{"namespace": "ga4gh", "alias": "SQ.N-m1tI22kffhKfdRZK8wCOR3QfI-1lfr"}],
+        ),
     ]
     for call in store_calls:
         mock_seqrepo.sr.store.assert_any_call(*call)
     assert len(store_calls) == len(mock_seqrepo.sr.store.call_args_list)
 
 
-# def test_1_b_2(
-#     fixture_data_dir: Path,
-#     scoreset_metadata_fixture: Dict[str, ScoresetMetadata],
-#     align_result_fixture: Dict[str, AlignmentResult],
-#     transcript_results_fixture: Dict[str, TxSelectResult],
-#     mock_seqrepo: MagicMock,
-# ):
-#     urn = "urn:mavedb:00000001-b-2"
-#     records = _load_scoreset_records(fixture_data_dir / f"{urn}_scores.csv")
-#     metadata = scoreset_metadata_fixture[urn]
-#     align_result = align_result_fixture[urn]
-#     tx_result = transcript_results_fixture[urn]
-#
-#     mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
-#     assert mappings is not None
-#
-#     expected_mappings_data = {
-#         "urn:mavedb:00000001-b-2#444": {
-#             "pre_mapped": "ga4gh:VA.1XfnARSJMWLoHTQDJU-m0ZYLUsj-qRNM",
-#             "post_mapped": "ga4gh:VA.ifSwfAlXaZWIcTQaXrZv7LCsa6sywRvw",
-#         },
-#         "urn:mavedb:00000001-b-2#57": {
-#             "pre_mapped": "ga4gh:VA.-zYenjM1Wsuu5Ia06nn856cn4JKEjMwR",
-#             "post_mapped": "ga4gh:VA.LODyOWFdnBsGn7dciC-MCSLHCNtoyjaf",
-#         },
-#         "urn:mavedb:00000001-b-2#2311": {
-#             "pre_mapped": "ga4gh:VA.kdSdynoQvgoau0GqsUzhduF7riQVvx5-",
-#             "post_mapped": "ga4gh:VA.LdKB-BHsNMueerA0u4ngGU1oxK2oBDHs",
-#         },
-#         "urn:mavedb:00000001-b-2#2312": {
-#             "pre_mapped": "ga4gh:VA.pkEhKe6fG7eWaUTA7DJG2v-zggeP5N1m",
-#             "post_mapped": "ga4gh:VA.R4iEL0X_2Mr4o4cmuLE4AW_UrTotjZ8M",
-#         },
-#     }
-#
-#     mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
-#     assert mappings is not None
-#
-#     def _assert_correct_vrs_map(mapping: VrsObject1_x):
-#         assert (
-#             mapping.mavedb_id in expected_mappings_data
-#         ), "Score row is in expected mappings"
-#         expected = expected_mappings_data[mapping.mavedb_id]
-#         assert mapping.pre_mapped_variants["id"] == expected["pre_mapped"]
-#         assert mapping.post_mapped_variants["id"] == expected["post_mapped"]
-#
-#     for m in mappings[:2]:
-#         _assert_correct_vrs_map(m)
-#
-#     store_calls = [
-#         (
-#             "ATGTCTGACCAGGAGGCAAAACCTTCAACTGAGGACTTGGGGGATAAGAAGGAAGGTGAATATATTAAACTCAAAGTCATTGGACAGGATAGCAGTGAGATTCACTTCAAAGTGAAAATGACAACACATCTCAAGAAACTCAAAGAATCATACTGTCAAAGACAGGGTGTTCCAATGAATTCACTCAGGTTTCTCTTTGAGGGTCAGAGAATTGCTGATAATCATACTCCAAAAGAACTGGGAATGGAGGAAGAAGATGTGATTGAAGTTTATCAGGAACAAACGGGGGGTCATTCAACAGTTTAG",
-#             [{"namespace": "ga4gh", "alias": "SQ.i1KiGldkfULl1XcEI-XBwhiM7x3PK5Xk"}],
-#         ),
-#         (
-#             "sdlkfsdlksdflk",  # TODO -- update once this test is passing above
-#             [{"namespace": "ga4gh", "alias": "SQ.pnAqCRBrTsUoBghSD1yp_jXWSmlbdh4g"}],
-#         ),
-#     ]
-#     for call in store_calls:
-#         mock_seqrepo.sr.store.assert_any_call(*call)
+def test_1_b_2(
+    fixture_data_dir: Path,
+    scoreset_metadata_fixture: Dict[str, ScoresetMetadata],
+    align_result_fixture: Dict[str, AlignmentResult],
+    transcript_results_fixture: Dict[str, TxSelectResult],
+    mock_seqrepo: MagicMock,
+):
+    urn = "urn:mavedb:00000001-b-2"
+    records = _load_scoreset_records(fixture_data_dir / f"{urn}_scores.csv")
+    metadata = scoreset_metadata_fixture[urn]
+    align_result = align_result_fixture[urn]
+    tx_result = transcript_results_fixture[urn]
+
+    mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
+    assert mappings is not None
+
+    expected_mappings_data = {
+        "urn:mavedb:00000001-b-2#444": {
+            "pre_mapped": "ga4gh:VA.1XfnARSJMWLoHTQDJU-m0ZYLUsj-qRNM",
+            "post_mapped": "ga4gh:VA.ifSwfAlXaZWIcTQaXrZv7LCsa6sywRvw",
+        },
+        "urn:mavedb:00000001-b-2#57": {
+            "pre_mapped": "ga4gh:VA.-zYenjM1Wsuu5Ia06nn856cn4JKEjMwR",
+            "post_mapped": "ga4gh:VA.LODyOWFdnBsGn7dciC-MCSLHCNtoyjaf",
+        },
+        "urn:mavedb:00000001-b-2#2311": {
+            "pre_mapped": "ga4gh:VA.kdSdynoQvgoau0GqsUzhduF7riQVvx5-",
+            "post_mapped": "ga4gh:VA.LdKB-BHsNMueerA0u4ngGU1oxK2oBDHs",
+        },
+        "urn:mavedb:00000001-b-2#2312": {
+            "pre_mapped": "ga4gh:VA.pkEhKe6fG7eWaUTA7DJG2v-zggeP5N1m",
+            "post_mapped": "ga4gh:VA.R4iEL0X_2Mr4o4cmuLE4AW_UrTotjZ8M",
+        },
+    }
+
+    mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
+    assert mappings is not None
+
+    def _assert_correct_vrs_map(mapping: VrsObject1_x):
+        assert (
+            mapping.mavedb_id in expected_mappings_data
+        ), "Score row is in expected mappings"
+        expected = expected_mappings_data[mapping.mavedb_id]
+        assert mapping.pre_mapped_variants["id"] == expected["pre_mapped"]
+        assert mapping.post_mapped_variants["id"] == expected["post_mapped"]
+
+    for m in mappings[:2]:
+        _assert_correct_vrs_map(m)
+
+    # TODO fill in once pasing
+    store_calls = []
+    for call in store_calls:
+        mock_seqrepo.sr.store.assert_any_call(*call)
+    assert len(store_calls) == len(mock_seqrepo.sr.store.call_args_list)

@@ -130,12 +130,17 @@ def _get_allele_sequence(allele: Allele) -> str:
 
     :param allele: VRS allele
     :return: sequence
+    :raise ValueError: if sequence is none
     """
+    dp = get_seqrepo()
     start = allele.location.start
     end = allele.location.end
-    sr = get_seqrepo()
-    base = sr.sr[f"ga4gh:{allele.location.sequenceReference.refgetAccession}"]
-    return base[start:end]
+    sequence = dp.get_sequence(
+        f"ga4gh:{allele.location.sequenceReference.refgetAccession}", start, end
+    )
+    if sequence is None:
+        raise ValueError
+    return sequence
 
 
 def store_sequence(sequence: str) -> str:
