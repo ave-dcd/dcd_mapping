@@ -7,7 +7,7 @@ from typing import Dict
 import pytest
 import requests_mock
 
-from dcd_mapping.resources import get_scoreset_metadata, get_scoreset_records
+from dcd_mapping.mavedb_data import get_scoreset_metadata, get_scoreset_records
 
 
 @pytest.fixture()
