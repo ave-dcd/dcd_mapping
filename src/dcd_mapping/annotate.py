@@ -2,7 +2,7 @@
 import json
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import hgvs.edit
 import hgvs.location
@@ -21,6 +21,7 @@ from dcd_mapping.lookup import (
     get_vrs_id_from_identifier,
 )
 from dcd_mapping.mavedb_data import get_raw_scoreset_metadata, get_scoreset_metadata
+from dcd_mapping.resource_utils import LOCAL_STORE_PATH
 from dcd_mapping.schemas import (
     AlignmentResult,
     ComputedReferenceSequence,
@@ -35,7 +36,7 @@ from dcd_mapping.schemas import (
 _logger = logging.getLogger(__name__)
 
 
-def get_hgvs_string(allele: dict, sr: SeqRepoAccess, ac: str) -> str:
+def get_hgvs_string(allele: dict, dp: SeqRepoAccess, ac: str) -> str:
     """Return an HGVS string for a given VRS allele
 
     :param allele: A post-mapped VRS allele
@@ -49,13 +50,13 @@ def get_hgvs_string(allele: dict, sr: SeqRepoAccess, ac: str) -> str:
 
     if start == end:
         ref = None
-        aas = sr.get_sequence(ac, start - 1, start)
-        aae = sr.get_sequence(ac, end, end + 1)
+        aas = dp.get_sequence(ac, start - 1, start)
+        aae = dp.get_sequence(ac, end, end + 1)
         end += 1
     else:
-        ref = sr.get_sequence(ac, start, end)
-        aas = sr.get_sequence(ac, start, start + 1)
-        aae = sr.get_sequence(ac, end - 1, end)
+        ref = dp.get_sequence(ac, start, end)
+        aas = dp.get_sequence(ac, start, start + 1)
+        aae = dp.get_sequence(ac, end - 1, end)
         start += 1
 
     if stype == "p":
@@ -227,25 +228,65 @@ def get_mapped_reference_sequence(
     :param tx_output: Transcript data for a score set
     :return A MappedReferenceSequence object
     """
-    if layer == AnnotationLayer.PROTEIN:
+    if layer == AnnotationLayer.PROTEIN and tx_output is not None:
+        vrs_id = get_vrs_id_from_identifier(tx_output.np)
+        if vrs_id is None:
+            raise ValueError
         return MappedReferenceSequence(
             sequence_type=TargetSequenceType.PROTEIN,
-            sequence_id=get_vrs_id_from_identifier(tx_output.np),
+            sequence_id=vrs_id,
             sequence_accessions=[tx_output.np],
         )
     seq_id = get_chromosome_identifier(align_result.chrom)
+    vrs_id = get_vrs_id_from_identifier(seq_id)
+    if vrs_id is None:
+        raise ValueError
     return MappedReferenceSequence(
         sequence_type=TargetSequenceType.DNA,
-        sequence_id=get_vrs_id_from_identifier(seq_id),
+        sequence_id=vrs_id,
         sequence_accessions=[seq_id],
     )
 
 
+def _set_layer(ss: str, mappings: List[VrsObject1_x]) -> AnnotationLayer:
+    if ss.startswith("urn:mavedb:00000097"):
+        return AnnotationLayer.PROTEIN
+    for var in mappings:
+        if var.layer == AnnotationLayer.GENOMIC:
+            return AnnotationLayer.GENOMIC
+    return AnnotationLayer.PROTEIN
+
+
+def _format_score_mapping(var: VrsObject1_x, layer: AnnotationLayer) -> Optional[Dict]:
+    if var and var.layer == layer:
+        if "members" in var.pre_mapped_variants:
+            pre_mapped_members = []
+            post_mapped_members = []
+            for sub_var in var.pre_mapped_variants["members"]:
+                pre_mapped_members.append(get_vod_premapped(sub_var))
+            for sub_var in var.post_mapped_variants["members"]:
+                post_mapped_members.append(get_vod_postmapped(sub_var))
+            return MappedOutput(
+                pre_mapped=get_vod_haplotype(pre_mapped_members),
+                post_mapped=get_vod_haplotype(post_mapped_members),
+                mavedb_id=var.mavedb_id,
+                score=None if var.score == "NA" else float(var.score),
+            ).model_dump()
+        return MappedOutput(
+            pre_mapped=get_vod_premapped(var.pre_mapped_variants),
+            post_mapped=get_vod_postmapped(var.post_mapped_variants),
+            mavedb_id=var.mavedb_id,
+            score=None if var.score == "NA" else float(var.score),
+        ).model_dump()
+    return None
+
+
 def save_mapped_output_json(
     ss: str,
-    mave_vrs_mappings: List[VrsObject1_x],
+    mappings: List[VrsObject1_x],
     align_result: AlignmentResult,
     tx_output: Optional[TxSelectResult] = None,
+    output_path: Optional[Path] = None,
 ) -> None:
     """Save mapping output for a score set in a JSON file
 
@@ -253,62 +294,33 @@ def save_mapped_output_json(
     :param mave_vrs_mappings: A dictionary of VrsObject1_x objects
     :param align_result: Alignment information for a score set
     :tx_output: Transcript output for a score set
-    :return None
+    :output_path:
     """
-    curr = mave_vrs_mappings.variations
-    layer = None
-    for var in curr:
-        if ss.startswith("urn:mavedb:00000097"):
-            layer = AnnotationLayer.PROTEIN
-            break
-        if var.layer == AnnotationLayer.GENOMIC:
-            layer = AnnotationLayer.GENOMIC
-            break
-    if not ss.startswith("urn:mavedb:00000097") and layer is None:
-        layer = AnnotationLayer.PROTEIN
+    layer = _set_layer(ss, mappings)
 
-    mapped_ss_output = {}
-    mapped_ss_output["metadata"] = get_raw_scoreset_metadata(ss)
-    mapped_ss_output["computed_reference_sequence"] = get_computed_reference_sequence(
-        ss=ss, layer=layer, tx_output=tx_output if tx_output else None
-    ).model_dump()
-    mapped_ss_output["mapped_reference_sequence"] = get_mapped_reference_sequence(
-        tx_output=tx_output if tx_output else None,
-        layer=layer,
-        align_result=align_result,
-    ).model_dump()
+    mapped_ss_output = {
+        "metadata": get_raw_scoreset_metadata(ss),
+        "computed_reference_sequence": get_computed_reference_sequence(
+            ss=ss, layer=layer, tx_output=tx_output
+        ).model_dump(),
+        "mapped_reference_sequence": get_mapped_reference_sequence(
+            tx_output=tx_output,
+            layer=layer,
+            align_result=align_result,
+        ).model_dump(),
+    }
 
     mapped_scores = []
-    for var in curr:
-        if var and var.layer == layer:
-            if "members" in var.pre_mapped_variants:
-                pre_mapped_members = []
-                post_mapped_members = []
-                for sub_var in var.pre_mapped_variants["members"]:
-                    pre_mapped_members.append(get_vod_premapped(sub_var))
-                for sub_var in var.post_mapped_variants["members"]:
-                    post_mapped_members.append(get_vod_postmapped(sub_var))
-                mapped_scores.append(
-                    MappedOutput(
-                        pre_mapped=get_vod_haplotype(pre_mapped_members),
-                        post_mapped=get_vod_haplotype(post_mapped_members),
-                        mavedb_id=var.mavedb_id,
-                        score=None if var.score == "NA" else float(var.score),
-                    ).model_dump()
-                )
-            else:
-                mapped_scores.append(
-                    MappedOutput(
-                        pre_mapped=get_vod_premapped(var.pre_mapped_variants),
-                        post_mapped=get_vod_postmapped(var.post_mapped_variants),
-                        mavedb_id=var.mavedb_id,
-                        score=None if var.score == "NA" else float(var.score),
-                    ).model_dump()
-                )
+    for var in mappings:
+        formatted_score_mapping = _format_score_mapping(var, layer)
+        mapped_scores.append(formatted_score_mapping)
     mapped_ss_output["mapped_scores"] = mapped_scores
 
     ss = ss.strip("urn:mavedb:")  # noqa: B005
-    with (Path("analysis_files") / "mappings" / f"{ss}.json").open("w") as file:
+    if not output_path:
+        output_path = LOCAL_STORE_PATH / f"{ss}_mapping.json"
+
+    with output_path.open("w") as file:
         json.dump(mapped_ss_output, file, indent=4)
 
 

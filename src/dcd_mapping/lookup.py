@@ -71,11 +71,8 @@ class CoolSeqToolBuilder:
         """Provide ``CoolSeqTool`` instance. Construct it if unavailable.
 
         This class temporarily includes some very obnoxious reimplementations of
-        CoolSeqTool classes, because VRS-Python 2a6 introduced a breaking change to the
-        DataProxy interface and requires it for translation, but CoolSeqTool implements
-        its augmented DataProxy on top of the SeqRepo class, not the VRS-Python class.
-        This should be changed... somewhere, and then this code can be simplified or
-        done away with.
+        CoolSeqTool classes due to some changes introduced in VRS-Python 2a6. We should
+        try to clean them up.
 
         :return: singleton instance of CoolSeqTool
         """
@@ -109,15 +106,6 @@ class CoolSeqToolBuilder:
                 db_url: str = UTA_DB_URL,
                 sr: Optional[SeqRepo] = None,
             ) -> None:
-                """Initialize CoolSeqTool class
-
-                :param transcript_file_path: The path to ``transcript_mapping.tsv``
-                :param lrg_refseqgene_path: The path to the LRG_RefSeqGene file
-                :param mane_data_path: Path to RefSeq MANE summary data
-                :param db_url: PostgreSQL connection URL
-                    Format: ``driver://user:password@host/database/schema``
-                :param sr: SeqRepo instance. If this is not provided, will create a new instance
-                """
                 if not sr:
                     sr = SeqRepo(root_dir=SEQREPO_ROOT_DIR)
                 self.seqrepo_access = _AugmentedSeqRepoAccess(sr)

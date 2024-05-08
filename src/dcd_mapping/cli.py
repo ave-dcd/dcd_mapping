@@ -1,10 +1,16 @@
 """Provide command-line interface for accessing mapping functions."""
 import asyncio
 import logging
+from pathlib import Path
+from typing import Optional
 
 import click
 
+from dcd_mapping.align import AlignmentError
 from dcd_mapping.main import map_scoreset_urn
+from dcd_mapping.resource_utils import ResourceAcquisitionError
+from dcd_mapping.transcripts import TxSelectError
+from dcd_mapping.vrs_map import VrsMapError
 
 _logger = logging.getLogger(__name__)
 
@@ -19,7 +25,14 @@ _logger = logging.getLogger(__name__)
     default=False,
     help="Enable debug logging",
 )
-def cli(urn: str, debug: bool) -> None:
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Desired location at which output file should be saved",
+)
+def cli(urn: str, debug: bool, output: Optional[Path]) -> None:
     """Get VRS mapping on preferred transcript for URN.
 
     For example:
@@ -38,7 +51,10 @@ def cli(urn: str, debug: bool) -> None:
         force=True,
     )
     _logger.debug("debug logging enabled")
-    asyncio.run(map_scoreset_urn(urn, silent=False))
+    try:
+        asyncio.run(map_scoreset_urn(urn, silent=False, output_path=output))
+    except (AlignmentError, TxSelectError, VrsMapError, ResourceAcquisitionError):
+        click.get_current_context().exit(1)
 
 
 if __name__ == "__main__":
