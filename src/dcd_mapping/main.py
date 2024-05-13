@@ -1,92 +1,74 @@
 """Provide core MaveDB mapping methods."""
-import json
 import logging
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import click
 
 from dcd_mapping.align import AlignmentError, align
-from dcd_mapping.resources import (
-    LOCAL_STORE_PATH,
-    ResourceAcquisitionError,
-    get_scoreset_metadata,
-    get_scoreset_records,
+from dcd_mapping.annotate import annotate, save_mapped_output_json
+from dcd_mapping.mavedb_data import get_scoreset_metadata, get_scoreset_records
+from dcd_mapping.resource_utils import ResourceAcquisitionError
+from dcd_mapping.schemas import (
+    ScoreRow,
+    ScoresetMetadata,
 )
-from dcd_mapping.schemas import ScoreRow, ScoresetMetadata, VrsMappingResult
 from dcd_mapping.transcripts import TxSelectError, select_transcript
 from dcd_mapping.vrs_map import VrsMapError, vrs_map
 
 _logger = logging.getLogger(__name__)
 
 
-def _save_results(
-    metadata: ScoresetMetadata, mapping_results: VrsMappingResult
-) -> Path:
-    """Save results to file.
-
-    Todo:
-    ----
-    * add ``mapped_reference_sequence`` and ``computed_referense_sequence`` properties
-    * Embed within original metadata JSON
-    * Option to save as VRS 1.x
-
-    :param metadata: scoreset metadata
-    :param mapping results: mapped objects
-    :return: path to saved file
-
-    """
-    outfile = LOCAL_STORE_PATH / f"{metadata.urn}_mapping_results.json"
-    with outfile.open("w") as f:
-        json.dump(mapping_results.model_dump(exclude_none=True), f, indent=2)
-    return outfile
-
-
 async def map_scoreset(
     metadata: ScoresetMetadata,
     records: List[ScoreRow],
     silent: bool = True,
-    cache_align: bool = False,
+    output_path: Optional[Path] = None,
 ) -> None:
     """Given information about a MAVE experiment, map to VRS and save output as JSON.
 
     :param metadata: salient data gathered from scoreset on MaveDB
     :param records: experiment scoring results
     :param silent: if True, suppress console output
-    :param cache_align: if True, save alignment output and reuse when available
+    :param output_path: optional path to save output at
     """
     try:
-        alignment_result = align(metadata, silent, cache_align)
+        alignment_result = align(metadata, silent)
     except AlignmentError as e:
         _logger.error("Alignment failed for scoreset %s: %s", metadata.urn, e)
-        return
+        raise e
 
     try:
         transcript = await select_transcript(
             metadata, records, alignment_result, silent
         )
-    except TxSelectError:
+    except TxSelectError as e:
         _logger.error("Transcript selection failed for scoreset %s", metadata.urn)
-        return
+        raise e
 
     try:
-        vrs_results = vrs_map(metadata, alignment_result, transcript, records, silent)
-    except VrsMapError:
+        vrs_results = vrs_map(metadata, alignment_result, records, transcript, silent)
+    except VrsMapError as e:
         _logger.error("VRS mapping failed for scoreset %s", metadata.urn)
+        raise e
+    if vrs_results is None:
+        _logger.info("No mapping available for %s", metadata.urn)
         return
 
-    if vrs_results:
-        _save_results(metadata, vrs_results)
+    vrs_results = annotate(transcript, vrs_results, metadata)
+    save_mapped_output_json(
+        metadata.urn, vrs_results, alignment_result, transcript, output_path
+    )
 
 
 async def map_scoreset_urn(
-    urn: str, silent: bool = True, cache_align: bool = False
+    urn: str, silent: bool = True, output_path: Optional[Path] = None
 ) -> None:
     """Perform end-to-end mapping for a scoreset.
 
     :param urn: identifier for a scoreset.
     :param silent: if True, suppress console output
-    :param cache_align: if True, save alignment output and reuse when available
+    :param output_path: optional path to save output at
     """
     try:
         metadata = get_scoreset_metadata(urn)
@@ -95,5 +77,5 @@ async def map_scoreset_urn(
         msg = f"Unable to acquire resource from MaveDB: {e}"
         _logger.critical(msg)
         click.echo(f"Error: {msg}")
-        return
-    await map_scoreset(metadata, records, silent, cache_align)
+        raise e
+    await map_scoreset(metadata, records, silent, output_path)

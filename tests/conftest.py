@@ -15,6 +15,8 @@ Notes on test cases:
 import json
 import os
 from pathlib import Path
+from typing import Optional
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -71,3 +73,105 @@ def transcript_results_fixture(fixture_data_dir: Path):
         formatted_result = TxSelectResult(**result)
         results[urn] = formatted_result
     return results
+
+
+@pytest.fixture()
+def mock_seqrepo_access(mocker: MagicMock):
+    """Mock SeqRepo instance.
+
+    To add new test cases, throw some print/breakpoint statements into the original
+    methods and capture results there.
+    """
+
+    def _get_sequence(
+        identifier: str, start: Optional[str] = None, end: Optional[str] = None
+    ) -> str:
+        calls = {
+            # 41-a-1
+            ("ga4gh:SQ.PyX9IDu95_tYLg1Jz9JpW5xpQkwn6bpB", 14, 15): "V",
+            ("ga4gh:SQ.PyX9IDu95_tYLg1Jz9JpW5xpQkwn6bpB", 103, 104): "I",
+            ("ga4gh:SQ.PyX9IDu95_tYLg1Jz9JpW5xpQkwn6bpB", 149, 150): "Y",
+            ("ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye", 14, 15): "R",
+            ("ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye", 103, 104): "S",
+            ("ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye", 149, 150): "E",
+            ("ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye", 283, 284): "V",
+            ("ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye", 372, 373): "I",
+            ("ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye", 418, 419): "Y",
+            # 99-a-1
+            ("NP_000530.1", 329, 330): "D",
+            ("ga4gh:SQ.kntF3MvVMQFzU94f0QegL_ktmT5f2Dk9", 329, 330): "D",
+            ("ga4gh:SQ.RtClQI6dD3uj5T-DyOr9P9_-sYR2aHJX", 989, 990): "C",
+            ("ga4gh:SQ.Zu7h9AggXxhTaGVsy7h_EZSChSZGcmgX", 129533660, 129533661): "C",
+            ("ga4gh:SQ.kntF3MvVMQFzU94f0QegL_ktmT5f2Dk9", 339, 340): "T",
+            ("ga4gh:SQ.RtClQI6dD3uj5T-DyOr9P9_-sYR2aHJX", 1018, 1019): "C",
+            ("ga4gh:SQ.Zu7h9AggXxhTaGVsy7h_EZSChSZGcmgX", 129533689, 129533690): "C",
+            ("ga4gh:SQ.kntF3MvVMQFzU94f0QegL_ktmT5f2Dk9", 55, 56): "F",
+            ("ga4gh:SQ.RtClQI6dD3uj5T-DyOr9P9_-sYR2aHJX", 166, 167): "T",
+            ("ga4gh:SQ.Zu7h9AggXxhTaGVsy7h_EZSChSZGcmgX", 129528899, 129528900): "T",
+            ("ga4gh:SQ.kntF3MvVMQFzU94f0QegL_ktmT5f2Dk9", 3, 4): "T",
+            ("ga4gh:SQ.RtClQI6dD3uj5T-DyOr9P9_-sYR2aHJX", 10, 11): "C",
+            ("ga4gh:SQ.Zu7h9AggXxhTaGVsy7h_EZSChSZGcmgX", 129528743, 129528744): "C",
+            # 103-c-1
+            ("ga4gh:SQ.N-m1tI22kffhKfdRZK8wCOR3QfI-1lfr", 336, 337): "D",
+            ("ga4gh:SQ.N-m1tI22kffhKfdRZK8wCOR3QfI-1lfr", 352, 353): "R",
+            ("ga4gh:SQ.N-m1tI22kffhKfdRZK8wCOR3QfI-1lfr", 220, 221): "M",
+            ("ga4gh:SQ.N-m1tI22kffhKfdRZK8wCOR3QfI-1lfr", 1, 2): "A",
+            # 1-b-2
+            ("ga4gh:SQ.VkCzFNsbifqfq61Mud6oGmz0ID6CLIip", 75, 76): "T",
+            ("ga4gh:SQ.i1KiGldkfULl1XcEI-XBwhiM7x3PK5Xk", 225, 228): "ACT",
+            ("ga4gh:SQ.pnAqCRBrTsUoBghSD1yp_jXWSmlbdh4g", 202210743, 202210746): "AGT",
+            ("ga4gh:SQ.VkCzFNsbifqfq61Mud6oGmz0ID6CLIip", 7, 8): "P",
+            ("ga4gh:SQ.i1KiGldkfULl1XcEI-XBwhiM7x3PK5Xk", 21, 24): "CCT",
+            ("ga4gh:SQ.i1KiGldkfULl1XcEI-XBwhiM7x3PK5Xk", 21, 23): "CC",
+            ("ga4gh:SQ.pnAqCRBrTsUoBghSD1yp_jXWSmlbdh4g", 202220094, 202220097): "AGG",
+            ("ga4gh:SQ.pnAqCRBrTsUoBghSD1yp_jXWSmlbdh4g", 202220095, 202220097): "GG",
+            ("ga4gh:SQ.VkCzFNsbifqfq61Mud6oGmz0ID6CLIip", 68, 69): "Q",
+            ("ga4gh:SQ.i1KiGldkfULl1XcEI-XBwhiM7x3PK5Xk", 204, 207): "CAG",
+            ("ga4gh:SQ.i1KiGldkfULl1XcEI-XBwhiM7x3PK5Xk", 205, 207): "AG",
+            ("ga4gh:SQ.pnAqCRBrTsUoBghSD1yp_jXWSmlbdh4g", 202210764, 202210767): "CTG",
+            ("ga4gh:SQ.pnAqCRBrTsUoBghSD1yp_jXWSmlbdh4g", 202210764, 202210766): "CT",
+            ("ga4gh:SQ.VkCzFNsbifqfq61Mud6oGmz0ID6CLIip", 81, 82): "M",
+            ("ga4gh:SQ.i1KiGldkfULl1XcEI-XBwhiM7x3PK5Xk", 245, 246): "G",
+            ("ga4gh:SQ.pnAqCRBrTsUoBghSD1yp_jXWSmlbdh4g", 202207312, 202207313): "C",
+        }
+        return calls[(identifier, start, end)]
+
+    def _translate_sequence_identifier(
+        identifier: str, namespace: Optional[str] = None
+    ) -> str:
+        calls = {
+            ("refseq:NP_938033.1", "ga4gh"): [
+                "ga4gh:SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye"
+            ],
+            ("refseq:NP_003343.1", "ga4gh"): [
+                "ga4gh:SQ.VkCzFNsbifqfq61Mud6oGmz0ID6CLIip"
+            ],
+            ("refseq:NC_000002.12", "ga4gh"): [
+                "ga4gh:SQ.pnAqCRBrTsUoBghSD1yp_jXWSmlbdh4g"
+            ],
+            ("refseq:NP_002736.3", "ga4gh"): [
+                "ga4gh:SQ.N-m1tI22kffhKfdRZK8wCOR3QfI-1lfr"
+            ],
+        }
+        return calls[(identifier, namespace)]
+
+    def _derive_refget_accession(ac: str) -> str:
+        calls = {
+            "NP_938033.1": "SQ.uJDQo_HaTNFL2-0-6K5dVzVcweigexye",
+            "NP_002736.3": "SQ.N-m1tI22kffhKfdRZK8wCOR3QfI-1lfr",
+            "NP_000530.1": "SQ.kntF3MvVMQFzU94f0QegL_ktmT5f2Dk9",
+            "NP_003343.1": "SQ.VkCzFNsbifqfq61Mud6oGmz0ID6CLIip",
+            "NC_000002.12": "SQ.pnAqCRBrTsUoBghSD1yp_jXWSmlbdh4g",
+            "NC_000003.12": "SQ.Zu7h9AggXxhTaGVsy7h_EZSChSZGcmgX",
+        }
+        return calls[ac]
+
+    mock_seqrepo_access = mocker.MagicMock()
+    mock_seqrepo_access.get_sequence.side_effect = _get_sequence
+    mock_seqrepo_access.translate_sequence_identifier.side_effect = (
+        _translate_sequence_identifier
+    )
+    mock_seqrepo_access.derive_refget_accession.side_effect = _derive_refget_accession
+    mocker.patch("dcd_mapping.vrs_map.get_seqrepo", return_value=mock_seqrepo_access)
+    mocker.patch("dcd_mapping.lookup.get_seqrepo", return_value=mock_seqrepo_access)
+    return mock_seqrepo_access

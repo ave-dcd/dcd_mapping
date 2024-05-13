@@ -2,7 +2,6 @@
 from enum import Enum
 from typing import Dict, List, Literal, Optional, Union
 
-from biocommons.seqrepo import SeqRepo
 from cool_seq_tool.schemas import AnnotationLayer, Strand, TranscriptPriority
 from ga4gh.core import sha512t24u
 from ga4gh.vrs._internal.models import Allele
@@ -47,6 +46,7 @@ class ScoreRow(BaseModel):
 
     hgvs_pro: str
     hgvs_nt: str
+    # sometimes the score is "NA" or other strings, so this can't be a Decimal
     score: str
     accession: str
 
@@ -66,19 +66,22 @@ class GeneLocation(BaseModel):
     end: Optional[int] = None
 
 
-class ComputedReferenceSequence(BaseModel):
+class ReferenceSequence(BaseModel):
+    """Base reference sequence class."""
+
+    sequence_type: TargetSequenceType
+    sequence_id: StrictStr
+
+
+class ComputedReferenceSequence(ReferenceSequence):
     """Define metadata describing a computed reference sequence"""
 
     sequence: StrictStr
-    sequence_type: TargetSequenceType
-    sequence_id: StrictStr
 
 
-class MappedReferenceSequence(BaseModel):
+class MappedReferenceSequence(ReferenceSequence):
     """Define metadata describing a mapped, human reference sequence"""
 
-    sequence_id: StrictStr
-    sequence_type: TargetSequenceType
     sequence_accessions: List[StrictStr]
 
 
@@ -162,15 +165,51 @@ class TxSelectResult(BaseModel):
     sequence: str
 
 
+###################### WORKING: ################################
+
+
 class VrsObject1_x(BaseModel):  # noqa: N801
     """Define response object for VRS 1.x object"""
 
     mavedb_id: StrictStr
     pre_mapped_variants: Dict
     post_mapped_variants: Dict
-    score: Union[StrictFloat, str]
+    score: str
     layer: AnnotationLayer
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
+
+
+class VrsVersion(str, Enum):
+    """Constrain VRS versions to translate between"""
+
+    V1_X = "V1_X"
+    V2_X = "V2_X"
+
+
+def to_schema(allele: Allele, schema_from: VrsVersion, schema_to: VrsVersion) -> Dict:
+    """Convert alleles to/from different versions of VRS"""
+    if schema_from == VrsVersion.V2_X and schema_to == VrsVersion.V1_X:
+        sequence = "" if not allele.state.sequence else allele.state.sequence.root
+        new_allele = {
+            "type": "Allele",
+            "location": {
+                "id": None,
+                "type": "SequenceLocation",
+                "sequence_id": f"ga4gh:{allele.location.sequenceReference.refgetAccession}",
+                "interval": {
+                    "type": "SequenceInterval",
+                    "start": {"value": allele.location.start, "type": "number"},
+                    "end": {"value": allele.location.end, "type": "number"},
+                },
+            },
+            "state": {
+                "type": "LiteralSequenceExpression",
+                "sequence": sequence,
+            },
+        }
+        # WIP identify
+        return new_allele  # noqa: RET504
+    raise NotImplementedError
 
 
 class VrsMapping(BaseModel):
@@ -182,7 +221,7 @@ class VrsMapping(BaseModel):
     pre_mapped_genomic: Optional[Union[Allele, List[Allele]]] = None
     post_mapped_genomic: Optional[Union[Allele, List[Allele]]] = None
     mapped_transcript: Optional[TranscriptDescription] = None
-    score: Union[StrictFloat, str]
+    score: str
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
 
     def serialize(self, sequence: str, start: int, end: int, sequence_id: str) -> str:
@@ -222,18 +261,18 @@ class VrsMapping(BaseModel):
             },
         }
 
-    def output_vrs_variations(
-        self, layer: AnnotationLayer, sr: SeqRepo
-    ) -> VrsObject1_x:
+    def output_vrs_variations(self, layer: AnnotationLayer) -> VrsObject1_x:
         """Construct VRS 1.3 compatible objects from 2.0a models.
+
         :param layer: The Annotation Layer (genomic or protein)
-        :param sr: A SeqRepo instance
         :return A VrsObject1_x object
         """
         if not self.pre_mapped_genomic and layer == AnnotationLayer.GENOMIC:
-            return None
+            msg = f"Cannot map on {AnnotationLayer.GENOMIC} for mapping with no genomic variations"
+            raise ValueError(msg)
         if not self.pre_mapped_protein and layer == AnnotationLayer.PROTEIN:
-            return None
+            msg = f"Cannot map on {AnnotationLayer.PROTEIN} for mapping with no protein variations"
+            raise ValueError(msg)
 
         if layer == AnnotationLayer.GENOMIC:
             pre_mapped_2_0 = self.pre_mapped_genomic
@@ -287,12 +326,3 @@ class VrsMapping(BaseModel):
             layer=layer,
             score=self.score,
         )
-
-
-class VrsMappingResult(BaseModel):
-    """Define response object from VRS mappings method.
-
-    Might not be necessary (should just be list of VrsMappings?)
-    """
-
-    variations: List[VrsObject1_x]

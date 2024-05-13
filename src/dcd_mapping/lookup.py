@@ -8,17 +8,34 @@ Data sources/handlers include:
 * the UniProt web API
 """
 import logging
+import os
+from pathlib import Path
 from typing import List, Optional
 
 import polars as pl
 import requests
 from biocommons.seqrepo import SeqRepo
-from cool_seq_tool.app import CoolSeqTool
+from cool_seq_tool.app import (
+    LRG_REFSEQGENE_PATH,
+    MANE_SUMMARY_PATH,
+    SEQREPO_ROOT_DIR,
+    TRANSCRIPT_MAPPINGS_PATH,
+    UTA_DB_URL,
+    CoolSeqTool,
+)
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
+from cool_seq_tool.mappers import (
+    AlignmentMapper,
+    ExonGenomicCoordsMapper,
+    ManeTranscript,
+)
 from cool_seq_tool.schemas import TranscriptPriority
+from cool_seq_tool.sources.mane_transcript_mappings import ManeTranscriptMappings
+from cool_seq_tool.sources.transcript_mappings import TranscriptMappings
+from cool_seq_tool.sources.uta_database import UtaDatabase
 from ga4gh.core._internal.models import Extension, Gene
 from ga4gh.vrs._internal.models import Allele, SequenceLocation
-from ga4gh.vrs.dataproxy import SeqRepoDataProxy
+from ga4gh.vrs.dataproxy import SeqRepoDataProxy, coerce_namespace
 from ga4gh.vrs.extras.translator import AlleleTranslator
 from gene.database import create_db
 from gene.query import QueryHandler
@@ -53,11 +70,76 @@ class CoolSeqToolBuilder:
     def __new__(cls) -> CoolSeqTool:
         """Provide ``CoolSeqTool`` instance. Construct it if unavailable.
 
+        This class temporarily includes some very obnoxious reimplementations of
+        CoolSeqTool classes due to some changes introduced in VRS-Python 2a6. We should
+        try to clean them up.
+
         :return: singleton instance of CoolSeqTool
         """
+
+        class _AugmentedSeqRepoAccess(SeqRepoAccess):
+            def derive_refget_accession(self, ac: str) -> Optional[str]:
+                if ac is None:
+                    return None
+
+                if ":" not in ac[1:]:
+                    # always coerce the namespace if none provided
+                    ac = coerce_namespace(ac)
+
+                refget_accession = None
+                try:
+                    aliases = self.translate_sequence_identifier(ac, namespace="ga4gh")
+                except KeyError:
+                    _logger.error("KeyError when getting refget accession: %s", ac)
+                else:
+                    if aliases:
+                        refget_accession = aliases[0].split("ga4gh:")[-1]
+
+                return refget_accession
+
+        class _AugmentedCoolSeqTool(CoolSeqTool):
+            def __init__(
+                self,
+                transcript_file_path: Path = TRANSCRIPT_MAPPINGS_PATH,
+                lrg_refseqgene_path: Path = LRG_REFSEQGENE_PATH,
+                mane_data_path: Path = MANE_SUMMARY_PATH,
+                db_url: str = UTA_DB_URL,
+                sr: Optional[SeqRepo] = None,
+            ) -> None:
+                if not sr:
+                    sr = SeqRepo(root_dir=SEQREPO_ROOT_DIR)
+                self.seqrepo_access = _AugmentedSeqRepoAccess(sr)
+                self.transcript_mappings = TranscriptMappings(
+                    transcript_file_path=transcript_file_path,
+                    lrg_refseqgene_path=lrg_refseqgene_path,
+                )
+                self.mane_transcript_mappings = ManeTranscriptMappings(
+                    mane_data_path=mane_data_path
+                )
+                self.uta_db = UtaDatabase(db_url=db_url)
+                self.alignment_mapper = AlignmentMapper(
+                    self.seqrepo_access, self.transcript_mappings, self.uta_db
+                )
+                self.mane_transcript = ManeTranscript(
+                    self.seqrepo_access,
+                    self.transcript_mappings,
+                    self.mane_transcript_mappings,
+                    self.uta_db,
+                )
+                self.ex_g_coords_mapper = ExonGenomicCoordsMapper(
+                    self.seqrepo_access,
+                    self.uta_db,
+                    self.mane_transcript,
+                    self.mane_transcript_mappings,
+                )
+
         if not hasattr(cls, "instance"):
-            sr = SeqRepo("/usr/local/share/seqrepo/latest", writeable=True)
-            cls.instance = CoolSeqTool(sr=sr)
+            root_dir = os.environ.get(
+                "SEQREPO_ROOT_DIR", "/usr/local/share/seqrepo/latest"
+            )
+            sr = SeqRepo(root_dir, writeable=True)
+            cls.instance = _AugmentedCoolSeqTool(sr=sr)
+
         return cls.instance
 
 
@@ -92,7 +174,7 @@ class TranslatorBuilder:
         :return: singleton instance of ``AlleleTranslator``
         """
         if not hasattr(cls, "instance"):
-            tr = AlleleTranslator(data_proxy, normalize=False)
+            tr = AlleleTranslator(data_proxy)
             cls.instance = tr
         else:
             cls.instance.data_proxy = data_proxy
@@ -266,12 +348,6 @@ def get_gene_location(metadata: ScoresetMetadata) -> Optional[GeneLocation]:
     if not gene_descriptor or not gene_descriptor.extensions:
         return None
 
-    hgnc_locations: List[Extension] = [
-        loc for loc in gene_descriptor.extensions if loc.name == "hgnc_locations"
-    ]
-    if hgnc_locations and len(hgnc_locations[0].value) > 0:
-        return GeneLocation(chromosome=hgnc_locations[0].value[0].chr)
-
     for src_name in ("ensembl", "ncbi"):
         loc = _get_genomic_interval(gene_descriptor.extensions, src_name)
         if loc:
@@ -390,8 +466,12 @@ def translate_hgvs_to_vrs(hgvs: str) -> Allele:
     :param hgvs: MAVE-HGVS variation string
     :return: Corresponding VRS allele as a Pydantic class
     """
-    tr = TranslatorBuilder(CoolSeqToolBuilder().seqrepo_access)
-    allele = tr.translate_from(hgvs, "hgvs")
+    # coerce tmp HGVS string into formally correct term
+    if hgvs.startswith("NC_") and ":c." in hgvs:
+        hgvs = hgvs.replace(":c.", ":g.")
+
+    tr = TranslatorBuilder(get_seqrepo())
+    allele = tr.translate_from(hgvs, "hgvs", do_normalize=False)
 
     if (
         not isinstance(allele.location, SequenceLocation)

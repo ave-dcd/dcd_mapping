@@ -1,26 +1,23 @@
-"""Manage local data resources.
+"""Handle requests for MaveDB data, such as scoresets or scoreset metadata.
 
-This module is responsible for handling requests for MaveDB data, such as scoresets
-or scoreset metadata. It should also instantiate any external resources needed for
-tasks like alignment. Finally, it also contains some methods and variables for
-intermediary data (e.g. BLAT query/output files).
-
-Much of this can/should be replaced by the ``mavetools`` library. (and/or
-``wags-tails``.)
+Much of this can/should be replaced by the ``mavetools`` library. (and/or ``wags-tails``.)
 """
 import csv
 import json
 import logging
-import os
+import tempfile
+import zipfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
-from urllib.parse import urlparse
 
-import click
 import requests
 from pydantic import ValidationError
-from tqdm import tqdm
 
+from dcd_mapping.resource_utils import (
+    LOCAL_STORE_PATH,
+    ResourceAcquisitionError,
+    http_download,
+)
 from dcd_mapping.schemas import ScoreRow, ScoresetMetadata, UniProtRef
 
 __all__ = [
@@ -30,57 +27,9 @@ __all__ = [
     "get_scoreset_records",
     "get_scoreset_metadata",
     "get_human_urns",
-    "get_ref_genome_file",
-    "get_mapping_tmp_dir",
 ]
 
 _logger = logging.getLogger(__name__)
-
-
-LOCAL_STORE_PATH = Path(
-    os.environ.get(
-        "MAVEDB_STORAGE_DIR", Path.home() / ".local" / "share" / "dcd-mapping"
-    )
-)
-if not LOCAL_STORE_PATH.exists():
-    LOCAL_STORE_PATH.mkdir(exist_ok=True, parents=True)
-
-
-class ResourceAcquisitionError(Exception):
-    """Raise when resource acquisition fails."""
-
-
-def _http_download(url: str, out_path: Path, silent: bool = True) -> Path:
-    """Download a file via HTTP.
-
-    :param url: location of file to retrieve
-    :param out_path: location to save file to
-    :param silent: show TQDM progress bar if true
-    :return: Path if download successful
-    :raise requests.HTTPError: if request is unsuccessful
-    """
-    click.echo(f"Downloading {out_path.name} to {out_path.parents[0].absolute()}")
-    with requests.get(url, stream=True, timeout=30) as r:
-        r.raise_for_status()
-        total_size = int(r.headers.get("content-length", 0))
-        with out_path.open("wb") as h:
-            if not silent:
-                with tqdm(
-                    total=total_size,
-                    unit="B",
-                    unit_scale=True,
-                    desc=out_path.name,
-                    ncols=80,
-                ) as progress_bar:
-                    for chunk in r.iter_content(chunk_size=8192):
-                        if chunk:
-                            h.write(chunk)
-                            progress_bar.update(len(chunk))
-            else:
-                for chunk in r.iter_content(chunk_size=8192):
-                    if chunk:
-                        h.write(chunk)
-    return out_path
 
 
 def get_scoreset_urns() -> Set[str]:
@@ -245,8 +194,24 @@ def _load_scoreset_records(path: Path) -> List[ScoreRow]:
     return scores_data
 
 
+def _get_experiment_53_scores(outfile: Path, silent: bool) -> None:
+    """Scores for `urn:mavedb:00000053-a-1` can be hard to acquire from the server
+    on account of their considerable size. This method uses a basic workaround to fetch
+    a copy hosted on a GitHub issue until we have a final resolution.
+    """
+    url = "https://github.com/VariantEffect/mavedb-api/files/13746791/00000053-a-1.zip"
+    with tempfile.NamedTemporaryFile() as temp_file:
+        path = Path(temp_file.name)
+        http_download(url, path, silent)
+        with zipfile.ZipFile(path, "r") as zip_ref:
+            with zip_ref.open("00000053-a-1/00000053-a-1.scores.csv") as file:
+                contents = file.read()
+            with outfile.open("wb") as f:
+                f.write(contents)
+
+
 def get_scoreset_records(
-    scoreset_urn: str, silent: bool = True, dcd_mapping_dir: Optional[Path] = None
+    urn: str, silent: bool = True, dcd_mapping_dir: Optional[Path] = None
 ) -> List[ScoreRow]:
     """Get scoreset records.
 
@@ -254,7 +219,7 @@ def get_scoreset_records(
     manually (i.e. you'll need to delete a scoreset file yourself for this method to
     fetch a new one). This could be improved in future versions.
 
-    :param scoreset_urn: URN for scoreset
+    :param urn: URN for scoreset
     :param silent: if true, suppress console output
     :param dcd_mapping_dir: optionally declare save location for records
     :return: Array of individual ScoreRow objects, containing information like protein
@@ -263,55 +228,18 @@ def get_scoreset_records(
     """
     if not dcd_mapping_dir:
         dcd_mapping_dir = LOCAL_STORE_PATH
-    scores_csv = dcd_mapping_dir / f"{scoreset_urn}_scores.csv"
+    scores_csv = dcd_mapping_dir / f"{urn}_scores.csv"
     # TODO use smarter/more flexible caching methods
     if not scores_csv.exists():
-        url = f"https://api.mavedb.org/api/v1/score-sets/{scoreset_urn}/scores"
-        try:
-            _http_download(url, scores_csv, silent)
-        except requests.HTTPError as e:
-            msg = f"HTTPError when fetching scores CSV from {url}"
-            _logger.error(msg)
-            raise ResourceAcquisitionError(msg) from e
+        if urn == "urn:mavedb:00000053-a-1":
+            _get_experiment_53_scores(scores_csv, silent)
+        else:
+            url = f"https://api.mavedb.org/api/v1/score-sets/{urn}/scores"
+            try:
+                http_download(url, scores_csv, silent)
+            except requests.HTTPError as e:
+                msg = f"HTTPError when fetching scores CSV from {url}"
+                _logger.error(msg)
+                raise ResourceAcquisitionError(msg) from e
 
     return _load_scoreset_records(scores_csv)
-
-
-def get_ref_genome_file(
-    silent: bool = True, dcd_mapping_dir: Optional[Path] = None
-) -> Path:
-    """Acquire reference genome file in 2bit format from UCSC.
-
-    :param build: genome build to acquire
-    :param silent: if True, suppress console output
-    :param dcd_mapping_dir: optionally declare genome file storage location
-    :return: path to acquired file
-    :raise ResourceAcquisitionError: if unable to acquire file.
-    """
-    url = "https://hgdownload.cse.ucsc.edu/goldenpath/hg38/bigZips/hg38.2bit"
-    parsed_url = urlparse(url)
-    if not dcd_mapping_dir:
-        dcd_mapping_dir = LOCAL_STORE_PATH
-    genome_file = dcd_mapping_dir / Path(parsed_url.path).name
-    # this file shouldn't change, so no need to think about more advanced caching
-    if not genome_file.exists():
-        try:
-            _http_download(url, genome_file, silent)
-        except requests.HTTPError as e:
-            msg = f"HTTPError when fetching reference genome file from {url}"
-            _logger.error(msg)
-            raise ResourceAcquisitionError(msg) from e
-    return genome_file
-
-
-def get_mapping_tmp_dir() -> Path:
-    """Acquire app-specific "tmp" directory. It's not actually temporary because it's
-    manually maintained, but we need a slightly more durable file location than what the
-    system tmp directory can provide. Used for storing small, consistently-named files
-    like the BLAT query and results files.
-
-    :return: path to temporary file directory
-    """
-    tmp = LOCAL_STORE_PATH / "tmp"
-    tmp.mkdir(exist_ok=True)
-    return tmp

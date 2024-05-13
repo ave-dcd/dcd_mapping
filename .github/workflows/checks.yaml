@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v3
 
@@ -21,7 +21,7 @@ jobs:
 
       - name: Run tests
         # only run tests known to work in CI
-        run: python3 -m pytest tests/unit/test_resources.py
+        run: python3 -m pytest tests/unit/test_resources.py tests/unit/test_vrs_map.py
   lint:
     runs-on: ubuntu-latest
     steps:

@@ -1,10 +1,16 @@
 """Provide command-line interface for accessing mapping functions."""
 import asyncio
 import logging
+from pathlib import Path
+from typing import Optional
 
 import click
 
+from dcd_mapping.align import AlignmentError
 from dcd_mapping.main import map_scoreset_urn
+from dcd_mapping.resource_utils import ResourceAcquisitionError
+from dcd_mapping.transcripts import TxSelectError
+from dcd_mapping.vrs_map import VrsMapError
 
 _logger = logging.getLogger(__name__)
 
@@ -20,14 +26,13 @@ _logger = logging.getLogger(__name__)
     help="Enable debug logging",
 )
 @click.option(
-    "--cache_align",
-    "-c",
-    is_flag=True,
-    show_default=True,
-    default=False,
-    help="Enable caching for alignment results. Mostly useful for development/debugging.",
+    "--output",
+    "-o",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Desired location at which output file should be saved",
 )
-def cli(urn: str, debug: bool, cache_align: bool) -> None:
+def cli(urn: str, debug: bool, output: Optional[Path]) -> None:
     """Get VRS mapping on preferred transcript for URN.
 
     For example:
@@ -37,7 +42,6 @@ def cli(urn: str, debug: bool, cache_align: bool) -> None:
     \f
     :param urn: scoreset URN
     :param debug: if True, enable debug logging
-    :param cache_align: if True, save alignment output and reuse when available
     """  # noqa: D301
     log_level = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(
@@ -47,7 +51,10 @@ def cli(urn: str, debug: bool, cache_align: bool) -> None:
         force=True,
     )
     _logger.debug("debug logging enabled")
-    asyncio.run(map_scoreset_urn(urn, silent=False, cache_align=cache_align))
+    try:
+        asyncio.run(map_scoreset_urn(urn, silent=False, output_path=output))
+    except (AlignmentError, TxSelectError, VrsMapError, ResourceAcquisitionError):
+        click.get_current_context().exit(1)
 
 
 if __name__ == "__main__":

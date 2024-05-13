@@ -1,11 +1,4 @@
-"""Select best reference sequence.
-
-Outstanding questions/confusion
--------------------------------
-* ``urn:mavedb:00000097-n-1``: unable to find any matching transcripts
-* Lots of scoresets (esp. 2023-) giving index errors in offset calculation
-* Remove MANE sorting once upstream sorting is confirmed
-"""
+"""Select best reference sequence."""
 import logging
 import re
 from typing import List, Optional
@@ -37,7 +30,7 @@ from dcd_mapping.schemas import (
     TxSelectResult,
 )
 
-__all__ = ["select_transcript"]
+__all__ = ["select_transcript", "TxSelectError"]
 
 _logger = logging.getLogger(__name__)
 
@@ -211,14 +204,14 @@ async def _select_protein_reference(
 
 
 def _offset_target_sequence(metadata: ScoresetMetadata, records: List[ScoreRow]) -> int:
-    """Find start location in target sequence (it's not always 0)
+    """Find start location in target sequence
 
-    :param metadata:
-    :param records:
+    :param metadata: MaveDB metadata for score set
+    :param records: individual score records (including MAVE-HGVS descriptions)
     :return: starting index position (may be 0)
     """
     if not isinstance(records[0].hgvs_pro, str) or records[0].hgvs_pro.startswith("NP"):
-        return 0  # TODO explain?
+        return 0
     protein_change_list = [rec.hgvs_pro.lstrip("p.") for rec in records]
 
     # build table of parseable amino acids by reference location on target sequence
@@ -273,8 +266,7 @@ def _offset_target_sequence(metadata: ScoresetMetadata, records: List[ScoreRow])
                 protein_sequence[i + p1 - p0] == amino_acids_by_position[p1],
                 protein_sequence[i + p2 - p0] == amino_acids_by_position[p2],
                 protein_sequence[i + p3 - p0] == amino_acids_by_position[p3],
-                protein_sequence[i + p4 - p0]
-                == amino_acids_by_position[p4],  # TODO problem here-ish
+                protein_sequence[i + p4 - p0] == amino_acids_by_position[p4],
             ]
         ):
             if i + 1 == min(amino_acids_by_position.keys()) or i + 2 == min(
@@ -285,6 +277,36 @@ def _offset_target_sequence(metadata: ScoresetMetadata, records: List[ScoreRow])
                 offset = i
             break
     return offset
+
+
+def _handle_edge_cases(
+    urn: str, transcript_reference: TxSelectResult
+) -> TxSelectResult:
+    """Handle a few edge case scoresets
+
+    A handful of scoresets have known issues that require minor alterations of
+    start position and sequence values. This method performs them if necessary and
+    returns a transcript selection object.
+    """
+    if urn.startswith(("urn:mavedb:00000047", "urn:mavedb:00000048")):
+        _logger.warning(
+            "Setting transcript start = 0 -- there is discordance between actual and expected amino acid locations in experiments 47 and 48"
+        )
+        transcript_reference.start = 0
+        transcript_reference.sequence = "M" + transcript_reference.sequence
+    elif urn.startswith("urn:mavedb:00000058-a-1"):
+        _logger.warning(
+            "urn:mavedb:00000058-a-1 describes the starting residue as Asp2, but the starting residue is D -- manually reducing offset by 1 to reflect start of Met1."
+        )
+        transcript_reference.start = 670
+        transcript_reference.sequence = "M" + transcript_reference.sequence
+    elif urn.startswith("urn:mavedb:00000053"):
+        _logger.warning(
+            "Experiment 53's target sequence is missing start residue E -- manually reducing offset by 1"
+        )
+        transcript_reference.start = 309
+        transcript_reference.sequence = "E" + transcript_reference.sequence
+    return transcript_reference
 
 
 async def select_transcript(
@@ -310,8 +332,9 @@ async def select_transcript(
     _logger.info(msg)
 
     if metadata.urn.startswith("urn:mavedb:00000097"):
-        # Score Sets in Experiment 97 are expressed in full HGVS strings,
-        # so additional mapping is not needed
+        _logger.info(
+            "Score sets in urn:mavedb:00000097 are already expressed in full HGVS strings -- using predefined results because additional hard-coding is unnecessary"
+        )
         return TxSelectResult(
             nm="NM_007294.3",
             np="NP_009225.1",
@@ -321,38 +344,16 @@ async def select_transcript(
             sequence=_get_protein_sequence(metadata.target_sequence),
         )
 
-    if metadata.target_gene_category == TargetType.PROTEIN_CODING:
-        transcript_reference = await _select_protein_reference(metadata, align_result)
-        if (
-            transcript_reference
-            and metadata.target_sequence_type == TargetSequenceType.DNA
-        ):
-            offset = _offset_target_sequence(metadata, records)
-            if offset:
-                transcript_reference.start = offset
-    else:
-        # can't provide transcripts for regulatory/noncoding scoresets
+    if metadata.target_gene_category != TargetType.PROTEIN_CODING:
+        _logger.debug("%s is regulatory/noncoding -- skipping transcript selection")
         return None
+    transcript_reference = await _select_protein_reference(metadata, align_result)
+    if transcript_reference and metadata.target_sequence_type == TargetSequenceType.DNA:
+        offset = _offset_target_sequence(metadata, records)
+        if offset:
+            transcript_reference.start = offset
 
-    if metadata.urn.startswith("urn:mavedb:00000047") or metadata.urn.startswith(
-        "urn:mavedb:00000048"
-    ):
-        # Set start = 0 as there is discordance between expected and actual
-        # amino acid locations
-        transcript_reference.start = 0
-        transcript_reference.sequence = "M" + transcript_reference.sequence
-
-    if metadata.urn.startswith("urn:mavedb:00000058-a-1"):
-        # Edge case. The starting residue is D, but this is described as Asp2. The
-        # offset should be reduced by 1 to reflect the start of Met1.
-        transcript_reference.start = 670
-        transcript_reference.sequence = "M" + transcript_reference.sequence
-
-    if metadata.urn.startswith("urn:mavedb:00000053"):
-        # Edge case. The target sequence is missing the start residue, E, so the offset
-        # should be reduced by 1.
-        transcript_reference.start = 309
-        transcript_reference.sequence = "E" + transcript_reference.sequence
+    transcript_reference = _handle_edge_cases(metadata.urn, transcript_reference)
 
     msg = "Reference selection complete."
     if not silent:
