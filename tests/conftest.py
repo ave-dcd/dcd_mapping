@@ -15,7 +15,6 @@ Notes on test cases:
 import json
 import os
 from pathlib import Path
-from typing import Optional
 from unittest.mock import MagicMock
 
 import pytest
@@ -84,7 +83,7 @@ def mock_seqrepo_access(mocker: MagicMock):
     """
 
     def _get_sequence(
-        identifier: str, start: Optional[str] = None, end: Optional[str] = None
+        identifier: str, start: str | None = None, end: str | None = None
     ) -> str:
         calls = {
             # 41-a-1
@@ -137,7 +136,7 @@ def mock_seqrepo_access(mocker: MagicMock):
         return calls[(identifier, start, end)]
 
     def _translate_sequence_identifier(
-        identifier: str, namespace: Optional[str] = None
+        identifier: str, namespace: str | None = None
     ) -> str:
         calls = {
             ("refseq:NP_938033.1", "ga4gh"): [

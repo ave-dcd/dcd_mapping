@@ -1,7 +1,6 @@
 """Select best reference sequence."""
 import logging
 import re
-from typing import List, Optional
 
 from Bio.Data.CodonTable import IUPACData
 from Bio.Seq import Seq
@@ -41,7 +40,7 @@ class TxSelectError(Exception):
 
 async def _get_compatible_transcripts(
     metadata: ScoresetMetadata, align_result: AlignmentResult
-) -> List[List[str]]:
+) -> list[list[str]]:
     """Acquire matching transcripts
 
     :param metadata: metadata for scoreset
@@ -66,7 +65,7 @@ async def _get_compatible_transcripts(
     return transcript_matches
 
 
-def _reduce_compatible_transcripts(matching_transcripts: List[List[str]]) -> List[str]:
+def _reduce_compatible_transcripts(matching_transcripts: list[list[str]]) -> list[str]:
     """Reduce list of list of transcripts to a list containing only entries present
     in each sublist
 
@@ -80,8 +79,8 @@ def _reduce_compatible_transcripts(matching_transcripts: List[List[str]]) -> Lis
 
 
 def _choose_best_mane_transcript(
-    mane_transcripts: List[ManeDescription],
-) -> Optional[ManeDescription]:
+    mane_transcripts: list[ManeDescription],
+) -> ManeDescription | None:
     """Choose best transcript (Select > Plus Clinical) given MANE status. This was
     originally a little longer but I think all we have to worry about is grabbing based
     on MANE status.
@@ -103,8 +102,8 @@ def _choose_best_mane_transcript(
 
 
 async def _get_longest_compatible_transcript(
-    transcripts: List[str],
-) -> Optional[TranscriptDescription]:
+    transcripts: list[str],
+) -> TranscriptDescription | None:
     """Get longest transcript from a list of compatible transcripts.
 
     I think there's a chance of some discord between UTA and Seqrepo and we might get
@@ -203,7 +202,7 @@ async def _select_protein_reference(
     )
 
 
-def _offset_target_sequence(metadata: ScoresetMetadata, records: List[ScoreRow]) -> int:
+def _offset_target_sequence(metadata: ScoresetMetadata, records: list[ScoreRow]) -> int:
     """Find start location in target sequence
 
     :param metadata: MaveDB metadata for score set
@@ -311,10 +310,10 @@ def _handle_edge_cases(
 
 async def select_transcript(
     metadata: ScoresetMetadata,
-    records: List[ScoreRow],
+    records: list[ScoreRow],
     align_result: AlignmentResult,
     silent: bool = False,
-) -> Optional[TxSelectResult]:
+) -> TxSelectResult | None:
     """Select appropriate human reference sequence for scoreset.
 
     * Unnecessary for regulatory/other noncoding scoresets which report genomic

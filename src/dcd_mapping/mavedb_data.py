@@ -8,7 +8,7 @@ import logging
 import tempfile
 import zipfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 import requests
 from pydantic import ValidationError
@@ -32,7 +32,7 @@ __all__ = [
 _logger = logging.getLogger(__name__)
 
 
-def get_scoreset_urns() -> Set[str]:
+def get_scoreset_urns() -> set[str]:
     """Fetch all scoreset URNs. Since species is annotated at the scoreset target level,
     we can't yet filter on anything like `homo sapien` -- meaning this is fairly slow.
 
@@ -48,7 +48,7 @@ def get_scoreset_urns() -> Set[str]:
     return {urn for urns in scoreset_urn_lists for urn in urns}
 
 
-def _metadata_response_is_human(json_response: Dict) -> bool:
+def _metadata_response_is_human(json_response: dict) -> bool:
     """Check that response from scoreset metadata API refers to a human genome target.
 
     :param json_response: response from scoreset metadata API
@@ -65,14 +65,14 @@ def _metadata_response_is_human(json_response: Dict) -> bool:
     return False
 
 
-def get_human_urns() -> List[str]:
+def get_human_urns() -> list[str]:
     """Fetch all human scoreset URNs. Pretty slow, shouldn't be used frequently because
     it requires requesting every single scoreset.
 
     :return: list of human scoreset URNs
     """
     scoreset_urns = get_scoreset_urns()
-    human_scoresets: List[str] = []
+    human_scoresets: list[str] = []
     for urn in scoreset_urns:
         r = requests.get(f"https://api.mavedb.org/api/v1/score-sets/{urn}", timeout=30)
         try:
@@ -87,7 +87,7 @@ def get_human_urns() -> List[str]:
     return human_scoresets
 
 
-def _get_uniprot_ref(scoreset_json: Dict[str, Any]) -> Optional[UniProtRef]:
+def _get_uniprot_ref(scoreset_json: dict[str, Any]) -> UniProtRef | None:
     """Extract UniProt reference from scoreset metadata if available.
 
     :param scoreset_json: parsed JSON from scoresets API
@@ -106,8 +106,8 @@ def _get_uniprot_ref(scoreset_json: Dict[str, Any]) -> Optional[UniProtRef]:
 
 
 def get_raw_scoreset_metadata(
-    scoreset_urn: str, dcd_mapping_dir: Optional[Path] = None
-) -> Dict:
+    scoreset_urn: str, dcd_mapping_dir: Path | None = None
+) -> dict:
     """Get raw (original JSON) metadata for scoreset.
 
     Only hit the MaveDB API if unavailable locally. That means data must be refreshed
@@ -141,7 +141,7 @@ def get_raw_scoreset_metadata(
 
 
 def get_scoreset_metadata(
-    scoreset_urn: str, dcd_mapping_dir: Optional[Path] = None
+    scoreset_urn: str, dcd_mapping_dir: Path | None = None
 ) -> ScoresetMetadata:
     """Acquire metadata for scoreset.
 
@@ -180,13 +180,13 @@ def get_scoreset_metadata(
     return structured_data
 
 
-def _load_scoreset_records(path: Path) -> List[ScoreRow]:
+def _load_scoreset_records(path: Path) -> list[ScoreRow]:
     """Load scoreset records from CSV file.
 
     This method is intentionally identified as "private", but is refactored out for
     use during testing.
     """
-    scores_data: List[ScoreRow] = []
+    scores_data: list[ScoreRow] = []
     with path.open() as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
@@ -211,8 +211,8 @@ def _get_experiment_53_scores(outfile: Path, silent: bool) -> None:
 
 
 def get_scoreset_records(
-    urn: str, silent: bool = True, dcd_mapping_dir: Optional[Path] = None
-) -> List[ScoreRow]:
+    urn: str, silent: bool = True, dcd_mapping_dir: Path | None = None
+) -> list[ScoreRow]:
     """Get scoreset records.
 
     Only hit the MaveDB API if unavailable locally. That means data must be refreshed

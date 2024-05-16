@@ -2,7 +2,6 @@
 import asyncio
 import logging
 from pathlib import Path
-from typing import Optional
 
 import click
 
@@ -32,7 +31,7 @@ _logger = logging.getLogger(__name__)
     default=None,
     help="Desired location at which output file should be saved",
 )
-def cli(urn: str, debug: bool, output: Optional[Path]) -> None:
+def cli(urn: str, debug: bool, output: Path | None) -> None:
     """Get VRS mapping on preferred transcript for URN.
 
     For example:

@@ -2,7 +2,6 @@
 import json
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import hgvs.edit
 import hgvs.location
@@ -179,7 +178,7 @@ def get_vod_postmapped(allele: dict) -> dict:
     }
 
 
-def get_vod_haplotype(allele_list: List[dict]) -> dict:
+def get_vod_haplotype(allele_list: list[dict]) -> dict:
     """Define VOD model for haplotype
 
     :param allele_list: A list of VRS allele dictionaries
@@ -191,7 +190,7 @@ def get_vod_haplotype(allele_list: List[dict]) -> dict:
 def get_computed_reference_sequence(
     ss: str,
     layer: AnnotationLayer,
-    tx_output: Optional[TxSelectResult] = None,
+    tx_output: TxSelectResult | None = None,
 ) -> ComputedReferenceSequence:
     """Report the computed reference sequence for a score set
 
@@ -218,8 +217,8 @@ def get_computed_reference_sequence(
 
 def get_mapped_reference_sequence(
     layer: AnnotationLayer,
-    tx_output: Optional[TxSelectResult] = None,
-    align_result: Optional[AlignmentResult] = None,
+    tx_output: TxSelectResult | None = None,
+    align_result: AlignmentResult | None = None,
 ) -> MappedReferenceSequence:
     """Report the mapped reference sequence for a score set
 
@@ -248,7 +247,7 @@ def get_mapped_reference_sequence(
     )
 
 
-def _set_layer(ss: str, mappings: List[VrsObject1_x]) -> AnnotationLayer:
+def _set_layer(ss: str, mappings: list[VrsObject1_x]) -> AnnotationLayer:
     if ss.startswith("urn:mavedb:00000097"):
         return AnnotationLayer.PROTEIN
     for var in mappings:
@@ -257,7 +256,7 @@ def _set_layer(ss: str, mappings: List[VrsObject1_x]) -> AnnotationLayer:
     return AnnotationLayer.PROTEIN
 
 
-def _format_score_mapping(var: VrsObject1_x, layer: AnnotationLayer) -> Optional[Dict]:
+def _format_score_mapping(var: VrsObject1_x, layer: AnnotationLayer) -> dict | None:
     if var and var.layer == layer:
         if "members" in var.pre_mapped_variants:
             pre_mapped_members = []
@@ -283,10 +282,10 @@ def _format_score_mapping(var: VrsObject1_x, layer: AnnotationLayer) -> Optional
 
 def save_mapped_output_json(
     ss: str,
-    mappings: List[VrsObject1_x],
+    mappings: list[VrsObject1_x],
     align_result: AlignmentResult,
-    tx_output: Optional[TxSelectResult] = None,
-    output_path: Optional[Path] = None,
+    tx_output: TxSelectResult | None = None,
+    output_path: Path | None = None,
 ) -> None:
     """Save mapping output for a score set in a JSON file
 
@@ -316,7 +315,7 @@ def save_mapped_output_json(
         mapped_scores.append(formatted_score_mapping)
     mapped_ss_output["mapped_scores"] = mapped_scores
 
-    ss = ss.strip("urn:mavedb:")  # noqa: B005
+    ss = ss.removeprefix("urn:mavedb:")
     if not output_path:
         output_path = LOCAL_STORE_PATH / f"{ss}_mapping.json"
 
@@ -324,7 +323,7 @@ def save_mapped_output_json(
         json.dump(mapped_ss_output, file, indent=4)
 
 
-def _format_start_end(ss: str, start: int, end: int) -> List[int]:
+def _format_start_end(ss: str, start: int, end: int) -> list[int]:
     """Format start and end coordinates for vrs_ref_allele_seq for known edge cases
 
     :param ss: score set
@@ -346,10 +345,10 @@ def _format_start_end(ss: str, start: int, end: int) -> List[int]:
 
 
 def annotate(
-    tx_select_results: Optional[TxSelectResult],
-    vrs_results: List[VrsObject1_x],
+    tx_select_results: TxSelectResult | None,
+    vrs_results: list[VrsObject1_x],
     metadata: ScoresetMetadata,
-) -> List[VrsObject1_x]:
+) -> list[VrsObject1_x]:
     """TODO"""
     sr = get_seqrepo()
     for var in vrs_results:

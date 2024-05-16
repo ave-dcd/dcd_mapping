@@ -2,7 +2,6 @@
 import json
 import shutil
 from pathlib import Path
-from typing import Dict
 
 import pytest
 import requests_mock
@@ -30,7 +29,7 @@ def scoreset_metadata_response(fixture_data_dir: Path):
 
 
 def test_get_scoreset_metadata(
-    resources_data_dir: Path, scoreset_metadata_response: Dict
+    resources_data_dir: Path, scoreset_metadata_response: dict
 ):
     urn = "urn:mavedb:00000093-a-1"
     with requests_mock.Mocker() as m:
