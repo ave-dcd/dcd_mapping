@@ -29,7 +29,7 @@ from dcd_mapping.schemas import (
     ScoresetMetadata,
     TargetSequenceType,
     TxSelectResult,
-    VrsObject1_x,
+    VrsMapping1_3,
 )
 
 _logger = logging.getLogger(__name__)
@@ -247,7 +247,7 @@ def get_mapped_reference_sequence(
     )
 
 
-def _set_layer(ss: str, mappings: list[VrsObject1_x]) -> AnnotationLayer:
+def _set_layer(ss: str, mappings: list[VrsMapping1_3]) -> AnnotationLayer:
     if ss.startswith("urn:mavedb:00000097"):
         return AnnotationLayer.PROTEIN
     for var in mappings:
@@ -256,7 +256,7 @@ def _set_layer(ss: str, mappings: list[VrsObject1_x]) -> AnnotationLayer:
     return AnnotationLayer.PROTEIN
 
 
-def _format_score_mapping(var: VrsObject1_x, layer: AnnotationLayer) -> dict | None:
+def _format_score_mapping(var: VrsMapping1_3, layer: AnnotationLayer) -> dict | None:
     if var and var.layer == layer:
         if "members" in var.pre_mapped_variants:
             pre_mapped_members = []
@@ -282,7 +282,7 @@ def _format_score_mapping(var: VrsObject1_x, layer: AnnotationLayer) -> dict | N
 
 def save_mapped_output_json(
     ss: str,
-    mappings: list[VrsObject1_x],
+    mappings: list[VrsMapping1_3],
     align_result: AlignmentResult,
     tx_output: TxSelectResult | None = None,
     output_path: Path | None = None,
@@ -346,9 +346,9 @@ def _format_start_end(ss: str, start: int, end: int) -> list[int]:
 
 def annotate(
     tx_select_results: TxSelectResult | None,
-    vrs_results: list[VrsObject1_x],
+    vrs_results: list[VrsMapping1_3],
     metadata: ScoresetMetadata,
-) -> list[VrsObject1_x]:
+) -> list[VrsMapping1_3]:
     """TODO"""
     sr = get_seqrepo()
     for var in vrs_results:

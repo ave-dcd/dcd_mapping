@@ -168,7 +168,7 @@ class TxSelectResult(BaseModel):
 ###################### WORKING: ################################
 
 
-class VrsObject1_x(BaseModel):  # noqa: N801
+class VrsMapping1_3(BaseModel):  # noqa: N801
     """Define response object for VRS 1.x object"""
 
     mavedb_id: StrictStr
@@ -261,7 +261,7 @@ class VrsMapping(BaseModel):
             },
         }
 
-    def output_vrs_variations(self, layer: AnnotationLayer) -> VrsObject1_x:
+    def output_vrs_variations(self, layer: AnnotationLayer) -> VrsMapping1_3:
         """Construct VRS 1.3 compatible objects from 2.0a models.
 
         :param layer: The Annotation Layer (genomic or protein)
@@ -319,7 +319,7 @@ class VrsMapping(BaseModel):
         else:
             post_mapped_variants = post_mapped_variants[0]
 
-        return VrsObject1_x(
+        return VrsMapping1_3(
             mavedb_id=self.mavedb_id,
             pre_mapped_variants=pre_mapped_variants,
             post_mapped_variants=post_mapped_variants,

@@ -9,13 +9,13 @@ from dcd_mapping.schemas import (
     AlignmentResult,
     ScoresetMetadata,
     TxSelectResult,
-    VrsObject1_x,
+    VrsMapping1_3,
 )
 from dcd_mapping.vrs_map import vrs_map
 
 
 def _assert_correct_vrs_map(
-    mapping: VrsObject1_x, expected_mappings_data: dict[str, dict]
+    mapping: VrsMapping1_3, expected_mappings_data: dict[str, dict]
 ):
     assert (
         mapping.mavedb_id in expected_mappings_data
