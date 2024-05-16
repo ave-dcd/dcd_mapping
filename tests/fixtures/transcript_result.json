@@ -1,4 +1,12 @@
 {
+  "urn:mavedb:00000002-a-2": {
+    "nm": "NM_001130145.3",
+    "np": "NP_001123617.1",
+    "start": 169,
+    "is_full_match": true,
+    "transcript_mode": "mane_select",
+    "sequence": "DVPLPAGWEMAKTSSGQRYFLNHIDQTTTWQDPR"
+  },
   "urn:mavedb:00000099-a-1": {
     "nm": "NM_000539.3",
     "np": "NP_000530.1",

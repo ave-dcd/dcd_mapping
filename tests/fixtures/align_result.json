@@ -1,4 +1,38 @@
 {
+  "urn:mavedb:00000007-a-2": {
+    "chrom": "chr11",
+    "strand": 1,
+    "coverage": 100.0,
+    "ident_pct": 77.45098039215686,
+    "query_range": {
+      "start": 0,
+      "end": 102
+    },
+    "query_subranges": [
+      {
+        "start": 0,
+        "end": 60
+      },
+      {
+        "start": 60,
+        "end": 102
+      }
+    ],
+    "hit_range": {
+      "start": 102114329,
+      "end": 102162492
+    },
+    "hit_subranges": [
+      {
+        "start": 102114329,
+        "end": 102114389
+      },
+      {
+        "start": 102162450,
+        "end": 102162492
+      }
+    ]
+  },
   "urn:mavedb:00000099-a-1": {
     "chrom": "chr3",
     "strand": 1,
