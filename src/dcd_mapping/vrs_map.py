@@ -21,7 +21,7 @@ from dcd_mapping.schemas import (
     TargetType,
     TxSelectResult,
     VrsMapping,
-    VrsObject1_x,
+    VrsMapping1_3,
 )
 
 __all__ = ["vrs_map"]
@@ -69,7 +69,7 @@ def _map_protein_coding_pro(
     align_result: AlignmentResult,
     sequence_id: str,
     transcript: TxSelectResult,
-) -> VrsObject1_x | None:
+) -> VrsMapping1_3 | None:
     """Construct VRS object mapping for ``hgvs_pro`` variant column entry
 
     These arguments are a little lazy and could be pruned down later
@@ -159,7 +159,7 @@ def _map_protein_coding(
     records: list[ScoreRow],
     transcript: TxSelectResult,
     align_result: AlignmentResult,
-) -> list[VrsObject1_x]:
+) -> list[VrsMapping1_3]:
     """Perform mapping on protein coding experiment results
 
     :param metadata: The metadata for a score set
@@ -168,7 +168,7 @@ def _map_protein_coding(
     :param align_results: The alignment data for a score set
     :return: A list of mappings
     """
-    variations: list[VrsObject1_x] = []
+    variations: list[VrsMapping1_3] = []
     if metadata.target_sequence_type == TargetSequenceType.DNA:
         sequence = str(
             Seq(metadata.target_sequence).translate(table="1", stop_symbol="")
@@ -223,7 +223,7 @@ def _map_regulatory_noncoding(
     metadata: ScoresetMetadata,
     records: list[ScoreRow],
     align_result: AlignmentResult,
-) -> list[VrsObject1_x]:
+) -> list[VrsMapping1_3]:
     """Perform mapping on noncoding/regulatory experiment results
 
     :param metadata: metadata for URN
@@ -231,7 +231,7 @@ def _map_regulatory_noncoding(
     :param align_result: An AlignmentResult object for a score set
     :return: A list of VRS mappings
     """
-    variations: list[VrsObject1_x] = []
+    variations: list[VrsMapping1_3] = []
     sequence_id = store_sequence(metadata.target_sequence)
 
     for row in records:
@@ -380,7 +380,7 @@ def vrs_map(
     records: list[ScoreRow],
     transcript: TxSelectResult | None = None,
     silent: bool = True,
-) -> list[VrsObject1_x] | None:
+) -> list[VrsMapping1_3] | None:
     """Given a description of a MAVE scoreset and an aligned transcript, generate
     the corresponding VRS objects.
 
