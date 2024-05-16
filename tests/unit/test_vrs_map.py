@@ -2,6 +2,7 @@
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import pytest
 from cool_seq_tool.schemas import AnnotationLayer
 
 from dcd_mapping.mavedb_data import _load_scoreset_records
@@ -28,18 +29,38 @@ def _assert_correct_vrs_map(
     assert mapping.post_mapped_variants["id"] == expected["post_mapped"]
 
 
-def test_41_a_1(
+@pytest.fixture()
+def get_fixtures(
     fixture_data_dir: Path,
     scoreset_metadata_fixture: dict[str, ScoresetMetadata],
     align_result_fixture: dict[str, AlignmentResult],
     transcript_results_fixture: dict[str, TxSelectResult],
+):
+    def _get_fixtures(urn: str):
+        return (
+            _load_scoreset_records(fixture_data_dir / f"{urn}_scores.csv"),
+            scoreset_metadata_fixture[urn],
+            align_result_fixture[urn],
+            transcript_results_fixture[urn],
+        )
+
+    return _get_fixtures
+
+
+def test_2_a_2(
+    get_fixtures,
+    # mock_seqrepo_access: MagicMock,
+):
+    urn = "urn:mavedb:00000002-a-2"
+    records, metadata, align_result, tx_result = get_fixtures(urn)
+
+
+def test_41_a_1(
+    get_fixtures,
     mock_seqrepo_access: MagicMock,
 ):
     urn = "urn:mavedb:00000041-a-1"
-    records = _load_scoreset_records(fixture_data_dir / f"{urn}_scores.csv")
-    metadata = scoreset_metadata_fixture[urn]
-    align_result = align_result_fixture[urn]
-    tx_result = transcript_results_fixture[urn]
+    records, metadata, align_result, tx_result = get_fixtures(urn)
 
     expected_mappings_data = {
         "urn:mavedb:00000041-a-1#548": {
@@ -97,17 +118,11 @@ def test_41_a_1(
 
 
 def test_99_a_1(
-    fixture_data_dir: Path,
-    scoreset_metadata_fixture: dict[str, ScoresetMetadata],
-    align_result_fixture: dict[str, AlignmentResult],
-    transcript_results_fixture: dict[str, TxSelectResult],
+    get_fixtures,
     mock_seqrepo_access: MagicMock,
 ):
     urn = "urn:mavedb:00000099-a-1"
-    records = _load_scoreset_records(fixture_data_dir / f"{urn}_scores.csv")
-    metadata = scoreset_metadata_fixture[urn]
-    align_result = align_result_fixture[urn]
-    tx_result = transcript_results_fixture[urn]
+    records, metadata, align_result, tx_result = get_fixtures(urn)
 
     expected_mappings_data = {
         "urn:mavedb:00000099-a-1#8": {
@@ -174,17 +189,11 @@ def test_99_a_1(
 
 
 def test_103_c_1(
-    fixture_data_dir: Path,
-    scoreset_metadata_fixture: dict[str, ScoresetMetadata],
-    align_result_fixture: dict[str, AlignmentResult],
-    transcript_results_fixture: dict[str, TxSelectResult],
+    get_fixtures,
     mock_seqrepo_access: MagicMock,
 ):
     urn = "urn:mavedb:00000103-c-1"
-    records = _load_scoreset_records(fixture_data_dir / f"{urn}_scores.csv")
-    metadata = scoreset_metadata_fixture[urn]
-    align_result = align_result_fixture[urn]
-    tx_result = transcript_results_fixture[urn]
+    records, metadata, align_result, tx_result = get_fixtures(urn)
 
     expected_mappings_data = {
         "urn:mavedb:00000103-c-1#376": {
@@ -236,17 +245,11 @@ def test_103_c_1(
 
 
 def test_1_b_2(
-    fixture_data_dir: Path,
-    scoreset_metadata_fixture: dict[str, ScoresetMetadata],
-    align_result_fixture: dict[str, AlignmentResult],
-    transcript_results_fixture: dict[str, TxSelectResult],
+    get_fixtures,
     mock_seqrepo_access: MagicMock,
 ):
     urn = "urn:mavedb:00000001-b-2"
-    records = _load_scoreset_records(fixture_data_dir / f"{urn}_scores.csv")
-    metadata = scoreset_metadata_fixture[urn]
-    align_result = align_result_fixture[urn]
-    tx_result = transcript_results_fixture[urn]
+    records, metadata, align_result, tx_result = get_fixtures(urn)
 
     mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
     assert mappings is not None
