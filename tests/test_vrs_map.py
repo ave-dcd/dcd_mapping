@@ -53,6 +53,19 @@ def test_2_a_2(
 ):
     urn = "urn:mavedb:00000002-a-2"
     records, metadata, align_result, tx_result = get_fixtures(urn)
+    expected_mappings_data = {}
+
+    mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
+    assert mappings is not None
+    assert len(mappings) == 3
+
+    for m in mappings:
+        _assert_correct_vrs_map(m, expected_mappings_data)
+
+    # store_calls = []
+    # for call in store_calls:
+    #     mock_seqrepo_access.sr.store.assert_any_call(*call)
+    # assert len(store_calls) == len(mock_seqrepo_access.sr.store.call_args_list)
 
 
 def test_41_a_1(
