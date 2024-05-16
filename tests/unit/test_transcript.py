@@ -7,8 +7,9 @@ Todo:
 
 """
 import re
+from collections.abc import Coroutine
 from pathlib import Path
-from typing import Any, Coroutine, Dict
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -148,9 +149,9 @@ def check_transcript_results_equality(actual: TxSelectResult, expected: TxSelect
 @pytest.mark.asyncio(scope="module")
 async def test_1_b_2(
     fixture_data_dir: Path,
-    scoreset_metadata_fixture: Dict[str, ScoresetMetadata],
-    align_result_fixture: Dict[str, AlignmentResult],
-    transcript_results_fixture: Dict[str, TxSelectResult],
+    scoreset_metadata_fixture: dict[str, ScoresetMetadata],
+    align_result_fixture: dict[str, AlignmentResult],
+    transcript_results_fixture: dict[str, TxSelectResult],
 ):
     urn = "urn:mavedb:00000001-b-2"
     metadata = scoreset_metadata_fixture[urn]
@@ -164,9 +165,9 @@ async def test_1_b_2(
 
 @pytest.mark.asyncio(scope="module")
 async def test_tx_src(
-    scoreset_metadata_fixture: Dict[str, ScoresetMetadata],
-    align_result_fixture: Dict[str, AlignmentResult],
-    transcript_results_fixture: Dict[str, TxSelectResult],
+    scoreset_metadata_fixture: dict[str, ScoresetMetadata],
+    align_result_fixture: dict[str, AlignmentResult],
+    transcript_results_fixture: dict[str, TxSelectResult],
 ):
     """Test transcript selection for urn:mavedb:00000041-a-1"""
     urn = "urn:mavedb:00000041-a-1"
@@ -181,9 +182,9 @@ async def test_tx_src(
 
 @pytest.mark.asyncio(scope="module")
 async def test_tx_scn5a(
-    scoreset_metadata_fixture: Dict[str, ScoresetMetadata],
-    align_result_fixture: Dict[str, AlignmentResult],
-    transcript_results_fixture: Dict[str, TxSelectResult],
+    scoreset_metadata_fixture: dict[str, ScoresetMetadata],
+    align_result_fixture: dict[str, AlignmentResult],
+    transcript_results_fixture: dict[str, TxSelectResult],
 ):
     """Test transcript selection for urn:mavedb:00000098-a-1"""
     urn = "urn:mavedb:00000098-a-1"
@@ -198,8 +199,8 @@ async def test_tx_scn5a(
 
 @pytest.mark.asyncio(scope="module")
 async def test_tx_hbb(
-    scoreset_metadata_fixture: Dict[str, ScoresetMetadata],
-    align_result_fixture: Dict[str, AlignmentResult],
+    scoreset_metadata_fixture: dict[str, ScoresetMetadata],
+    align_result_fixture: dict[str, AlignmentResult],
 ):
     """Test transcript selection for urn:mavedb:00000018-a-1"""
     urn = "urn:mavedb:00000018-a-1"
@@ -212,9 +213,9 @@ async def test_tx_hbb(
 
 @pytest.mark.asyncio(scope="module")
 async def test_tx_raf(
-    scoreset_metadata_fixture: Dict[str, ScoresetMetadata],
-    align_result_fixture: Dict[str, AlignmentResult],
-    transcript_results_fixture: Dict[str, TxSelectResult],
+    scoreset_metadata_fixture: dict[str, ScoresetMetadata],
+    align_result_fixture: dict[str, AlignmentResult],
+    transcript_results_fixture: dict[str, TxSelectResult],
 ):
     """Test transcript selection for urn:mavedb:00000061-h-1"""
     urn = "urn:mavedb:00000061-h-1"
@@ -229,9 +230,9 @@ async def test_tx_raf(
 
 @pytest.mark.asyncio(scope="module")
 async def test_tx_tp53(
-    scoreset_metadata_fixture: Dict[str, ScoresetMetadata],
-    align_result_fixture: Dict[str, AlignmentResult],
-    transcript_results_fixture: Dict[str, TxSelectResult],
+    scoreset_metadata_fixture: dict[str, ScoresetMetadata],
+    align_result_fixture: dict[str, AlignmentResult],
+    transcript_results_fixture: dict[str, TxSelectResult],
 ):
     """Test transcript selection for urn:mavedb:00000068-a-1"""
     urn = "urn:mavedb:00000068-a-1"

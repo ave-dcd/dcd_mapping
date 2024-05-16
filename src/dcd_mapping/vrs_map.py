@@ -1,6 +1,5 @@
 """Map transcripts to VRS objects."""
 import logging
-from typing import List, Optional
 
 import click
 from Bio.Seq import Seq
@@ -39,8 +38,8 @@ def _create_hgvs_strings(
     alignment: AlignmentResult,
     raw_description: str,
     layer: AnnotationLayer,
-    tx: Optional[TxSelectResult] = None,
-) -> List[str]:
+    tx: TxSelectResult | None = None,
+) -> list[str]:
     """Properly format MAVE variant strings
     :param align_results: Alignment results for a score set
     :param raw_description: The variant list as expressed in MaveDB
@@ -70,7 +69,7 @@ def _map_protein_coding_pro(
     align_result: AlignmentResult,
     sequence_id: str,
     transcript: TxSelectResult,
-) -> Optional[VrsObject1_x]:
+) -> VrsObject1_x | None:
     """Construct VRS object mapping for ``hgvs_pro`` variant column entry
 
     These arguments are a little lazy and could be pruned down later
@@ -157,10 +156,10 @@ def store_sequence(sequence: str) -> str:
 
 def _map_protein_coding(
     metadata: ScoresetMetadata,
-    records: List[ScoreRow],
+    records: list[ScoreRow],
     transcript: TxSelectResult,
     align_result: AlignmentResult,
-) -> List[VrsObject1_x]:
+) -> list[VrsObject1_x]:
     """Perform mapping on protein coding experiment results
 
     :param metadata: The metadata for a score set
@@ -169,7 +168,7 @@ def _map_protein_coding(
     :param align_results: The alignment data for a score set
     :return: A list of mappings
     """
-    variations: List[VrsObject1_x] = []
+    variations: list[VrsObject1_x] = []
     if metadata.target_sequence_type == TargetSequenceType.DNA:
         sequence = str(
             Seq(metadata.target_sequence).translate(table="1", stop_symbol="")
@@ -222,9 +221,9 @@ def _map_protein_coding(
 
 def _map_regulatory_noncoding(
     metadata: ScoresetMetadata,
-    records: List[ScoreRow],
+    records: list[ScoreRow],
     align_result: AlignmentResult,
-) -> List[VrsObject1_x]:
+) -> list[VrsObject1_x]:
     """Perform mapping on noncoding/regulatory experiment results
 
     :param metadata: metadata for URN
@@ -232,7 +231,7 @@ def _map_regulatory_noncoding(
     :param align_result: An AlignmentResult object for a score set
     :return: A list of VRS mappings
     """
-    variations: List[VrsObject1_x] = []
+    variations: list[VrsObject1_x] = []
     sequence_id = store_sequence(metadata.target_sequence)
 
     for row in records:
@@ -277,13 +276,13 @@ def _map_regulatory_noncoding(
 
 
 def _get_variation(
-    hgvs_strings: List[str],
+    hgvs_strings: list[str],
     layer: AnnotationLayer,
     sequence_id: str,
     alignment: AlignmentResult,
     pre_map: bool,
     offset: int = 0,
-) -> Optional[List[Allele]]:
+) -> list[Allele] | None:
     """Create variation (allele).
 
     :param hgvs_strings: The HGVS suffix that represents a variant
@@ -299,7 +298,7 @@ def _get_variation(
     """
     if sequence_id.startswith("ga4gh:"):
         sequence_id = sequence_id[6:]
-    alleles: List[Allele] = []
+    alleles: list[Allele] = []
     for hgvs_string in hgvs_strings:
         if (
             hgvs_string.endswith((".=", ")", "X")) or "?" in hgvs_string
@@ -336,7 +335,7 @@ def _get_variation(
                     allele.location.end = allele.location.start + diff2
                 else:
                     for query_subrange, hit_subrange in zip(  # noqa: B007  # TODO remove hit_subrange?
-                        alignment.query_subranges, alignment.hit_subranges
+                        alignment.query_subranges, alignment.hit_subranges, strict=False
                     ):
                         if start >= query_subrange.start and start < query_subrange.end:
                             break
@@ -378,10 +377,10 @@ def _get_variation(
 def vrs_map(
     metadata: ScoresetMetadata,
     align_result: AlignmentResult,
-    records: List[ScoreRow],
-    transcript: Optional[TxSelectResult] = None,
+    records: list[ScoreRow],
+    transcript: TxSelectResult | None = None,
     silent: bool = True,
-) -> Optional[List[VrsObject1_x]]:
+) -> list[VrsObject1_x] | None:
     """Given a description of a MAVE scoreset and an aligned transcript, generate
     the corresponding VRS objects.
 

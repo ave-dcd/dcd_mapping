@@ -1,6 +1,6 @@
 """Provide class definitions for commonly-used information objects."""
 from enum import Enum
-from typing import Dict, List, Literal, Optional, Union
+from typing import Literal
 
 from cool_seq_tool.schemas import AnnotationLayer, Strand, TranscriptPriority
 from ga4gh.core import sha512t24u
@@ -38,7 +38,7 @@ class ScoresetMetadata(BaseModel):
     target_gene_category: TargetType
     target_sequence: str
     target_sequence_type: TargetSequenceType
-    target_uniprot_ref: Optional[UniProtRef] = None
+    target_uniprot_ref: UniProtRef | None = None
 
 
 class ScoreRow(BaseModel):
@@ -61,9 +61,9 @@ class SequenceRange(BaseModel):
 class GeneLocation(BaseModel):
     """Gene location info, gathered from normalizer result. Likely to be incomplete."""
 
-    chromosome: Optional[str] = None
-    start: Optional[int] = None
-    end: Optional[int] = None
+    chromosome: str | None = None
+    start: int | None = None
+    end: int | None = None
 
 
 class ReferenceSequence(BaseModel):
@@ -82,17 +82,17 @@ class ComputedReferenceSequence(ReferenceSequence):
 class MappedReferenceSequence(ReferenceSequence):
     """Define metadata describing a mapped, human reference sequence"""
 
-    sequence_accessions: List[StrictStr]
+    sequence_accessions: list[StrictStr]
 
 
 class MappedOutput(BaseModel):
     """Define output format for mapped score set"""
 
-    pre_mapped: Union[dict, List[dict]]
-    post_mapped: Union[dict, List[dict]]
+    pre_mapped: dict | list[dict]
+    post_mapped: dict | list[dict]
     mavedb_id: StrictStr
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
-    score: Optional[StrictFloat]
+    score: StrictFloat | None
 
 
 class VrsRefAlleleSeq(BaseModel):
@@ -122,9 +122,9 @@ class AlignmentResult(BaseModel):
     coverage: float
     ident_pct: float
     query_range: SequenceRange
-    query_subranges: List[SequenceRange]
+    query_subranges: list[SequenceRange]
     hit_range: SequenceRange
-    hit_subranges: List[SequenceRange]
+    hit_subranges: list[SequenceRange]
 
 
 class TranscriptDescription(BaseModel):
@@ -157,11 +157,11 @@ class ManeDescription(TranscriptDescription):
 class TxSelectResult(BaseModel):
     """Define response object from transcript selection process."""
 
-    nm: Optional[str] = None
+    nm: str | None = None
     np: str
     start: StrictInt
     is_full_match: StrictBool
-    transcript_mode: Optional[TranscriptPriority] = None
+    transcript_mode: TranscriptPriority | None = None
     sequence: str
 
 
@@ -172,8 +172,8 @@ class VrsObject1_x(BaseModel):  # noqa: N801
     """Define response object for VRS 1.x object"""
 
     mavedb_id: StrictStr
-    pre_mapped_variants: Dict
-    post_mapped_variants: Dict
+    pre_mapped_variants: dict
+    post_mapped_variants: dict
     score: str
     layer: AnnotationLayer
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
@@ -186,7 +186,7 @@ class VrsVersion(str, Enum):
     V2_X = "V2_X"
 
 
-def to_schema(allele: Allele, schema_from: VrsVersion, schema_to: VrsVersion) -> Dict:
+def to_schema(allele: Allele, schema_from: VrsVersion, schema_to: VrsVersion) -> dict:
     """Convert alleles to/from different versions of VRS"""
     if schema_from == VrsVersion.V2_X and schema_to == VrsVersion.V1_X:
         sequence = "" if not allele.state.sequence else allele.state.sequence.root
@@ -216,11 +216,11 @@ class VrsMapping(BaseModel):
     """Define pre-post mapping pair structure for VRS-structured variations."""
 
     mavedb_id: StrictStr
-    pre_mapped_protein: Optional[Union[Allele, List[Allele]]] = None
-    post_mapped_protein: Optional[Union[Allele, List[Allele]]] = None
-    pre_mapped_genomic: Optional[Union[Allele, List[Allele]]] = None
-    post_mapped_genomic: Optional[Union[Allele, List[Allele]]] = None
-    mapped_transcript: Optional[TranscriptDescription] = None
+    pre_mapped_protein: Allele | list[Allele] | None = None
+    post_mapped_protein: Allele | list[Allele] | None = None
+    pre_mapped_genomic: Allele | list[Allele] | None = None
+    post_mapped_genomic: Allele | list[Allele] | None = None
+    mapped_transcript: TranscriptDescription | None = None
     score: str
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
 
@@ -237,7 +237,7 @@ class VrsMapping(BaseModel):
         allele_raw = f'{{"location":"{location_serialized}","state":{{"sequence":"{sequence}","type":"LiteralSequenceExpression"}},"type":"Allele"}}'
         return sha512t24u(allele_raw.encode("ascii"))
 
-    def generate_allele_structure(self, var: Allele) -> Dict:
+    def generate_allele_structure(self, var: Allele) -> dict:
         """Generate VRS 1.x allele structure
         :param var: A VRS 2.0alpha allele
         :return A dictionary

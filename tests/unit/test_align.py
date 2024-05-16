@@ -20,13 +20,13 @@ def check_alignment_result_equality(actual: AlignmentResult, expected: Alignment
     assert actual.ident_pct == pytest.approx(expected.ident_pct)
     assert actual.query_range.start == expected.query_range.start
     assert actual.query_range.end == expected.query_range.end
-    for a, e in zip(actual.query_subranges, expected.query_subranges):
+    for a, e in zip(actual.query_subranges, expected.query_subranges, strict=False):
         assert a.start == e.start
         assert a.end == e.end
     assert len(actual.query_subranges) == len(expected.query_subranges)
     assert actual.hit_range.start == expected.hit_range.start
     assert actual.hit_range.end == expected.hit_range.end
-    for a, e in zip(actual.hit_subranges, expected.hit_subranges):
+    for a, e in zip(actual.hit_subranges, expected.hit_subranges, strict=False):
         assert a.start == e.start
         assert a.end == e.end
     assert len(actual.hit_subranges) == len(expected.hit_subranges)

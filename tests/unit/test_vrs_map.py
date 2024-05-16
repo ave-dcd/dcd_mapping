@@ -1,6 +1,5 @@
 """Test ``vrs_map.py``"""
 from pathlib import Path
-from typing import Dict
 from unittest.mock import MagicMock
 
 from cool_seq_tool.schemas import AnnotationLayer
@@ -16,7 +15,7 @@ from dcd_mapping.vrs_map import vrs_map
 
 
 def _assert_correct_vrs_map(
-    mapping: VrsObject1_x, expected_mappings_data: Dict[str, Dict]
+    mapping: VrsObject1_x, expected_mappings_data: dict[str, dict]
 ):
     assert (
         mapping.mavedb_id in expected_mappings_data
@@ -31,9 +30,9 @@ def _assert_correct_vrs_map(
 
 def test_41_a_1(
     fixture_data_dir: Path,
-    scoreset_metadata_fixture: Dict[str, ScoresetMetadata],
-    align_result_fixture: Dict[str, AlignmentResult],
-    transcript_results_fixture: Dict[str, TxSelectResult],
+    scoreset_metadata_fixture: dict[str, ScoresetMetadata],
+    align_result_fixture: dict[str, AlignmentResult],
+    transcript_results_fixture: dict[str, TxSelectResult],
     mock_seqrepo_access: MagicMock,
 ):
     urn = "urn:mavedb:00000041-a-1"
@@ -99,9 +98,9 @@ def test_41_a_1(
 
 def test_99_a_1(
     fixture_data_dir: Path,
-    scoreset_metadata_fixture: Dict[str, ScoresetMetadata],
-    align_result_fixture: Dict[str, AlignmentResult],
-    transcript_results_fixture: Dict[str, TxSelectResult],
+    scoreset_metadata_fixture: dict[str, ScoresetMetadata],
+    align_result_fixture: dict[str, AlignmentResult],
+    transcript_results_fixture: dict[str, TxSelectResult],
     mock_seqrepo_access: MagicMock,
 ):
     urn = "urn:mavedb:00000099-a-1"
@@ -176,9 +175,9 @@ def test_99_a_1(
 
 def test_103_c_1(
     fixture_data_dir: Path,
-    scoreset_metadata_fixture: Dict[str, ScoresetMetadata],
-    align_result_fixture: Dict[str, AlignmentResult],
-    transcript_results_fixture: Dict[str, TxSelectResult],
+    scoreset_metadata_fixture: dict[str, ScoresetMetadata],
+    align_result_fixture: dict[str, AlignmentResult],
+    transcript_results_fixture: dict[str, TxSelectResult],
     mock_seqrepo_access: MagicMock,
 ):
     urn = "urn:mavedb:00000103-c-1"
@@ -238,9 +237,9 @@ def test_103_c_1(
 
 def test_1_b_2(
     fixture_data_dir: Path,
-    scoreset_metadata_fixture: Dict[str, ScoresetMetadata],
-    align_result_fixture: Dict[str, AlignmentResult],
-    transcript_results_fixture: Dict[str, TxSelectResult],
+    scoreset_metadata_fixture: dict[str, ScoresetMetadata],
+    align_result_fixture: dict[str, AlignmentResult],
+    transcript_results_fixture: dict[str, TxSelectResult],
     mock_seqrepo_access: MagicMock,
 ):
     urn = "urn:mavedb:00000001-b-2"

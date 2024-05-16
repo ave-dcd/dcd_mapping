@@ -10,7 +10,6 @@ Data sources/handlers include:
 import logging
 import os
 from pathlib import Path
-from typing import List, Optional
 
 import polars as pl
 import requests
@@ -78,7 +77,7 @@ class CoolSeqToolBuilder:
         """
 
         class _AugmentedSeqRepoAccess(SeqRepoAccess):
-            def derive_refget_accession(self, ac: str) -> Optional[str]:
+            def derive_refget_accession(self, ac: str) -> str | None:
                 if ac is None:
                     return None
 
@@ -104,7 +103,7 @@ class CoolSeqToolBuilder:
                 lrg_refseqgene_path: Path = LRG_REFSEQGENE_PATH,
                 mane_data_path: Path = MANE_SUMMARY_PATH,
                 db_url: str = UTA_DB_URL,
-                sr: Optional[SeqRepo] = None,
+                sr: SeqRepo | None = None,
             ) -> None:
                 if not sr:
                     sr = SeqRepo(root_dir=SEQREPO_ROOT_DIR)
@@ -184,7 +183,7 @@ class TranslatorBuilder:
 # ----------------------------------- UTA ----------------------------------- #
 
 
-async def get_protein_accession(transcript: str) -> Optional[str]:
+async def get_protein_accession(transcript: str) -> str | None:
     """Retrieve protein accession for a transcript.
 
     :param transcript: transcript accession, e.g. ``"NM_002529.3"``
@@ -203,7 +202,7 @@ async def get_protein_accession(transcript: str) -> Optional[str]:
 
 async def get_transcripts(
     gene_symbol: str, chromosome_ac: str, start: int, end: int
-) -> List[str]:
+) -> list[str]:
     """Get transcript accessions matching given parameters (excluding non-coding RNA).
 
     TODO: may be able to successfully query with only one of gene symbol/chromosome ac.
@@ -233,7 +232,7 @@ async def get_transcripts(
 # ------------------------------ Gene Normalizer ------------------------------ #
 
 
-def _get_hgnc_symbol(term: str) -> Optional[str]:
+def _get_hgnc_symbol(term: str) -> str | None:
     """Fetch HGNC symbol from gene term.
 
     :param term: gene referent
@@ -248,7 +247,7 @@ def _get_hgnc_symbol(term: str) -> Optional[str]:
     return None
 
 
-def get_gene_symbol(metadata: ScoresetMetadata) -> Optional[str]:
+def get_gene_symbol(metadata: ScoresetMetadata) -> str | None:
     """Acquire HGNC gene symbol given provided metadata from scoreset.
 
     Right now, we use two sources for normalizing:
@@ -271,7 +270,7 @@ def get_gene_symbol(metadata: ScoresetMetadata) -> Optional[str]:
     return None
 
 
-def _normalize_gene(term: str) -> Optional[Gene]:
+def _normalize_gene(term: str) -> Gene | None:
     """Fetch normalizer response for gene term.
 
     :param term: gene name or referent to normalize
@@ -286,7 +285,7 @@ def _normalize_gene(term: str) -> Optional[Gene]:
 
 def _get_normalized_gene_response(
     metadata: ScoresetMetadata,
-) -> Optional[Gene]:
+) -> Gene | None:
     """Fetch best normalized concept given available scoreset metadata.
 
     :param metadata: salient scoreset metadata items
@@ -308,8 +307,8 @@ def _get_normalized_gene_response(
 
 
 def _get_genomic_interval(
-    extensions: List[Extension], src_name: str
-) -> Optional[GeneLocation]:
+    extensions: list[Extension], src_name: str
+) -> GeneLocation | None:
     """Extract start/end coords from extension list. Extensions in normalized genes
     can be of several different types, but we only want SequenceLocation data.
 
@@ -332,7 +331,7 @@ def _get_genomic_interval(
     return None
 
 
-def get_gene_location(metadata: ScoresetMetadata) -> Optional[GeneLocation]:
+def get_gene_location(metadata: ScoresetMetadata) -> GeneLocation | None:
     """Acquire gene location data from gene normalizer using metadata provided by
     scoreset.
 
@@ -404,7 +403,7 @@ def get_ucsc_chromosome_name(chromosome: str) -> str:
         raise KeyError from e
 
 
-def get_chromosome_identifier_from_vrs_id(sequence_id: str) -> Optional[str]:
+def get_chromosome_identifier_from_vrs_id(sequence_id: str) -> str | None:
     """Get NC_ identifier given a VRS sequence ID.
 
     :param sequence_id: identifier a la ``ga4gh:SQ.XXXXXX``
@@ -420,7 +419,7 @@ def get_chromosome_identifier_from_vrs_id(sequence_id: str) -> Optional[str]:
     return sorted_results[-1]
 
 
-def get_vrs_id_from_identifier(sequence_id: str) -> Optional[str]:
+def get_vrs_id_from_identifier(sequence_id: str) -> str | None:
     """Get GA4GH SQ identifier given an NP_ sequence id:
     :param: GA4GH SQ digest
     :raise KeyError: if unable to retrieve identifier
@@ -436,8 +435,8 @@ def get_vrs_id_from_identifier(sequence_id: str) -> Optional[str]:
 
 def get_sequence(
     sequence_id: str,
-    start: Optional[int] = None,
-    end: Optional[int] = None,
+    start: int | None = None,
+    end: int | None = None,
 ) -> str:
     """Get reference sequence given a sequence identifier.
 
@@ -490,7 +489,7 @@ def translate_hgvs_to_vrs(hgvs: str) -> Allele:
 # ----------------------------------- MANE ----------------------------------- #
 
 
-def get_mane_transcripts(transcripts: List[str]) -> List[ManeDescription]:
+def get_mane_transcripts(transcripts: list[str]) -> list[ManeDescription]:
     """Get corresponding MANE data for transcripts. Results given in order of
     transcript preference.
 
@@ -542,7 +541,7 @@ def get_mane_transcripts(transcripts: List[str]) -> List[ManeDescription]:
 # ---------------------------------- Misc. ---------------------------------- #
 
 
-def get_uniprot_sequence(uniprot_id: str) -> Optional[str]:
+def get_uniprot_sequence(uniprot_id: str) -> str | None:
     """Get sequence directly from UniProt.
 
     :param uniprot_id: ID provided with target info

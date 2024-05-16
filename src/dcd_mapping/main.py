@@ -1,7 +1,6 @@
 """Provide core MaveDB mapping methods."""
 import logging
 from pathlib import Path
-from typing import List, Optional
 
 import click
 
@@ -21,9 +20,9 @@ _logger = logging.getLogger(__name__)
 
 async def map_scoreset(
     metadata: ScoresetMetadata,
-    records: List[ScoreRow],
+    records: list[ScoreRow],
     silent: bool = True,
-    output_path: Optional[Path] = None,
+    output_path: Path | None = None,
 ) -> None:
     """Given information about a MAVE experiment, map to VRS and save output as JSON.
 
@@ -62,7 +61,7 @@ async def map_scoreset(
 
 
 async def map_scoreset_urn(
-    urn: str, silent: bool = True, output_path: Optional[Path] = None
+    urn: str, silent: bool = True, output_path: Path | None = None
 ) -> None:
     """Perform end-to-end mapping for a scoreset.
 

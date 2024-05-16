@@ -4,7 +4,6 @@ import os
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import List, Optional
 from urllib.parse import urlparse
 
 import requests
@@ -39,7 +38,7 @@ class AlignmentError(Exception):
     """Raise when errors encountered during alignment."""
 
 
-def _write_query_file(file: Path, lines: List[str]) -> None:
+def _write_query_file(file: Path, lines: list[str]) -> None:
     """Write lines to query file. This method is broken out to enable easy mocking while
     testing.
 
@@ -65,7 +64,7 @@ def _build_query_file(scoreset_metadata: ScoresetMetadata, query_file: Path) -> 
 
 
 def get_ref_genome_file(
-    silent: bool = True, dcd_mapping_dir: Optional[Path] = None
+    silent: bool = True, dcd_mapping_dir: Path | None = None
 ) -> Path:
     """Acquire reference genome file in 2bit format from UCSC.
 
@@ -174,7 +173,7 @@ def _get_blat_output(metadata: ScoresetMetadata, silent: bool) -> QueryResult:
     return output
 
 
-def _get_best_hit(output: QueryResult, urn: str, chromosome: Optional[str]) -> Hit:
+def _get_best_hit(output: QueryResult, urn: str, chromosome: str | None) -> Hit:
     """Get best hit from BLAT output.
 
     First, try to return hit corresponding to expected chromosome taken from scoreset
@@ -223,7 +222,7 @@ def _get_best_hit(output: QueryResult, urn: str, chromosome: Optional[str]) -> H
     return best_score_hit
 
 
-def _get_best_hsp(hit: Hit, urn: str, gene_location: Optional[GeneLocation]) -> HSP:
+def _get_best_hsp(hit: Hit, urn: str, gene_location: GeneLocation | None) -> HSP:
     """Retrieve preferred HSP from BLAT Hit object.
 
     If gene location data is available, prefer the HSP with the least distance
