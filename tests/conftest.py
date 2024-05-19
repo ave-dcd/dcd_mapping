@@ -132,6 +132,17 @@ def mock_seqrepo_access(mocker: MagicMock):
             ("ga4gh:SQ.VkCzFNsbifqfq61Mud6oGmz0ID6CLIip", 81, 82): "M",
             ("ga4gh:SQ.i1KiGldkfULl1XcEI-XBwhiM7x3PK5Xk", 245, 246): "G",
             ("ga4gh:SQ.pnAqCRBrTsUoBghSD1yp_jXWSmlbdh4g", 202207312, 202207313): "C",
+            # 2-a-2
+            ("ga4gh:SQ.-1zvs4OMc7npphYxRnz-0lO69ueqop8R", 22, 23): "H",
+            ("ga4gh:SQ.-1zvs4OMc7npphYxRnz-0lO69ueqop8R", 10, 11): "A",
+            ("ga4gh:SQ.-1zvs4OMc7npphYxRnz-0lO69ueqop8R", 13, 14): "S",
+            ("ga4gh:SQ.-1zvs4OMc7npphYxRnz-0lO69ueqop8R", 26, 27): "T",
+            ("ga4gh:SQ.-1zvs4OMc7npphYxRnz-0lO69ueqop8R", 25, 26): "Q",
+            ("ga4gh:SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7", 191, 192): "H",
+            ("ga4gh:SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7", 179, 180): "A",
+            ("ga4gh:SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7", 182, 183): "S",
+            ("ga4gh:SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7", 195, 196): "T",
+            ("ga4gh:SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7", 194, 195): "Q",
         }
         return calls[(identifier, start, end)]
 
@@ -151,6 +162,9 @@ def mock_seqrepo_access(mocker: MagicMock):
             ("refseq:NP_002736.3", "ga4gh"): [
                 "ga4gh:SQ.N-m1tI22kffhKfdRZK8wCOR3QfI-1lfr"
             ],
+            ("refseq:NP_001123617.1", "ga4gh"): [
+                "ga4gh:SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7"
+            ],
         }
         return calls[(identifier, namespace)]
 
@@ -162,6 +176,7 @@ def mock_seqrepo_access(mocker: MagicMock):
             "NP_003343.1": "SQ.VkCzFNsbifqfq61Mud6oGmz0ID6CLIip",
             "NC_000002.12": "SQ.pnAqCRBrTsUoBghSD1yp_jXWSmlbdh4g",
             "NC_000003.12": "SQ.Zu7h9AggXxhTaGVsy7h_EZSChSZGcmgX",
+            "NP_001123617.1": "SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7",
         }
         return calls[ac]
 

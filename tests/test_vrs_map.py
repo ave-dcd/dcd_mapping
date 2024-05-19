@@ -20,13 +20,35 @@ def _assert_correct_vrs_map(
 ):
     assert (
         mapping.mavedb_id in expected_mappings_data
-    ), "Score row is in expected mappings"
+    ), "Score row is not in expected mappings"
     assert (
         mapping.layer in expected_mappings_data[mapping.mavedb_id]
-    ), "Includes expected mapping layer for score row"
+    ), "Doesn't include expected mapping layer for score row"
     expected = expected_mappings_data[mapping.mavedb_id][mapping.layer]
-    assert mapping.pre_mapped_variants["id"] == expected["pre_mapped"]
-    assert mapping.post_mapped_variants["id"] == expected["post_mapped"]
+    if mapping.pre_mapped_variants["type"] == "Haplotype":
+        assert all(
+            len(x) == len(mapping.pre_mapped_variants["members"])
+            for x in (
+                mapping.post_mapped_variants["members"],
+                expected["pre_mapped"],
+                expected["post_mapped"],
+            )
+        ), "mappings are different lengths"
+        for va_id in expected["pre_mapped"]:
+            for variant in mapping.pre_mapped_variants["members"]:
+                if variant["id"] == va_id:
+                    break
+            else:
+                pytest.fail(f"Failed to find {va_id} in pre-mapped variants.")
+        for va_id in expected["post_mapped"]:
+            for variant in mapping.post_mapped_variants["members"]:
+                if variant["id"] == va_id:
+                    break
+            else:
+                pytest.fail(f"Failed to find {va_id} in post-mapped variants.")
+    else:
+        assert mapping.pre_mapped_variants["id"] == expected["pre_mapped"]
+        assert mapping.post_mapped_variants["id"] == expected["post_mapped"]
 
 
 @pytest.fixture()
@@ -49,14 +71,46 @@ def get_fixtures(
 
 def test_2_a_2(
     get_fixtures,
-    # mock_seqrepo_access: MagicMock,
+    mock_seqrepo_access: MagicMock,
 ):
     urn = "urn:mavedb:00000002-a-2"
     records, metadata, align_result, tx_result = get_fixtures(urn)
-    expected_mappings_data = {}
+    expected_mappings_data = {
+        "urn:mavedb:00000002-a-2#1": {
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": [
+                    "ga4gh:VA.jvd3wir-9AwP7Ay9FWnqqGVxETG9Dl0M",
+                    "ga4gh:VA.aKrgTa26FUdF8b4wMk7mwFCZnTQmIe5i",
+                ],
+                "post_mapped": [
+                    "ga4gh:VA.-IuFaR_wBHzEQJSdDAoke-r2LRe9jtMQ",
+                    "ga4gh:VA.aF9h1d9DvWWGlkhRAbdz1Ni9DQUOXIhL",
+                ],
+            },
+        },
+        "urn:mavedb:00000002-a-2#3096": {
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": "ga4gh:VA.A4nh1CUx6gUy0pCePT9RxZQDrY9BzEoa",
+                "post_mapped": "ga4gh:VA.PLOa58Eo06IGBGQbrsOPBpXcuw4mDAFH",
+            }
+        },
+        "urn:mavedb:00000002-a-2#26248": {
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": [
+                    "ga4gh:VA.M_mxkauLTyizIeufKNmOk9vplL9N8Svn",
+                    "ga4gh:VA.krtCaV7JjlvM4esBW0XzUnnsQgixnmyV",
+                ],
+                "post_mapped": [
+                    "ga4gh:VA.Z1CFy03R9dyAEfWj_G4dsyRHkj7dbJto",
+                    "ga4gh:VA.sr_W-vpBZbM1ItYhaqFw3m_O08EEqtqg",
+                ],
+            }
+        },
+    }
 
     mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
     assert mappings is not None
+    # currently, we expect to skip #2679
     assert len(mappings) == 3
 
     for m in mappings:

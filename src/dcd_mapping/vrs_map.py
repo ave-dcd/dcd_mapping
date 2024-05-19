@@ -102,7 +102,7 @@ def _map_protein_coding_pro(
         ).output_vrs_variations(AnnotationLayer.PROTEIN)
     layer = AnnotationLayer.PROTEIN
     hgvs_strings = _create_hgvs_strings(align_result, row.hgvs_pro, layer, transcript)
-    return VrsMapping(
+    mapped = VrsMapping(
         mavedb_id=row.accession,
         score=score,
         pre_mapped_protein=_get_variation(
@@ -120,7 +120,11 @@ def _map_protein_coding_pro(
             False,
             transcript.start,
         ),
-    ).output_vrs_variations(AnnotationLayer.PROTEIN)
+    )
+
+    if mapped.pre_mapped_protein and mapped.post_mapped_protein:
+        return mapped.output_vrs_variations(AnnotationLayer.PROTEIN)
+    return None
 
 
 def _get_allele_sequence(allele: Allele) -> str:
