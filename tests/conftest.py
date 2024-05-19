@@ -180,12 +180,24 @@ def mock_seqrepo_access(mocker: MagicMock):
         }
         return calls[ac]
 
+    def _translate_identifier(
+        ac: str, target_namespaces: str | list[str] | None = None
+    ) -> tuple[list[str], str | None]:
+        calls = {
+            ("GRCh38:chr3", "refseq"): (["refseq:NC_000003.12"], None),
+            ("GRCh37:chr3", "refseq"): (["refseq:NC_000003.11"], None),
+            ("GRCh38:chr2", "refseq"): (["refseq:NC_000002.12"], None),
+            ("GRCh37:chr2", "refseq"): (["refseq:NC_000002.11"], None),
+        }
+        return calls[(ac, target_namespaces)]
+
     mock_seqrepo_access = mocker.MagicMock()
     mock_seqrepo_access.get_sequence.side_effect = _get_sequence
     mock_seqrepo_access.translate_sequence_identifier.side_effect = (
         _translate_sequence_identifier
     )
     mock_seqrepo_access.derive_refget_accession.side_effect = _derive_refget_accession
+    mock_seqrepo_access.translate_identifier.side_effect = _translate_identifier
     mocker.patch("dcd_mapping.vrs_map.get_seqrepo", return_value=mock_seqrepo_access)
     mocker.patch("dcd_mapping.lookup.get_seqrepo", return_value=mock_seqrepo_access)
     return mock_seqrepo_access
