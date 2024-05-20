@@ -116,10 +116,19 @@ def test_2_a_2(
     for m in mappings:
         _assert_correct_vrs_map(m, expected_mappings_data)
 
-    # store_calls = []
-    # for call in store_calls:
-    #     mock_seqrepo_access.sr.store.assert_any_call(*call)
-    # assert len(store_calls) == len(mock_seqrepo_access.sr.store.call_args_list)
+    store_calls = [
+        [
+            "DVPLPAGWEMAKTSSGQRYFLNHIDQTTTWQDPR",
+            [{"namespace": "ga4gh", "alias": "SQ.-1zvs4OMc7npphYxRnz-0lO69ueqop8R"}],
+        ],
+        [
+            "GACGTTCCACTGCCGGCTGGTTGGGAAATGGCTAAAACTAGTTCTGGTCAGCGTTACTTCCTGAACCACATCGACCAGACCACCACGTGGCAGGACCCGCGT",
+            [{"namespace": "ga4gh", "alias": "SQ.CR4vhHED4FbR2mgu0k14tfJ0ldnMoi2A"}],
+        ],
+    ]
+    for call in store_calls:
+        mock_seqrepo_access.sr.store.assert_any_call(*call)
+    assert len(store_calls) == len(mock_seqrepo_access.sr.store.call_args_list)
 
 
 def test_41_a_1(
