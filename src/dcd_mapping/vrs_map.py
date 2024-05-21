@@ -182,7 +182,6 @@ def _map_protein_coding(
 
     # Add custom digest to SeqRepo for both Protein and DNA Sequence
     psequence_id = store_sequence(sequence)
-
     gsequence_id = store_sequence(metadata.target_sequence)
 
     for row in records:
@@ -200,25 +199,34 @@ def _map_protein_coding(
             continue
         layer = AnnotationLayer.GENOMIC
         hgvs_strings = _create_hgvs_strings(align_result, row.hgvs_nt, layer)
+        pre_mapped_genomic = _get_variation(
+            hgvs_strings,
+            layer,
+            gsequence_id,
+            align_result,
+            True,
+        )
+        post_mapped_genomic = _get_variation(
+            hgvs_strings,
+            layer,
+            gsequence_id,
+            align_result,
+            False,
+        )
+        if pre_mapped_genomic is None or post_mapped_genomic is None:
+            _logger.warning(
+                "Encountered apparently invalid genomic variants in %s: %s",
+                row.accession,
+                row.hgvs_nt,
+            )
+            continue
         variations.append(
             VrsMapping(
                 mavedb_id=row.accession,
                 score=score,
-                pre_mapped_genomic=_get_variation(
-                    hgvs_strings,
-                    layer,
-                    gsequence_id,
-                    align_result,
-                    True,
-                ),
-                post_mapped_genomic=_get_variation(
-                    hgvs_strings,
-                    layer,
-                    gsequence_id,
-                    align_result,
-                    False,
-                ),
-            ).output_vrs_variations(AnnotationLayer.GENOMIC)
+                pre_mapped_genomic=pre_mapped_genomic,
+                post_mapped_genomic=post_mapped_genomic,
+            ).output_vrs_variations(layer)
         )
     return variations
 

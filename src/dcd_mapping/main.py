@@ -28,7 +28,7 @@ async def map_scoreset(
 
     :param metadata: salient data gathered from scoreset on MaveDB
     :param records: experiment scoring results
-    :param silent: if True, suppress console output
+    :param silent: if True, suppress console information output
     :param output_path: optional path to save output at
     """
     try:
@@ -66,7 +66,7 @@ async def map_scoreset_urn(
     """Perform end-to-end mapping for a scoreset.
 
     :param urn: identifier for a scoreset.
-    :param silent: if True, suppress console output
+    :param silent: if True, suppress console information output
     :param output_path: optional path to save output at
     """
     try:

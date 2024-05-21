@@ -200,6 +200,8 @@ def get_computed_reference_sequence(
     :return A ComputedReferenceSequence object
     """
     if layer == AnnotationLayer.PROTEIN:
+        if tx_output is None:
+            raise ValueError
         seq_id = f"ga4gh:SQ.{sha512t24u(tx_output.sequence.encode('ascii'))}"
         return ComputedReferenceSequence(
             sequence=tx_output.sequence,
@@ -292,8 +294,8 @@ def save_mapped_output_json(
     :param ss: Score set accession
     :param mave_vrs_mappings: A dictionary of VrsObject1_x objects
     :param align_result: Alignment information for a score set
-    :tx_output: Transcript output for a score set
-    :output_path:
+    :param tx_output: Transcript output for a score set
+    :param output_path:
     """
     layer = _set_layer(ss, mappings)
 
