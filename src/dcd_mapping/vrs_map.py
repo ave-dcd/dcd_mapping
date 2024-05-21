@@ -304,10 +304,16 @@ def _get_variation(
         sequence_id = sequence_id[6:]
     alleles: list[Allele] = []
     for hgvs_string in hgvs_strings:
-        if (
-            hgvs_string.endswith((".=", ")", "X")) or "?" in hgvs_string
-        ):  # Invalid variant
+        if hgvs_string.endswith((".=", ")", "X")):  # Invalid variant
             continue
+
+        if "?" in hgvs_string:
+            _logger.debug(
+                "Substituting Xaa for ? in %s (sequence ID %s)",
+                hgvs_string,
+                sequence_id,
+            )
+            hgvs_string = hgvs_string.replace("?", "Xaa")
 
         # Generate VRS Allele structure. Set VA digests and SL digests to None
         allele = translate_hgvs_to_vrs(hgvs_string)
