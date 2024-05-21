@@ -136,13 +136,15 @@ def mock_seqrepo_access(mocker: MagicMock):
             ("ga4gh:SQ.-1zvs4OMc7npphYxRnz-0lO69ueqop8R", 22, 23): "H",
             ("ga4gh:SQ.-1zvs4OMc7npphYxRnz-0lO69ueqop8R", 10, 11): "A",
             ("ga4gh:SQ.-1zvs4OMc7npphYxRnz-0lO69ueqop8R", 13, 14): "S",
+            ("ga4gh:SQ.-1zvs4OMc7npphYxRnz-0lO69ueqop8R", 24, 25): "D",
             ("ga4gh:SQ.-1zvs4OMc7npphYxRnz-0lO69ueqop8R", 26, 27): "T",
             ("ga4gh:SQ.-1zvs4OMc7npphYxRnz-0lO69ueqop8R", 25, 26): "Q",
-            ("ga4gh:SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7", 191, 192): "H",
             ("ga4gh:SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7", 179, 180): "A",
             ("ga4gh:SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7", 182, 183): "S",
-            ("ga4gh:SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7", 195, 196): "T",
+            ("ga4gh:SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7", 191, 192): "H",
+            ("ga4gh:SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7", 193, 194): "D",
             ("ga4gh:SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7", 194, 195): "Q",
+            ("ga4gh:SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7", 195, 196): "T",
         }
         return calls[(identifier, start, end)]
 
