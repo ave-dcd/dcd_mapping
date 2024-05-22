@@ -7,6 +7,8 @@ from ga4gh.core import sha512t24u
 from ga4gh.vrs._internal.models import Allele
 from pydantic import BaseModel, StrictBool, StrictFloat, StrictInt, StrictStr
 
+from dcd_mapping import vrs_v1_schemas
+
 
 class TargetSequenceType(str, Enum):
     """Define target sequence type. Add more definitions as needed."""
@@ -163,6 +165,44 @@ class TxSelectResult(BaseModel):
     is_full_match: StrictBool
     transcript_mode: TranscriptPriority | None = None
     sequence: str
+
+
+###################### NEW: ####################################
+
+
+# output of vrs_map()
+class MappedScore(BaseModel):
+    """Provide mappings for an individual experiment score."""
+
+    accession_id: StrictStr
+    pre_mapped_protein: Allele | list[Allele] | None = None
+    post_mapped_protein: Allele | list[Allele] | None = None
+    pre_mapped_genomic: Allele | list[Allele] | None = None
+    post_mapped_genomic: Allele | list[Allele] | None = None
+
+
+# output of annotate()
+class AnnotatedMappedScore(BaseModel):
+    """Provide extra annotations on top of mappings for an individual experiment score."""
+
+    pre_mapped: vrs_v1_schemas.VariationDescriptor
+    post_mapped: vrs_v1_schemas.VariationDescriptor
+    # pre_mapped_2: Allele | list[Allele]
+    # post_mapped_2: Allele | list[Allele]
+    mavedb_id: StrictStr
+    relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
+    score: float
+
+
+class ScoresetMapping(BaseModel):
+    """Provide all mapped scores for a scoreset.
+
+    Doesn't include metadata stuff to add from MaveDB (not totally sure how to get it).
+    """
+
+    computed_reference_sequence: ComputedReferenceSequence
+    mapped_reference_sequence: MappedReferenceSequence
+    mapped_scores: list[AnnotatedMappedScore]
 
 
 ###################### WORKING: ################################

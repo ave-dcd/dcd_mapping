@@ -281,7 +281,7 @@ def _format_score_mapping(var: VrsObject1_x, layer: AnnotationLayer) -> dict | N
 
 
 def save_mapped_output_json(
-    ss: str,
+    urn: str,
     mappings: list[VrsObject1_x],
     align_result: AlignmentResult,
     tx_output: TxSelectResult | None = None,
@@ -289,18 +289,18 @@ def save_mapped_output_json(
 ) -> None:
     """Save mapping output for a score set in a JSON file
 
-    :param ss: Score set accession
+    :param urn: Score set accession
     :param mave_vrs_mappings: A dictionary of VrsObject1_x objects
     :param align_result: Alignment information for a score set
     :tx_output: Transcript output for a score set
     :output_path:
     """
-    layer = _set_layer(ss, mappings)
+    layer = _set_layer(urn, mappings)
 
     mapped_ss_output = {
-        "metadata": get_raw_scoreset_metadata(ss),
+        "metadata": get_raw_scoreset_metadata(urn),
         "computed_reference_sequence": get_computed_reference_sequence(
-            ss=ss, layer=layer, tx_output=tx_output
+            ss=urn, layer=layer, tx_output=tx_output
         ).model_dump(),
         "mapped_reference_sequence": get_mapped_reference_sequence(
             tx_output=tx_output,
@@ -315,9 +315,9 @@ def save_mapped_output_json(
         mapped_scores.append(formatted_score_mapping)
     mapped_ss_output["mapped_scores"] = mapped_scores
 
-    ss = ss.removeprefix("urn:mavedb:")
+    urn = urn.removeprefix("urn:mavedb:")
     if not output_path:
-        output_path = LOCAL_STORE_PATH / f"{ss}_mapping.json"
+        output_path = LOCAL_STORE_PATH / f"{urn}_mapping.json"
 
     with output_path.open("w") as file:
         json.dump(mapped_ss_output, file, indent=4)
@@ -349,7 +349,18 @@ def annotate(
     vrs_results: list[VrsObject1_x],
     metadata: ScoresetMetadata,
 ) -> list[VrsObject1_x]:
-    """TODO"""
+    """Given a list of mappings, add additional contextual data:
+
+    1. ``vrs_ref_allele_seq``: The sequence between the start and end positions
+        indicated in the variant
+    2. ``hgvs``: An HGVS string describing the variant (only included for post-mapped
+        variants)
+
+    :param tx_select_results: transcript selection if available
+    :param vrs_results: in-progress variant mappings
+    :param metadata: MaveDB scoreset metadata
+    :return: annotated mappings objects
+    """
     sr = get_seqrepo()
     for var in vrs_results:
         if not var:

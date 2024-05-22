@@ -100,21 +100,22 @@ def _map_protein_coding_pro(
             post_mapped_protein=[vrs_variation],
             score=score,
         ).output_vrs_variations(AnnotationLayer.PROTEIN)
-    layer = AnnotationLayer.PROTEIN
-    hgvs_strings = _create_hgvs_strings(align_result, row.hgvs_pro, layer, transcript)
+    hgvs_strings = _create_hgvs_strings(
+        align_result, row.hgvs_pro, AnnotationLayer.PROTEIN, transcript
+    )
     return VrsMapping(
         mavedb_id=row.accession,
         score=score,
         pre_mapped_protein=_get_variation(
             hgvs_strings,
-            layer,
+            AnnotationLayer.PROTEIN,
             sequence_id,
             align_result,
             True,
         ),
         post_mapped_protein=_get_variation(
             hgvs_strings,
-            layer,
+            AnnotationLayer.PROTEIN,
             sequence_id,
             align_result,
             False,
