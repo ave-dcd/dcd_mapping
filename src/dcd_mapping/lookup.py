@@ -367,7 +367,7 @@ def get_chromosome_identifier(chromosome: str) -> str:
     """
     if not chromosome.startswith("chr"):
         chromosome = f"chr{chromosome}"
-    sr = CoolSeqToolBuilder().seqrepo_access
+    sr = get_seqrepo()
     acs = []
     for assembly in ["GRCh38", "GRCh37"]:
         tmp_acs, _ = sr.translate_identifier(

@@ -1,6 +1,17 @@
 {
   "scoreset_metadata": [
     {
+      "urn": "urn:mavedb:00000002-a-2",
+      "target_gene_name": "hYAP65 WW domain",
+      "target_gene_category": "Protein coding",
+      "target_sequence": "GACGTTCCACTGCCGGCTGGTTGGGAAATGGCTAAAACTAGTTCTGGTCAGCGTTACTTCCTGAACCACATCGACCAGACCACCACGTGGCAGGACCCGCGT",
+      "target_sequence_type": "dna",
+      "target_uniprot_ref": {
+        "id": "uniprot:P46937",
+        "offset": 169
+      }
+    },
+    {
       "urn": "urn:mavedb:00000099-a-1",
       "target_gene_name": "RHO",
       "target_gene_category": "Protein coding",
