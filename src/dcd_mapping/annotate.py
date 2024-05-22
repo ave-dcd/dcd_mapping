@@ -29,7 +29,7 @@ from dcd_mapping.schemas import (
     ScoresetMetadata,
     TargetSequenceType,
     TxSelectResult,
-    VrsObject1_x,
+    VrsMapping1_3,
 )
 
 _logger = logging.getLogger(__name__)
@@ -200,6 +200,8 @@ def get_computed_reference_sequence(
     :return A ComputedReferenceSequence object
     """
     if layer == AnnotationLayer.PROTEIN:
+        if tx_output is None:
+            raise ValueError
         seq_id = f"ga4gh:SQ.{sha512t24u(tx_output.sequence.encode('ascii'))}"
         return ComputedReferenceSequence(
             sequence=tx_output.sequence,
@@ -247,7 +249,7 @@ def get_mapped_reference_sequence(
     )
 
 
-def _set_layer(ss: str, mappings: list[VrsObject1_x]) -> AnnotationLayer:
+def _set_layer(ss: str, mappings: list[VrsMapping1_3]) -> AnnotationLayer:
     if ss.startswith("urn:mavedb:00000097"):
         return AnnotationLayer.PROTEIN
     for var in mappings:
@@ -256,7 +258,7 @@ def _set_layer(ss: str, mappings: list[VrsObject1_x]) -> AnnotationLayer:
     return AnnotationLayer.PROTEIN
 
 
-def _format_score_mapping(var: VrsObject1_x, layer: AnnotationLayer) -> dict | None:
+def _format_score_mapping(var: VrsMapping1_3, layer: AnnotationLayer) -> dict | None:
     if var and var.layer == layer:
         if "members" in var.pre_mapped_variants:
             pre_mapped_members = []
@@ -282,7 +284,7 @@ def _format_score_mapping(var: VrsObject1_x, layer: AnnotationLayer) -> dict | N
 
 def save_mapped_output_json(
     urn: str,
-    mappings: list[VrsObject1_x],
+    mappings: list[VrsMapping1_3],
     align_result: AlignmentResult,
     tx_output: TxSelectResult | None = None,
     output_path: Path | None = None,
@@ -292,8 +294,8 @@ def save_mapped_output_json(
     :param urn: Score set accession
     :param mave_vrs_mappings: A dictionary of VrsObject1_x objects
     :param align_result: Alignment information for a score set
-    :tx_output: Transcript output for a score set
-    :output_path:
+    :param tx_output: Transcript output for a score set
+    :param output_path:
     """
     layer = _set_layer(urn, mappings)
 
@@ -346,9 +348,9 @@ def _format_start_end(ss: str, start: int, end: int) -> list[int]:
 
 def annotate(
     tx_select_results: TxSelectResult | None,
-    vrs_results: list[VrsObject1_x],
+    vrs_results: list[VrsMapping1_3],
     metadata: ScoresetMetadata,
-) -> list[VrsObject1_x]:
+) -> list[VrsMapping1_3]:
     """Given a list of mappings, add additional contextual data:
 
     1. ``vrs_ref_allele_seq``: The sequence between the start and end positions

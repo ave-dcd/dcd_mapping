@@ -2,6 +2,7 @@
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import pytest
 from cool_seq_tool.schemas import AnnotationLayer
 
 from dcd_mapping.mavedb_data import _load_scoreset_records
@@ -9,37 +10,146 @@ from dcd_mapping.schemas import (
     AlignmentResult,
     ScoresetMetadata,
     TxSelectResult,
-    VrsObject1_x,
+    VrsMapping1_3,
 )
 from dcd_mapping.vrs_map import vrs_map
 
 
 def _assert_correct_vrs_map(
-    mapping: VrsObject1_x, expected_mappings_data: dict[str, dict]
+    mapping: VrsMapping1_3, expected_mappings_data: dict[str, dict]
 ):
     assert (
         mapping.mavedb_id in expected_mappings_data
-    ), "Score row is in expected mappings"
+    ), "Score row is not in expected mappings"
     assert (
         mapping.layer in expected_mappings_data[mapping.mavedb_id]
-    ), "Includes expected mapping layer for score row"
+    ), "Doesn't include expected mapping layer for score row"
     expected = expected_mappings_data[mapping.mavedb_id][mapping.layer]
-    assert mapping.pre_mapped_variants["id"] == expected["pre_mapped"]
-    assert mapping.post_mapped_variants["id"] == expected["post_mapped"]
+    if mapping.pre_mapped_variants["type"] == "Haplotype":
+        assert all(
+            len(x) == len(mapping.pre_mapped_variants["members"])
+            for x in (
+                mapping.post_mapped_variants["members"],
+                expected["pre_mapped"],
+                expected["post_mapped"],
+            )
+        ), "mappings are different lengths"
+        for va_id in expected["pre_mapped"]:
+            for variant in mapping.pre_mapped_variants["members"]:
+                if variant["id"] == va_id:
+                    break
+            else:
+                pytest.fail(f"Failed to find {va_id} in pre-mapped variants.")
+        for va_id in expected["post_mapped"]:
+            for variant in mapping.post_mapped_variants["members"]:
+                if variant["id"] == va_id:
+                    break
+            else:
+                pytest.fail(f"Failed to find {va_id} in post-mapped variants.")
+    else:
+        assert mapping.pre_mapped_variants["id"] == expected["pre_mapped"]
+        assert mapping.post_mapped_variants["id"] == expected["post_mapped"]
 
 
-def test_41_a_1(
+@pytest.fixture()
+def get_fixtures(
     fixture_data_dir: Path,
     scoreset_metadata_fixture: dict[str, ScoresetMetadata],
     align_result_fixture: dict[str, AlignmentResult],
     transcript_results_fixture: dict[str, TxSelectResult],
+):
+    def _get_fixtures(urn: str):
+        return (
+            _load_scoreset_records(fixture_data_dir / f"{urn}_scores.csv"),
+            scoreset_metadata_fixture[urn],
+            align_result_fixture[urn],
+            transcript_results_fixture[urn],
+        )
+
+    return _get_fixtures
+
+
+def test_2_a_2(
+    get_fixtures,
+    mock_seqrepo_access: MagicMock,
+):
+    urn = "urn:mavedb:00000002-a-2"
+    records, metadata, align_result, tx_result = get_fixtures(urn)
+    expected_mappings_data = {
+        "urn:mavedb:00000002-a-2#1": {
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": [
+                    "ga4gh:VA.jvd3wir-9AwP7Ay9FWnqqGVxETG9Dl0M",
+                    "ga4gh:VA.aKrgTa26FUdF8b4wMk7mwFCZnTQmIe5i",
+                ],
+                "post_mapped": [
+                    "ga4gh:VA.-IuFaR_wBHzEQJSdDAoke-r2LRe9jtMQ",
+                    "ga4gh:VA.aF9h1d9DvWWGlkhRAbdz1Ni9DQUOXIhL",
+                ],
+            },
+        },
+        "urn:mavedb:00000002-a-2#2679": {
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": "ga4gh:VA.5Jf_a17Q6ySEpDvHr1FR1kmE6L1RWpGK",
+                "post_mapped": "ga4gh:VA.PWfyP7Ktd3L2IT564-h9FVyqv9NvnnEJ",
+            }
+        },
+        "urn:mavedb:00000002-a-2#3096": {
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": [
+                    "ga4gh:VA.A4nh1CUx6gUy0pCePT9RxZQDrY9BzEoa",
+                    "ga4gh:VA.H6BdObvEycBGJPqnASVYOPwf9bHboT6w",
+                ],
+                "post_mapped": [
+                    "ga4gh:VA.PLOa58Eo06IGBGQbrsOPBpXcuw4mDAFH",
+                    "ga4gh:VA.xi7XqR9LSoq0n8B3W2ufPEg12MqEZ3jD",
+                ],
+            }
+        },
+        "urn:mavedb:00000002-a-2#26248": {
+            AnnotationLayer.PROTEIN: {
+                "pre_mapped": [
+                    "ga4gh:VA.M_mxkauLTyizIeufKNmOk9vplL9N8Svn",
+                    "ga4gh:VA.krtCaV7JjlvM4esBW0XzUnnsQgixnmyV",
+                    "ga4gh:VA.H6BdObvEycBGJPqnASVYOPwf9bHboT6w",
+                ],
+                "post_mapped": [
+                    "ga4gh:VA.Z1CFy03R9dyAEfWj_G4dsyRHkj7dbJto",
+                    "ga4gh:VA.sr_W-vpBZbM1ItYhaqFw3m_O08EEqtqg",
+                    "ga4gh:VA.xi7XqR9LSoq0n8B3W2ufPEg12MqEZ3jD",
+                ],
+            }
+        },
+    }
+
+    mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
+    assert mappings is not None
+    assert len(mappings) == 4
+
+    for m in mappings:
+        _assert_correct_vrs_map(m, expected_mappings_data)
+
+    store_calls = [
+        [
+            "DVPLPAGWEMAKTSSGQRYFLNHIDQTTTWQDPR",
+            [{"namespace": "ga4gh", "alias": "SQ.-1zvs4OMc7npphYxRnz-0lO69ueqop8R"}],
+        ],
+        [
+            "GACGTTCCACTGCCGGCTGGTTGGGAAATGGCTAAAACTAGTTCTGGTCAGCGTTACTTCCTGAACCACATCGACCAGACCACCACGTGGCAGGACCCGCGT",
+            [{"namespace": "ga4gh", "alias": "SQ.CR4vhHED4FbR2mgu0k14tfJ0ldnMoi2A"}],
+        ],
+    ]
+    for call in store_calls:
+        mock_seqrepo_access.sr.store.assert_any_call(*call)
+    assert len(store_calls) == len(mock_seqrepo_access.sr.store.call_args_list)
+
+
+def test_41_a_1(
+    get_fixtures,
     mock_seqrepo_access: MagicMock,
 ):
     urn = "urn:mavedb:00000041-a-1"
-    records = _load_scoreset_records(fixture_data_dir / f"{urn}_scores.csv")
-    metadata = scoreset_metadata_fixture[urn]
-    align_result = align_result_fixture[urn]
-    tx_result = transcript_results_fixture[urn]
+    records, metadata, align_result, tx_result = get_fixtures(urn)
 
     expected_mappings_data = {
         "urn:mavedb:00000041-a-1#548": {
@@ -97,17 +207,11 @@ def test_41_a_1(
 
 
 def test_99_a_1(
-    fixture_data_dir: Path,
-    scoreset_metadata_fixture: dict[str, ScoresetMetadata],
-    align_result_fixture: dict[str, AlignmentResult],
-    transcript_results_fixture: dict[str, TxSelectResult],
+    get_fixtures,
     mock_seqrepo_access: MagicMock,
 ):
     urn = "urn:mavedb:00000099-a-1"
-    records = _load_scoreset_records(fixture_data_dir / f"{urn}_scores.csv")
-    metadata = scoreset_metadata_fixture[urn]
-    align_result = align_result_fixture[urn]
-    tx_result = transcript_results_fixture[urn]
+    records, metadata, align_result, tx_result = get_fixtures(urn)
 
     expected_mappings_data = {
         "urn:mavedb:00000099-a-1#8": {
@@ -174,17 +278,11 @@ def test_99_a_1(
 
 
 def test_103_c_1(
-    fixture_data_dir: Path,
-    scoreset_metadata_fixture: dict[str, ScoresetMetadata],
-    align_result_fixture: dict[str, AlignmentResult],
-    transcript_results_fixture: dict[str, TxSelectResult],
+    get_fixtures,
     mock_seqrepo_access: MagicMock,
 ):
     urn = "urn:mavedb:00000103-c-1"
-    records = _load_scoreset_records(fixture_data_dir / f"{urn}_scores.csv")
-    metadata = scoreset_metadata_fixture[urn]
-    align_result = align_result_fixture[urn]
-    tx_result = transcript_results_fixture[urn]
+    records, metadata, align_result, tx_result = get_fixtures(urn)
 
     expected_mappings_data = {
         "urn:mavedb:00000103-c-1#376": {
@@ -236,17 +334,11 @@ def test_103_c_1(
 
 
 def test_1_b_2(
-    fixture_data_dir: Path,
-    scoreset_metadata_fixture: dict[str, ScoresetMetadata],
-    align_result_fixture: dict[str, AlignmentResult],
-    transcript_results_fixture: dict[str, TxSelectResult],
+    get_fixtures,
     mock_seqrepo_access: MagicMock,
 ):
     urn = "urn:mavedb:00000001-b-2"
-    records = _load_scoreset_records(fixture_data_dir / f"{urn}_scores.csv")
-    metadata = scoreset_metadata_fixture[urn]
-    align_result = align_result_fixture[urn]
-    tx_result = transcript_results_fixture[urn]
+    records, metadata, align_result, tx_result = get_fixtures(urn)
 
     mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
     assert mappings is not None

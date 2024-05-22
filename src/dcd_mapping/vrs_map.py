@@ -21,7 +21,7 @@ from dcd_mapping.schemas import (
     TargetType,
     TxSelectResult,
     VrsMapping,
-    VrsObject1_x,
+    VrsMapping1_3,
 )
 
 __all__ = ["vrs_map"]
@@ -69,7 +69,7 @@ def _map_protein_coding_pro(
     align_result: AlignmentResult,
     sequence_id: str,
     transcript: TxSelectResult,
-) -> VrsObject1_x | None:
+) -> VrsMapping1_3 | None:
     """Construct VRS object mapping for ``hgvs_pro`` variant column entry
 
     These arguments are a little lazy and could be pruned down later
@@ -103,7 +103,7 @@ def _map_protein_coding_pro(
     hgvs_strings = _create_hgvs_strings(
         align_result, row.hgvs_pro, AnnotationLayer.PROTEIN, transcript
     )
-    return VrsMapping(
+    mapped = VrsMapping(
         mavedb_id=row.accession,
         score=score,
         pre_mapped_protein=_get_variation(
@@ -121,7 +121,11 @@ def _map_protein_coding_pro(
             False,
             transcript.start,
         ),
-    ).output_vrs_variations(AnnotationLayer.PROTEIN)
+    )
+
+    if mapped.pre_mapped_protein and mapped.post_mapped_protein:
+        return mapped.output_vrs_variations(AnnotationLayer.PROTEIN)
+    return None
 
 
 def _get_allele_sequence(allele: Allele) -> str:
@@ -160,7 +164,7 @@ def _map_protein_coding(
     records: list[ScoreRow],
     transcript: TxSelectResult,
     align_result: AlignmentResult,
-) -> list[VrsObject1_x]:
+) -> list[VrsMapping1_3]:
     """Perform mapping on protein coding experiment results
 
     :param metadata: The metadata for a score set
@@ -169,7 +173,7 @@ def _map_protein_coding(
     :param align_results: The alignment data for a score set
     :return: A list of mappings
     """
-    variations: list[VrsObject1_x] = []
+    variations: list[VrsMapping1_3] = []
     if metadata.target_sequence_type == TargetSequenceType.DNA:
         sequence = str(
             Seq(metadata.target_sequence).translate(table="1", stop_symbol="")
@@ -179,7 +183,6 @@ def _map_protein_coding(
 
     # Add custom digest to SeqRepo for both Protein and DNA Sequence
     psequence_id = store_sequence(sequence)
-
     gsequence_id = store_sequence(metadata.target_sequence)
 
     for row in records:
@@ -197,25 +200,34 @@ def _map_protein_coding(
             continue
         layer = AnnotationLayer.GENOMIC
         hgvs_strings = _create_hgvs_strings(align_result, row.hgvs_nt, layer)
+        pre_mapped_genomic = _get_variation(
+            hgvs_strings,
+            layer,
+            gsequence_id,
+            align_result,
+            True,
+        )
+        post_mapped_genomic = _get_variation(
+            hgvs_strings,
+            layer,
+            gsequence_id,
+            align_result,
+            False,
+        )
+        if pre_mapped_genomic is None or post_mapped_genomic is None:
+            _logger.warning(
+                "Encountered apparently invalid genomic variants in %s: %s",
+                row.accession,
+                row.hgvs_nt,
+            )
+            continue
         variations.append(
             VrsMapping(
                 mavedb_id=row.accession,
                 score=score,
-                pre_mapped_genomic=_get_variation(
-                    hgvs_strings,
-                    layer,
-                    gsequence_id,
-                    align_result,
-                    True,
-                ),
-                post_mapped_genomic=_get_variation(
-                    hgvs_strings,
-                    layer,
-                    gsequence_id,
-                    align_result,
-                    False,
-                ),
-            ).output_vrs_variations(AnnotationLayer.GENOMIC)
+                pre_mapped_genomic=pre_mapped_genomic,
+                post_mapped_genomic=post_mapped_genomic,
+            ).output_vrs_variations(layer)
         )
     return variations
 
@@ -224,7 +236,7 @@ def _map_regulatory_noncoding(
     metadata: ScoresetMetadata,
     records: list[ScoreRow],
     align_result: AlignmentResult,
-) -> list[VrsObject1_x]:
+) -> list[VrsMapping1_3]:
     """Perform mapping on noncoding/regulatory experiment results
 
     :param metadata: metadata for URN
@@ -232,7 +244,7 @@ def _map_regulatory_noncoding(
     :param align_result: An AlignmentResult object for a score set
     :return: A list of VRS mappings
     """
-    variations: list[VrsObject1_x] = []
+    variations: list[VrsMapping1_3] = []
     sequence_id = store_sequence(metadata.target_sequence)
 
     for row in records:
@@ -301,10 +313,16 @@ def _get_variation(
         sequence_id = sequence_id[6:]
     alleles: list[Allele] = []
     for hgvs_string in hgvs_strings:
-        if (
-            hgvs_string.endswith((".=", ")", "X")) or "?" in hgvs_string
-        ):  # Invalid variant
+        if hgvs_string.endswith((".=", ")", "X")):  # Invalid variant
             continue
+
+        if "?" in hgvs_string:
+            _logger.debug(
+                "Substituting Xaa for ? in %s (sequence ID %s)",
+                hgvs_string,
+                sequence_id,
+            )
+            hgvs_string = hgvs_string.replace("?", "Xaa")
 
         # Generate VRS Allele structure. Set VA digests and SL digests to None
         allele = translate_hgvs_to_vrs(hgvs_string)
@@ -381,7 +399,7 @@ def vrs_map(
     records: list[ScoreRow],
     transcript: TxSelectResult | None = None,
     silent: bool = True,
-) -> list[VrsObject1_x] | None:
+) -> list[VrsMapping1_3] | None:
     """Given a description of a MAVE scoreset and an aligned transcript, generate
     the corresponding VRS objects.
 
