@@ -15,13 +15,13 @@ from dcd_mapping.lookup import (
 )
 from dcd_mapping.schemas import (
     AlignmentResult,
+    MappedScore,
     ScoreRow,
     ScoresetMetadata,
     TargetSequenceType,
     TargetType,
     TxSelectResult,
     VrsMapping,
-    VrsMapping1_3,
 )
 
 __all__ = ["vrs_map"]
@@ -69,7 +69,7 @@ def _map_protein_coding_pro(
     align_result: AlignmentResult,
     sequence_id: str,
     transcript: TxSelectResult,
-) -> VrsMapping1_3 | None:
+) -> MappedScore | None:
     """Construct VRS object mapping for ``hgvs_pro`` variant column entry
 
     These arguments are a little lazy and could be pruned down later
@@ -94,6 +94,16 @@ def _map_protein_coding_pro(
     # Special case for experiment set urn:mavedb:0000097
     if row.hgvs_pro.startswith("NP_009225.1:p."):
         vrs_variation = translate_hgvs_to_vrs(row.hgvs_pro)
+        return MappedScore(
+            accession_id=row.accession,
+            score=score,
+            annotation_layer=AnnotationLayer.PROTEIN,
+            pre_mapped=vrs_variation,
+            post_mapped=vrs_variation,
+            # TODO why were these defined as single-member arrays?
+            # pre_mapped=[vrs_variation],
+            # post_mapped=[vrs_variation]
+        )
         return VrsMapping(
             mavedb_id=row.accession,
             pre_mapped_protein=[vrs_variation],
@@ -103,29 +113,52 @@ def _map_protein_coding_pro(
     hgvs_strings = _create_hgvs_strings(
         align_result, row.hgvs_pro, AnnotationLayer.PROTEIN, transcript
     )
-    mapped = VrsMapping(
-        mavedb_id=row.accession,
-        score=score,
-        pre_mapped_protein=_get_variation(
-            hgvs_strings,
-            AnnotationLayer.PROTEIN,
-            sequence_id,
-            align_result,
-            True,
-        ),
-        post_mapped_protein=_get_variation(
-            hgvs_strings,
-            AnnotationLayer.PROTEIN,
-            sequence_id,
-            align_result,
-            False,
-            transcript.start,
-        ),
+    pre_mapped_protein = _get_variation(
+        hgvs_strings,
+        AnnotationLayer.PROTEIN,
+        sequence_id,
+        align_result,
+        True,
     )
-
-    if mapped.pre_mapped_protein and mapped.post_mapped_protein:
-        return mapped.output_vrs_variations(AnnotationLayer.PROTEIN)
+    post_mapped_protein = _get_variation(
+        hgvs_strings,
+        AnnotationLayer.PROTEIN,
+        sequence_id,
+        align_result,
+        False,
+        transcript.start,
+    )
+    if pre_mapped_protein and post_mapped_protein:
+        return MappedScore(
+            accession_id=row.accession,
+            score=score,
+            annotation_layer=AnnotationLayer.PROTEIN,
+            pre_mapped=pre_mapped_protein,
+            post_mapped=post_mapped_protein,
+        )
     return None
+    # mapped = VrsMapping(
+    #     mavedb_id=row.accession,
+    #     score=score,
+    #     pre_mapped_protein=_get_variation(
+    #         hgvs_strings,
+    #         AnnotationLayer.PROTEIN,
+    #         sequence_id,
+    #         align_result,
+    #         True,
+    #     ),
+    #     post_mapped_protein=_get_variation(
+    #         hgvs_strings,
+    #         AnnotationLayer.PROTEIN,
+    #         sequence_id,
+    #         align_result,
+    #         False,
+    #         transcript.start,
+    #     ),
+    # )
+    # if mapped.pre_mapped_protein and mapped.post_mapped_protein:
+    #     return mapped.output_vrs_variations(AnnotationLayer.PROTEIN)
+    # return None
 
 
 def _get_allele_sequence(allele: Allele) -> str:
@@ -164,7 +197,7 @@ def _map_protein_coding(
     records: list[ScoreRow],
     transcript: TxSelectResult,
     align_result: AlignmentResult,
-) -> list[VrsMapping1_3]:
+) -> list[MappedScore]:
     """Perform mapping on protein coding experiment results
 
     :param metadata: The metadata for a score set
@@ -173,7 +206,7 @@ def _map_protein_coding(
     :param align_results: The alignment data for a score set
     :return: A list of mappings
     """
-    variations: list[VrsMapping1_3] = []
+    variations: list[MappedScore] = []
     if metadata.target_sequence_type == TargetSequenceType.DNA:
         sequence = str(
             Seq(metadata.target_sequence).translate(table="1", stop_symbol="")
@@ -186,9 +219,8 @@ def _map_protein_coding(
     gsequence_id = store_sequence(metadata.target_sequence)
 
     for row in records:
-        score = row.score
         hgvs_pro_mappings = _map_protein_coding_pro(
-            row, score, align_result, psequence_id, transcript
+            row, row.score, align_result, psequence_id, transcript
         )
         if hgvs_pro_mappings:
             variations.append(hgvs_pro_mappings)
@@ -198,18 +230,19 @@ def _map_protein_coding(
             or len(row.hgvs_nt) == 3
         ):
             continue
-        layer = AnnotationLayer.GENOMIC
-        hgvs_strings = _create_hgvs_strings(align_result, row.hgvs_nt, layer)
+        hgvs_strings = _create_hgvs_strings(
+            align_result, row.hgvs_nt, AnnotationLayer.GENOMIC
+        )
         pre_mapped_genomic = _get_variation(
             hgvs_strings,
-            layer,
+            AnnotationLayer.GENOMIC,
             gsequence_id,
             align_result,
             True,
         )
         post_mapped_genomic = _get_variation(
             hgvs_strings,
-            layer,
+            AnnotationLayer.GENOMIC,
             gsequence_id,
             align_result,
             False,
@@ -222,13 +255,23 @@ def _map_protein_coding(
             )
             continue
         variations.append(
-            VrsMapping(
-                mavedb_id=row.accession,
-                score=score,
-                pre_mapped_genomic=pre_mapped_genomic,
-                post_mapped_genomic=post_mapped_genomic,
-            ).output_vrs_variations(layer)
+            MappedScore(
+                accession_id=row.accession,
+                score=row.score,
+                annotation_layer=AnnotationLayer.GENOMIC,
+                pre_mapped=pre_mapped_genomic,
+                post_mapped=post_mapped_genomic,
+            )
         )
+
+        # variations.append(
+        #     VrsMapping(
+        #         mavedb_id=row.accession,
+        #         score=score,
+        #         pre_mapped_genomic=pre_mapped_genomic,
+        #         post_mapped_genomic=post_mapped_genomic,
+        #     ).output_vrs_variations(layer)
+        # )
     return variations
 
 
@@ -236,7 +279,7 @@ def _map_regulatory_noncoding(
     metadata: ScoresetMetadata,
     records: list[ScoreRow],
     align_result: AlignmentResult,
-) -> list[VrsMapping1_3]:
+) -> list[MappedScore]:
     """Perform mapping on noncoding/regulatory experiment results
 
     :param metadata: metadata for URN
@@ -244,7 +287,7 @@ def _map_regulatory_noncoding(
     :param align_result: An AlignmentResult object for a score set
     :return: A list of VRS mappings
     """
-    variations: list[VrsMapping1_3] = []
+    variations: list[MappedScore] = []
     sequence_id = store_sequence(metadata.target_sequence)
 
     for row in records:
@@ -257,7 +300,6 @@ def _map_regulatory_noncoding(
                 "Can't process variant syntax %s for %s", row.hgvs_nt, metadata.urn
             )
             continue
-        score = row.score
         hgvs_strings = _create_hgvs_strings(
             align_result, row.hgvs_nt, AnnotationLayer.GENOMIC
         )
@@ -277,13 +319,23 @@ def _map_regulatory_noncoding(
             False,
             offset=0,
         )
+        if not pre_map_allele or not post_map_allele:
+            msg = "Genomic variations missing"
+            raise VrsMapError(msg)
         variations.append(
-            VrsMapping(
-                pre_mapped_genomic=pre_map_allele,
-                post_mapped_genomic=post_map_allele,
-                mavedb_id=row.accession,
-                score=score,
-            ).output_vrs_variations(AnnotationLayer.GENOMIC)
+            MappedScore(
+                accession_id=row.accession,
+                annotation_layer=AnnotationLayer.GENOMIC,
+                pre_mapped=pre_map_allele,
+                post_mapped=post_map_allele,
+                score=row.score,
+            )
+            # VrsMapping(
+            #     pre_mapped_genomic=pre_map_allele,
+            #     post_mapped_genomic=post_map_allele,
+            #     mavedb_id=row.accession,
+            #     score=score,
+            # ).output_vrs_variations(AnnotationLayer.GENOMIC)
         )
     return variations
 
@@ -399,7 +451,7 @@ def vrs_map(
     records: list[ScoreRow],
     transcript: TxSelectResult | None = None,
     silent: bool = True,
-) -> list[VrsMapping1_3] | None:
+) -> list[MappedScore] | None:
     """Given a description of a MAVE scoreset and an aligned transcript, generate
     the corresponding VRS objects.
 

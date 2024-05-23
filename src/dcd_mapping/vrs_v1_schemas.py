@@ -57,11 +57,18 @@ class Expression(BaseModel):
     syntax_version: Any  # TODO ???
 
 
+class Haplotype(BaseModel):
+    """Define VRS 1.3 Haplotype."""
+
+    type: Literal["Haplotype"] = "Haplotype"
+    members: list[Allele]
+
+
 class VariationDescriptor(BaseModel):
     """Define VRSATILE VariationDescriptor."""
 
     id: StrictStr
     type: Literal["VariationDescriptor"] = "VariationDescriptor"
-    # variation: Allele | Haplotype
+    variation: Allele | Haplotype
     expresions: list[Expression]
     vrs_ref_allele_seq: StrictStr

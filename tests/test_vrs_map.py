@@ -4,51 +4,53 @@ from unittest.mock import MagicMock
 
 import pytest
 from cool_seq_tool.schemas import AnnotationLayer
+from ga4gh.vrs._internal.models import Allele
 
 from dcd_mapping.mavedb_data import _load_scoreset_records
 from dcd_mapping.schemas import (
     AlignmentResult,
+    MappedScore,
     ScoresetMetadata,
     TxSelectResult,
-    VrsMapping1_3,
 )
 from dcd_mapping.vrs_map import vrs_map
 
 
 def _assert_correct_vrs_map(
-    mapping: VrsMapping1_3, expected_mappings_data: dict[str, dict]
+    mapping: MappedScore, expected_mappings_data: dict[str, dict]
 ):
     assert (
-        mapping.mavedb_id in expected_mappings_data
+        mapping.accession_id in expected_mappings_data
     ), "Score row is not in expected mappings"
-    assert (
-        mapping.layer in expected_mappings_data[mapping.mavedb_id]
-    ), "Doesn't include expected mapping layer for score row"
-    expected = expected_mappings_data[mapping.mavedb_id][mapping.layer]
-    if mapping.pre_mapped_variants["type"] == "Haplotype":
+    expected = expected_mappings_data[mapping.accession_id]
+    if isinstance(mapping.pre_mapped, list) and isinstance(mapping.post_mapped, list):
         assert all(
-            len(x) == len(mapping.pre_mapped_variants["members"])
+            len(x) == len(mapping.pre_mapped)
             for x in (
-                mapping.post_mapped_variants["members"],
+                mapping.post_mapped,
                 expected["pre_mapped"],
                 expected["post_mapped"],
             )
         ), "mappings are different lengths"
         for va_id in expected["pre_mapped"]:
-            for variant in mapping.pre_mapped_variants["members"]:
-                if variant["id"] == va_id:
+            for variant in mapping.pre_mapped:
+                if variant.id == va_id:
                     break
             else:
                 pytest.fail(f"Failed to find {va_id} in pre-mapped variants.")
         for va_id in expected["post_mapped"]:
-            for variant in mapping.post_mapped_variants["members"]:
-                if variant["id"] == va_id:
+            for variant in mapping.post_mapped:
+                if variant.id == va_id:
                     break
             else:
                 pytest.fail(f"Failed to find {va_id} in post-mapped variants.")
+    elif isinstance(mapping.pre_mapped, Allele) and isinstance(
+        mapping.post_mapped, Allele
+    ):
+        assert mapping.pre_mapped.id == expected["pre_mapped"]
+        assert mapping.post_mapped.id == expected["post_mapped"]
     else:
-        assert mapping.pre_mapped_variants["id"] == expected["pre_mapped"]
-        assert mapping.post_mapped_variants["id"] == expected["post_mapped"]
+        pytest.fail("mapping format appears to be broken")
 
 
 @pytest.fixture()
@@ -77,48 +79,40 @@ def test_2_a_2(
     records, metadata, align_result, tx_result = get_fixtures(urn)
     expected_mappings_data = {
         "urn:mavedb:00000002-a-2#1": {
-            AnnotationLayer.PROTEIN: {
-                "pre_mapped": [
-                    "ga4gh:VA.jvd3wir-9AwP7Ay9FWnqqGVxETG9Dl0M",
-                    "ga4gh:VA.aKrgTa26FUdF8b4wMk7mwFCZnTQmIe5i",
-                ],
-                "post_mapped": [
-                    "ga4gh:VA.-IuFaR_wBHzEQJSdDAoke-r2LRe9jtMQ",
-                    "ga4gh:VA.aF9h1d9DvWWGlkhRAbdz1Ni9DQUOXIhL",
-                ],
-            },
+            "pre_mapped": [
+                "ga4gh:VA.jvd3wir-9AwP7Ay9FWnqqGVxETG9Dl0M",
+                "ga4gh:VA.aKrgTa26FUdF8b4wMk7mwFCZnTQmIe5i",
+            ],
+            "post_mapped": [
+                "ga4gh:VA.-IuFaR_wBHzEQJSdDAoke-r2LRe9jtMQ",
+                "ga4gh:VA.aF9h1d9DvWWGlkhRAbdz1Ni9DQUOXIhL",
+            ],
         },
         "urn:mavedb:00000002-a-2#2679": {
-            AnnotationLayer.PROTEIN: {
-                "pre_mapped": "ga4gh:VA.5Jf_a17Q6ySEpDvHr1FR1kmE6L1RWpGK",
-                "post_mapped": "ga4gh:VA.PWfyP7Ktd3L2IT564-h9FVyqv9NvnnEJ",
-            }
+            "pre_mapped": "ga4gh:VA.5Jf_a17Q6ySEpDvHr1FR1kmE6L1RWpGK",
+            "post_mapped": "ga4gh:VA.PWfyP7Ktd3L2IT564-h9FVyqv9NvnnEJ",
         },
         "urn:mavedb:00000002-a-2#3096": {
-            AnnotationLayer.PROTEIN: {
-                "pre_mapped": [
-                    "ga4gh:VA.A4nh1CUx6gUy0pCePT9RxZQDrY9BzEoa",
-                    "ga4gh:VA.H6BdObvEycBGJPqnASVYOPwf9bHboT6w",
-                ],
-                "post_mapped": [
-                    "ga4gh:VA.PLOa58Eo06IGBGQbrsOPBpXcuw4mDAFH",
-                    "ga4gh:VA.xi7XqR9LSoq0n8B3W2ufPEg12MqEZ3jD",
-                ],
-            }
+            "pre_mapped": [
+                "ga4gh:VA.A4nh1CUx6gUy0pCePT9RxZQDrY9BzEoa",
+                "ga4gh:VA.H6BdObvEycBGJPqnASVYOPwf9bHboT6w",
+            ],
+            "post_mapped": [
+                "ga4gh:VA.PLOa58Eo06IGBGQbrsOPBpXcuw4mDAFH",
+                "ga4gh:VA.xi7XqR9LSoq0n8B3W2ufPEg12MqEZ3jD",
+            ],
         },
         "urn:mavedb:00000002-a-2#26248": {
-            AnnotationLayer.PROTEIN: {
-                "pre_mapped": [
-                    "ga4gh:VA.M_mxkauLTyizIeufKNmOk9vplL9N8Svn",
-                    "ga4gh:VA.krtCaV7JjlvM4esBW0XzUnnsQgixnmyV",
-                    "ga4gh:VA.H6BdObvEycBGJPqnASVYOPwf9bHboT6w",
-                ],
-                "post_mapped": [
-                    "ga4gh:VA.Z1CFy03R9dyAEfWj_G4dsyRHkj7dbJto",
-                    "ga4gh:VA.sr_W-vpBZbM1ItYhaqFw3m_O08EEqtqg",
-                    "ga4gh:VA.xi7XqR9LSoq0n8B3W2ufPEg12MqEZ3jD",
-                ],
-            }
+            "pre_mapped": [
+                "ga4gh:VA.M_mxkauLTyizIeufKNmOk9vplL9N8Svn",
+                "ga4gh:VA.krtCaV7JjlvM4esBW0XzUnnsQgixnmyV",
+                "ga4gh:VA.H6BdObvEycBGJPqnASVYOPwf9bHboT6w",
+            ],
+            "post_mapped": [
+                "ga4gh:VA.Z1CFy03R9dyAEfWj_G4dsyRHkj7dbJto",
+                "ga4gh:VA.sr_W-vpBZbM1ItYhaqFw3m_O08EEqtqg",
+                "ga4gh:VA.xi7XqR9LSoq0n8B3W2ufPEg12MqEZ3jD",
+            ],
         },
     }
 

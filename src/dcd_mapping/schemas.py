@@ -175,10 +175,16 @@ class MappedScore(BaseModel):
     """Provide mappings for an individual experiment score."""
 
     accession_id: StrictStr
-    pre_mapped_protein: Allele | list[Allele] | None = None
-    post_mapped_protein: Allele | list[Allele] | None = None
-    pre_mapped_genomic: Allele | list[Allele] | None = None
-    post_mapped_genomic: Allele | list[Allele] | None = None
+    annotation_layer: AnnotationLayer  # TODO potentially unnecessary
+    score: str
+    # TODO don't need to retain both protein and genomic?
+    # just make a decision upfront about which one you need
+    # pre_mapped_protein: Allele | list[Allele] | None = None
+    # post_mapped_protein: Allele | list[Allele] | None = None
+    # pre_mapped_genomic: Allele | list[Allele] | None = None
+    # post_mapped_genomic: Allele | list[Allele] | None = None
+    pre_mapped: Allele | list[Allele]
+    post_mapped: Allele | list[Allele]
 
 
 # output of annotate()
@@ -195,10 +201,7 @@ class AnnotatedMappedScore(BaseModel):
 
 
 class ScoresetMapping(BaseModel):
-    """Provide all mapped scores for a scoreset.
-
-    Doesn't include metadata stuff to add from MaveDB (not totally sure how to get it).
-    """
+    """Provide all mapped scores for a scoreset."""
 
     computed_reference_sequence: ComputedReferenceSequence
     mapped_reference_sequence: MappedReferenceSequence
