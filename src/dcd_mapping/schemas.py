@@ -205,21 +205,15 @@ def to_schema(
 
         return vrs_v1_schemas.Allele(
             id=f"ga4gh:VA.{allele_id}",
-            type="Allele",
             location=vrs_v1_schemas.SequenceLocation(
                 id=location_id,
-                type="SequenceLocation",
                 sequence_id=sequence_id,
                 interval=vrs_v1_schemas.SequenceInterval(
-                    type="SequenceInterval",
                     start=vrs_v1_schemas.Number(value=start, type="number"),
                     end=vrs_v1_schemas.Number(value=end, type="number"),
                 ),
             ),
-            state={
-                "type": "LiteralSequenceExpression",
-                "sequence": sequence,
-            },
+            state=vrs_v1_schemas.LiteralSequenceExpression(sequence=sequence),
         )
     raise NotImplementedError
 

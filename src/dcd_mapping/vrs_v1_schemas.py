@@ -37,7 +37,7 @@ class SequenceLocation(BaseModel):
 class LiteralSequenceExpression(BaseModel):
     """Define VRS 1.3 LiteralSequenceExpression."""
 
-    type: Literal["LiteralSequenceExpression"]
+    type: Literal["LiteralSequenceExpression"] = "LiteralSequenceExpression"
     sequence: StrictStr
 
 
