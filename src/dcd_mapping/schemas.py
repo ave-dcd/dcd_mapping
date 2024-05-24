@@ -4,7 +4,7 @@ from typing import Literal
 
 from cool_seq_tool.schemas import AnnotationLayer, Strand, TranscriptPriority
 from ga4gh.core import sha512t24u
-from ga4gh.vrs._internal.models import Allele
+from ga4gh.vrs._internal.models import Allele, Haplotype
 from pydantic import BaseModel, StrictBool, StrictFloat, StrictInt, StrictStr
 
 from dcd_mapping import vrs_v1_schemas
@@ -87,6 +87,7 @@ class MappedReferenceSequence(ReferenceSequence):
     sequence_accessions: list[StrictStr]
 
 
+# TODO maybe remove
 class MappedOutput(BaseModel):
     """Define output format for mapped score set"""
 
@@ -95,25 +96,6 @@ class MappedOutput(BaseModel):
     mavedb_id: StrictStr
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
     score: StrictFloat | None
-
-
-class VrsRefAlleleSeq(BaseModel):
-    """Define reference sequence indicated by sequence digest
-    and start and end positions in an allele
-    """
-
-    vrs_ref_allele_seq: StrictStr
-
-
-class HgvsExpression(BaseModel):
-    """Define class for defining an HGVS expression for a mapped
-    MAVE variant
-    """
-
-    type: StrictStr = "Expression"
-    syntax: StrictStr
-    value: StrictStr
-    syntax_version: StrictStr = None
 
 
 class AlignmentResult(BaseModel):
@@ -175,16 +157,10 @@ class MappedScore(BaseModel):
     """Provide mappings for an individual experiment score."""
 
     accession_id: StrictStr
-    annotation_layer: AnnotationLayer  # TODO potentially unnecessary
+    annotation_layer: AnnotationLayer
     score: str
-    # TODO don't need to retain both protein and genomic?
-    # just make a decision upfront about which one you need
-    # pre_mapped_protein: Allele | list[Allele] | None = None
-    # post_mapped_protein: Allele | list[Allele] | None = None
-    # pre_mapped_genomic: Allele | list[Allele] | None = None
-    # post_mapped_genomic: Allele | list[Allele] | None = None
-    pre_mapped: Allele | list[Allele]
-    post_mapped: Allele | list[Allele]
+    pre_mapped: Allele | Haplotype
+    post_mapped: Allele | Haplotype
 
 
 # output of annotate()
@@ -193,8 +169,6 @@ class AnnotatedMappedScore(BaseModel):
 
     pre_mapped: vrs_v1_schemas.VariationDescriptor
     post_mapped: vrs_v1_schemas.VariationDescriptor
-    # pre_mapped_2: Allele | list[Allele]
-    # post_mapped_2: Allele | list[Allele]
     mavedb_id: StrictStr
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
     score: float
@@ -206,6 +180,48 @@ class ScoresetMapping(BaseModel):
     computed_reference_sequence: ComputedReferenceSequence
     mapped_reference_sequence: MappedReferenceSequence
     mapped_scores: list[AnnotatedMappedScore]
+
+
+class VrsVersion(str, Enum):
+    """Constrain VRS versions to translate between"""
+
+    V1_X = "V1_X"
+    V2_X = "V2_X"
+
+
+def to_schema(
+    allele: Allele, schema_from: VrsVersion, schema_to: VrsVersion
+) -> vrs_v1_schemas.Allele:
+    """Convert alleles to/from different versions of VRS"""
+    if schema_from == VrsVersion.V2_X and schema_to == VrsVersion.V1_X:
+        start = allele.location.start
+        end = allele.location.end
+        sequence_id = f"ga4gh:{allele.location.sequenceReference.refgetAccession}"
+        location_raw = f'{{"end":{{"type":"Number","value":{end}}},"sequence_id":"{sequence_id.split(".")[1]}","start":{{"type":"Number","value":{start}}},"type":"SequenceLocation"}}'
+        location_id = sha512t24u(location_raw.encode("ascii"))
+        sequence = "" if not allele.state.sequence else allele.state.sequence.root
+        allele_raw = f'{{"location":"{location_id}","state":{{"sequence":"{sequence}","type":"LiteralSequenceExpression"}},"type":"Allele"}}'
+        allele_id = sha512t24u(allele_raw.encode("ascii"))
+
+        return vrs_v1_schemas.Allele(
+            id=f"ga4gh:VA.{allele_id}",
+            type="Allele",
+            location=vrs_v1_schemas.SequenceLocation(
+                id=location_id,
+                type="SequenceLocation",
+                sequence_id=sequence_id,
+                interval=vrs_v1_schemas.SequenceInterval(
+                    type="SequenceInterval",
+                    start=vrs_v1_schemas.Number(value=start, type="number"),
+                    end=vrs_v1_schemas.Number(value=end, type="number"),
+                ),
+            ),
+            state={
+                "type": "LiteralSequenceExpression",
+                "sequence": sequence,
+            },
+        )
+    raise NotImplementedError
 
 
 ###################### WORKING: ################################
@@ -220,39 +236,6 @@ class VrsMapping1_3(BaseModel):  # noqa: N801
     score: str
     layer: AnnotationLayer
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
-
-
-class VrsVersion(str, Enum):
-    """Constrain VRS versions to translate between"""
-
-    V1_X = "V1_X"
-    V2_X = "V2_X"
-
-
-def to_schema(allele: Allele, schema_from: VrsVersion, schema_to: VrsVersion) -> dict:
-    """Convert alleles to/from different versions of VRS"""
-    if schema_from == VrsVersion.V2_X and schema_to == VrsVersion.V1_X:
-        sequence = "" if not allele.state.sequence else allele.state.sequence.root
-        new_allele = {
-            "type": "Allele",
-            "location": {
-                "id": None,
-                "type": "SequenceLocation",
-                "sequence_id": f"ga4gh:{allele.location.sequenceReference.refgetAccession}",
-                "interval": {
-                    "type": "SequenceInterval",
-                    "start": {"value": allele.location.start, "type": "number"},
-                    "end": {"value": allele.location.end, "type": "number"},
-                },
-            },
-            "state": {
-                "type": "LiteralSequenceExpression",
-                "sequence": sequence,
-            },
-        }
-        # WIP identify
-        return new_allele  # noqa: RET504
-    raise NotImplementedError
 
 
 class VrsMapping(BaseModel):

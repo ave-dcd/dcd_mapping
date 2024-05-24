@@ -5,7 +5,7 @@ import click
 from Bio.Seq import Seq
 from cool_seq_tool.schemas import AnnotationLayer, Strand
 from ga4gh.core import ga4gh_identify, sha512t24u
-from ga4gh.vrs._internal.models import Allele, SequenceString
+from ga4gh.vrs._internal.models import Allele, Haplotype, SequenceString
 from ga4gh.vrs.normalize import normalize
 
 from dcd_mapping.lookup import (
@@ -21,10 +21,9 @@ from dcd_mapping.schemas import (
     TargetSequenceType,
     TargetType,
     TxSelectResult,
-    VrsMapping,
 )
 
-__all__ = ["vrs_map"]
+__all__ = ["vrs_map", "VrsMapError"]
 
 
 _logger = logging.getLogger(__name__)
@@ -34,6 +33,29 @@ class VrsMapError(Exception):
     """Raise in case of VRS mapping errors."""
 
 
+def _hgvs_variant_is_valid(hgvs_string: str) -> bool:
+    return not hgvs_string.endswith((".=", ")", "X"))
+
+
+def _process_any_aa_code(hgvs_pro_string: str) -> str:
+    """Substitute "Xaa" for "?" in variation expression.
+
+    Some expressions seem to use the single-character "?" wildcard in the context of
+    three-letter amino acid codes. This is weird, and the proper replacement is "Xaa".
+
+    Note that we currently do NOT make any alterations to nucleotide strings that use
+    weird apparently-wildcard characters like "X" -- we just treat them as invalid (see
+    _hgvs_variant_is_valid()).
+
+    :param hgvs_string: MAVE HGVS expression
+    :return: processed variation (equivalent to input if no wildcard code found)
+    """
+    if "?" in hgvs_pro_string:
+        _logger.debug("Substituting Xaa for ? in %s", hgvs_pro_string)
+        hgvs_pro_string = hgvs_pro_string.replace("?", "Xaa")
+    return hgvs_pro_string
+
+
 def _create_hgvs_strings(
     alignment: AlignmentResult,
     raw_description: str,
@@ -41,6 +63,12 @@ def _create_hgvs_strings(
     tx: TxSelectResult | None = None,
 ) -> list[str]:
     """Properly format MAVE variant strings
+
+    * Add accession
+    * Split up plural/'haplotype' variant expressions
+    * Drop empty/nonexistent/non-computable variant expressions
+    * Convert "?" -> "Xaa" (should only be for amino acid variation expressions)
+
     :param align_results: Alignment results for a score set
     :param raw_description: The variant list as expressed in MaveDB
     :param layer: The Annotation Layer (protein or genomic)
@@ -60,6 +88,9 @@ def _create_hgvs_strings(
     else:
         descr_list = [raw_description]
         hgvs_strings = [f"{acc}:{d}" for d in descr_list]
+    hgvs_strings = list(filter(_hgvs_variant_is_valid, hgvs_strings))
+    if layer == AnnotationLayer.PROTEIN:
+        hgvs_strings = [_process_any_aa_code(s) for s in hgvs_strings]
     return hgvs_strings
 
 
@@ -100,16 +131,7 @@ def _map_protein_coding_pro(
             annotation_layer=AnnotationLayer.PROTEIN,
             pre_mapped=vrs_variation,
             post_mapped=vrs_variation,
-            # TODO why were these defined as single-member arrays?
-            # pre_mapped=[vrs_variation],
-            # post_mapped=[vrs_variation]
         )
-        return VrsMapping(
-            mavedb_id=row.accession,
-            pre_mapped_protein=[vrs_variation],
-            post_mapped_protein=[vrs_variation],
-            score=score,
-        ).output_vrs_variations(AnnotationLayer.PROTEIN)
     hgvs_strings = _create_hgvs_strings(
         align_result, row.hgvs_pro, AnnotationLayer.PROTEIN, transcript
     )
@@ -137,28 +159,6 @@ def _map_protein_coding_pro(
             post_mapped=post_mapped_protein,
         )
     return None
-    # mapped = VrsMapping(
-    #     mavedb_id=row.accession,
-    #     score=score,
-    #     pre_mapped_protein=_get_variation(
-    #         hgvs_strings,
-    #         AnnotationLayer.PROTEIN,
-    #         sequence_id,
-    #         align_result,
-    #         True,
-    #     ),
-    #     post_mapped_protein=_get_variation(
-    #         hgvs_strings,
-    #         AnnotationLayer.PROTEIN,
-    #         sequence_id,
-    #         align_result,
-    #         False,
-    #         transcript.start,
-    #     ),
-    # )
-    # if mapped.pre_mapped_protein and mapped.post_mapped_protein:
-    #     return mapped.output_vrs_variations(AnnotationLayer.PROTEIN)
-    # return None
 
 
 def _get_allele_sequence(allele: Allele) -> str:
@@ -192,6 +192,19 @@ def store_sequence(sequence: str) -> str:
     return sequence_id
 
 
+def _hgvs_nt_is_valid(hgvs_nt: str) -> bool:
+    """Check for invalid or unavailable nucleotide MAVE-HGVS variation
+
+    :param hgvs_nt: MAVE_HGVS nucleotide expression
+    :return: True if expression appears populated and valid
+    """
+    return (
+        (hgvs_nt != "NA")
+        and (hgvs_nt not in {"_wt", "_sy", "="})
+        and (len(hgvs_nt) != 3)
+    )
+
+
 def _map_protein_coding(
     metadata: ScoresetMetadata,
     records: list[ScoreRow],
@@ -206,29 +219,24 @@ def _map_protein_coding(
     :param align_results: The alignment data for a score set
     :return: A list of mappings
     """
-    variations: list[MappedScore] = []
     if metadata.target_sequence_type == TargetSequenceType.DNA:
         sequence = str(
             Seq(metadata.target_sequence).translate(table="1", stop_symbol="")
         )
+        psequence_id = store_sequence(sequence)
+        gsequence_id = store_sequence(metadata.target_sequence)
     else:
         sequence = metadata.target_sequence
+        psequence_id = gsequence_id = store_sequence(sequence)
 
-    # Add custom digest to SeqRepo for both Protein and DNA Sequence
-    psequence_id = store_sequence(sequence)
-    gsequence_id = store_sequence(metadata.target_sequence)
-
+    variations: list[MappedScore] = []
     for row in records:
         hgvs_pro_mappings = _map_protein_coding_pro(
             row, row.score, align_result, psequence_id, transcript
         )
         if hgvs_pro_mappings:
             variations.append(hgvs_pro_mappings)
-        if (
-            row.hgvs_nt == "NA"
-            or row.hgvs_nt in {"_wt", "_sy", "="}
-            or len(row.hgvs_nt) == 3
-        ):
+        if not _hgvs_nt_is_valid(row.hgvs_nt):
             continue
         hgvs_strings = _create_hgvs_strings(
             align_result, row.hgvs_nt, AnnotationLayer.GENOMIC
@@ -263,15 +271,6 @@ def _map_protein_coding(
                 post_mapped=post_mapped_genomic,
             )
         )
-
-        # variations.append(
-        #     VrsMapping(
-        #         mavedb_id=row.accession,
-        #         score=score,
-        #         pre_mapped_genomic=pre_mapped_genomic,
-        #         post_mapped_genomic=post_mapped_genomic,
-        #     ).output_vrs_variations(layer)
-        # )
     return variations
 
 
@@ -330,12 +329,6 @@ def _map_regulatory_noncoding(
                 post_mapped=post_map_allele,
                 score=row.score,
             )
-            # VrsMapping(
-            #     pre_mapped_genomic=pre_map_allele,
-            #     post_mapped_genomic=post_map_allele,
-            #     mavedb_id=row.accession,
-            #     score=score,
-            # ).output_vrs_variations(AnnotationLayer.GENOMIC)
         )
     return variations
 
@@ -347,7 +340,7 @@ def _get_variation(
     alignment: AlignmentResult,
     pre_map: bool,
     offset: int = 0,
-) -> list[Allele] | None:
+) -> Allele | Haplotype | None:
     """Create variation (allele).
 
     :param hgvs_strings: The HGVS suffix that represents a variant
@@ -357,25 +350,14 @@ def _get_variation(
     :param pre_map: if True, return object for pre mapping stage. Otherwise return for
         post-mapping.
     :param offset: The offset to adjust the start and end positions in allele. This
-    parameter is used if the annotation layer is protein. For genomic variants, the
-    offset is computed with respect to the alignment block.
-    :return: A list of VRS Allele dictionaries for a list of MAVE variants
+        parameter is used if the annotation layer is protein. For genomic variants, the
+        offset is computed with respect to the alignment block.
+    :return: an allele or haplotype
     """
     if sequence_id.startswith("ga4gh:"):
         sequence_id = sequence_id[6:]
     alleles: list[Allele] = []
     for hgvs_string in hgvs_strings:
-        if hgvs_string.endswith((".=", ")", "X")):  # Invalid variant
-            continue
-
-        if "?" in hgvs_string:
-            _logger.debug(
-                "Substituting Xaa for ? in %s (sequence ID %s)",
-                hgvs_string,
-                sequence_id,
-            )
-            hgvs_string = hgvs_string.replace("?", "Xaa")
-
         # Generate VRS Allele structure. Set VA digests and SL digests to None
         allele = translate_hgvs_to_vrs(hgvs_string)
         allele.id = None
@@ -442,7 +424,9 @@ def _get_variation(
 
     if not alleles:
         return None
-    return alleles
+    if len(alleles) == 1:
+        return alleles[0]
+    return Haplotype(members=alleles)
 
 
 def vrs_map(

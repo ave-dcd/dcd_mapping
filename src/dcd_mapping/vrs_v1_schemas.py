@@ -28,6 +28,7 @@ class SequenceInterval(BaseModel):
 class SequenceLocation(BaseModel):
     """Define VRS 1.3 SequenceLocation."""
 
+    id: StrictStr
     type: Literal["SequenceLocation"] = "SequenceLocation"
     sequence_id: StrictStr
     interval: SequenceInterval
@@ -44,6 +45,7 @@ class Allele(BaseModel):
     """Define VRS 1.3 Allele."""
 
     type: Literal["Allele"] = "Allele"
+    id: StrictStr
     location: SequenceLocation
     state: LiteralSequenceExpression
 
