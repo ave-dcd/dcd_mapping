@@ -31,101 +31,19 @@ from dcd_mapping.resource_utils import LOCAL_STORE_PATH
 from dcd_mapping.schemas import (
     AlignmentResult,
     ComputedReferenceSequence,
-    MappedOutput,
     MappedReferenceSequence,
     MappedScore,
     ScoreAnnotation,
+    ScoreAnnotationWithLayer,
+    ScoresetMapping,
     ScoresetMetadata,
     TargetSequenceType,
     TxSelectResult,
-    VrsMapping1_3,
     allele_to_vod,
     haplotype_to_haplotype_1_3,
 )
 
 _logger = logging.getLogger(__name__)
-
-
-def get_vod_premapped(allele: dict) -> dict:
-    """Return a VariationDescriptor object given a VRS pre-mapped allele dict
-
-    :param allele: A VRS allele dictionary
-    :return A VariationDescriptor dictionary
-    """
-    return {
-        "id": allele["id"],
-        "type": "VariationDescriptor",
-        "variation": {
-            "id": allele["id"],
-            "type": "Allele",
-            "location": {
-                "id": None,
-                "type": "SequenceLocation",
-                "sequence_id": allele["location"]["sequence_id"],
-                "interval": {
-                    "type": "SequenceInterval",
-                    "start": {
-                        "type": "Number",
-                        "value": allele["location"]["interval"]["start"]["value"],
-                    },
-                    "end": {
-                        "type": "Number",
-                        "value": allele["location"]["interval"]["end"]["value"],
-                    },
-                },
-            },
-            "state": {
-                "type": "LiteralSequenceExpression",
-                "sequence": allele["state"]["sequence"],
-            },
-        },
-        "vrs_ref_allele_seq": allele["vrs_ref_allele_seq"],
-    }
-
-
-def get_vod_postmapped(allele: dict) -> dict:
-    """Return a VariationDescriptor object given a VRS pre-mapped allele dict
-
-    :param allele: A VRS allele dictionary
-    :return A VariationDescriptor dictionary
-    """
-    return {
-        "id": allele["id"],
-        "type": "VariationDescriptor",
-        "variation": {
-            "id": allele["id"],
-            "type": "Allele",
-            "location": {
-                "id": None,
-                "type": "SequenceLocation",
-                "sequence_id": allele["location"]["sequence_id"],
-                "interval": {
-                    "type": "SequenceInterval",
-                    "start": {
-                        "type": "Number",
-                        "value": allele["location"]["interval"]["start"]["value"],
-                    },
-                    "end": {
-                        "type": "Number",
-                        "value": allele["location"]["interval"]["end"]["value"],
-                    },
-                },
-            },
-            "state": {
-                "type": "LiteralSequenceExpression",
-                "sequence": allele["state"]["sequence"],
-            },
-        },
-        "expressions": [
-            {
-                "type": "Expression",
-                "syntax": "hgvs.p" if "p." in allele["hgvs"] else "hgvs.g",
-                "value": allele["hgvs"],
-                "syntax_version": None,
-            }
-        ],
-        "vrs_ref_allele_seq": allele["vrs_ref_allele_seq"],
-    }
 
 
 def get_vod_haplotype(allele_list: list[dict]) -> dict:
@@ -199,42 +117,24 @@ def get_mapped_reference_sequence(
     )
 
 
-def _set_layer(ss: str, mappings: list[VrsMapping1_3]) -> AnnotationLayer:
-    if ss.startswith("urn:mavedb:00000097"):
+def _set_scoreset_layer(
+    urn: str, mappings: list[ScoreAnnotationWithLayer]
+) -> AnnotationLayer:
+    """Many individual score results provide both genomic and protein variant
+    expressions. If genomic expressions are available, that's what we'd like to use.
+    This function tells us how to filter the final annotation objects.
+    """
+    if urn.startswith("urn:mavedb:00000097"):
         return AnnotationLayer.PROTEIN
-    for var in mappings:
-        if var.layer == AnnotationLayer.GENOMIC:
+    for mapping in mappings:
+        if mapping.annotation_layer == AnnotationLayer.GENOMIC:
             return AnnotationLayer.GENOMIC
     return AnnotationLayer.PROTEIN
 
 
-def _format_score_mapping(var: VrsMapping1_3, layer: AnnotationLayer) -> dict | None:
-    if var and var.layer == layer:
-        if "members" in var.pre_mapped_variants:
-            pre_mapped_members = []
-            post_mapped_members = []
-            for sub_var in var.pre_mapped_variants["members"]:
-                pre_mapped_members.append(get_vod_premapped(sub_var))
-            for sub_var in var.post_mapped_variants["members"]:
-                post_mapped_members.append(get_vod_postmapped(sub_var))
-            return MappedOutput(
-                pre_mapped=get_vod_haplotype(pre_mapped_members),
-                post_mapped=get_vod_haplotype(post_mapped_members),
-                mavedb_id=var.mavedb_id,
-                score=None if var.score == "NA" else float(var.score),
-            ).model_dump()
-        return MappedOutput(
-            pre_mapped=get_vod_premapped(var.pre_mapped_variants),
-            post_mapped=get_vod_postmapped(var.post_mapped_variants),
-            mavedb_id=var.mavedb_id,
-            score=None if var.score == "NA" else float(var.score),
-        ).model_dump()
-    return None
-
-
 def save_mapped_output_json(
     urn: str,
-    mappings: list[VrsMapping1_3],
+    mappings: list[ScoreAnnotationWithLayer],
     align_result: AlignmentResult,
     tx_output: TxSelectResult | None = None,
     output_path: Path | None = None,
@@ -247,32 +147,33 @@ def save_mapped_output_json(
     :param tx_output: Transcript output for a score set
     :param output_path:
     """
-    layer = _set_layer(urn, mappings)
-
-    mapped_ss_output = {
-        "metadata": get_raw_scoreset_metadata(urn),
-        "computed_reference_sequence": get_computed_reference_sequence(
-            ss=urn, layer=layer, tx_output=tx_output
-        ).model_dump(),
-        "mapped_reference_sequence": get_mapped_reference_sequence(
-            tx_output=tx_output,
-            layer=layer,
-            align_result=align_result,
-        ).model_dump(),
-    }
-
+    preferred_layer = _set_scoreset_layer(urn, mappings)
+    metadata = get_raw_scoreset_metadata(urn)
+    computed_reference_sequence = get_computed_reference_sequence(
+        urn, preferred_layer, tx_output
+    )
+    mapped_reference_sequence = get_mapped_reference_sequence(
+        preferred_layer, tx_output, align_result
+    )
     mapped_scores = []
-    for var in mappings:
-        formatted_score_mapping = _format_score_mapping(var, layer)
-        mapped_scores.append(formatted_score_mapping)
-    mapped_ss_output["mapped_scores"] = mapped_scores
+    for m in mappings:
+        if m.annotation_layer == preferred_layer:
+            # drop annotation layer
+            mapped_scores.append(ScoreAnnotation(**m.model_dump()))
 
-    urn = urn.removeprefix("urn:mavedb:")
+    output = ScoresetMapping(
+        metadata=metadata,
+        computed_reference_sequence=computed_reference_sequence,
+        mapped_reference_sequence=mapped_reference_sequence,
+        mapped_scores=mapped_scores,
+    )
+
     if not output_path:
+        urn = urn.removeprefix("urn:mavedb:")
         output_path = LOCAL_STORE_PATH / f"{urn}_mapping.json"
 
     with output_path.open("w") as file:
-        json.dump(mapped_ss_output, file, indent=4)
+        json.dump(output.model_dump_json(), file, indent=4)
 
 
 def _offset_allele_ref_seq(ss: str, start: int, end: int) -> tuple[int, int]:
@@ -396,7 +297,7 @@ def _annotate_allele_mapping(
     mapped_score: MappedScore,
     tx_results: TxSelectResult | None,
     metadata: ScoresetMetadata,
-) -> ScoreAnnotation:
+) -> ScoreAnnotationWithLayer:
     pre_mapped: Allele = mapped_score.pre_mapped
     post_mapped: Allele = mapped_score.post_mapped
 
@@ -429,19 +330,20 @@ def _annotate_allele_mapping(
     pre_mapped_vod = allele_to_vod(pre_mapped)
     post_mapped_vod = allele_to_vod(post_mapped)
 
-    return ScoreAnnotation(
+    return ScoreAnnotationWithLayer(
         pre_mapped=pre_mapped_vod,
         post_mapped=post_mapped_vod,
         pre_mapped_2_0=pre_mapped,
         post_mapped_2_0=post_mapped,
         mavedb_id=mapped_score.accession_id,
         score=mapped_score.score,
+        annotation_layer=mapped_score.annotation_layer,
     )
 
 
 def _annotate_haplotype_mapping(
     mapping: MappedScore, tx_results: TxSelectResult | None, metadata: ScoresetMetadata
-) -> ScoreAnnotation:
+) -> ScoreAnnotationWithLayer:
     pre_mapped: Haplotype = mapping.pre_mapped  # type: ignore
     post_mapped: Haplotype = mapping.post_mapped  # type: ignore
     allele: Allele
@@ -478,13 +380,14 @@ def _annotate_haplotype_mapping(
     pre_mapped_converted = haplotype_to_haplotype_1_3(pre_mapped)
     post_mapped_converted = haplotype_to_haplotype_1_3(post_mapped)
 
-    return ScoreAnnotation(
+    return ScoreAnnotationWithLayer(
         pre_mapped=pre_mapped_converted,
         post_mapped=post_mapped_converted,
         pre_mapped_2_0=pre_mapped,
         post_mapped_2_0=post_mapped,
         mavedb_id=mapping.accession_id,
         score=mapping.score,
+        annotation_layer=mapping.annotation_layer,
     )
 
 
@@ -492,7 +395,7 @@ def annotate(
     mapped_scores: list[MappedScore],
     tx_results: TxSelectResult | None,
     metadata: ScoresetMetadata,
-) -> list[ScoreAnnotation]:
+) -> list[ScoreAnnotationWithLayer]:
     """Given a list of mappings, add additional contextual data:
 
     1. ``vrs_ref_allele_seq``: The sequence between the start and end positions
