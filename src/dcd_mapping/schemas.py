@@ -164,14 +164,16 @@ class MappedScore(BaseModel):
 
 
 # output of annotate()
-class AnnotatedMappedScore(BaseModel):
+class ScoreAnnotation(BaseModel):
     """Provide extra annotations on top of mappings for an individual experiment score."""
 
-    pre_mapped: vrs_v1_schemas.VariationDescriptor
-    post_mapped: vrs_v1_schemas.VariationDescriptor
+    pre_mapped: vrs_v1_schemas.VariationDescriptor | vrs_v1_schemas.Haplotype
+    post_mapped: vrs_v1_schemas.VariationDescriptor | vrs_v1_schemas.Haplotype
+    pre_mapped_2_0: Allele | Haplotype
+    post_mapped_2_0: Allele | Haplotype
     mavedb_id: StrictStr
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
-    score: float
+    score: str
 
 
 class ScoresetMapping(BaseModel):
@@ -179,43 +181,75 @@ class ScoresetMapping(BaseModel):
 
     computed_reference_sequence: ComputedReferenceSequence
     mapped_reference_sequence: MappedReferenceSequence
-    mapped_scores: list[AnnotatedMappedScore]
+    mapped_scores: list[ScoreAnnotation]
 
 
-class VrsVersion(str, Enum):
-    """Constrain VRS versions to translate between"""
-
-    V1_X = "V1_X"
-    V2_X = "V2_X"
+def allele_to_v1_allele(allele: Allele) -> vrs_v1_schemas.Allele:
+    """Convert VRS 2.0 allele to VRS 1.3 allele.
 
 
-def to_schema(
-    allele: Allele, schema_from: VrsVersion, schema_to: VrsVersion
-) -> vrs_v1_schemas.Allele:
-    """Convert alleles to/from different versions of VRS"""
-    if schema_from == VrsVersion.V2_X and schema_to == VrsVersion.V1_X:
-        start = allele.location.start
-        end = allele.location.end
-        sequence_id = f"ga4gh:{allele.location.sequenceReference.refgetAccession}"
-        location_raw = f'{{"end":{{"type":"Number","value":{end}}},"sequence_id":"{sequence_id.split(".")[1]}","start":{{"type":"Number","value":{start}}},"type":"SequenceLocation"}}'
-        location_id = sha512t24u(location_raw.encode("ascii"))
-        sequence = "" if not allele.state.sequence else allele.state.sequence.root
-        allele_raw = f'{{"location":"{location_id}","state":{{"sequence":"{sequence}","type":"LiteralSequenceExpression"}},"type":"Allele"}}'
-        allele_id = sha512t24u(allele_raw.encode("ascii"))
+    :param allele: VRS 2.0a allele
+    :return: equivalent VRS 1.3 allele
+    """
+    start = allele.location.start  # type: ignore
+    end = allele.location.end  # type: ignore
+    sequence_id = f"ga4gh:{allele.location.sequenceReference.refgetAccession}"  # type: ignore
+    location_raw = f'{{"end":{{"type":"Number","value":{end}}},"sequence_id":"{sequence_id.split(".")[1]}","start":{{"type":"Number","value":{start}}},"type":"SequenceLocation"}}'
+    location_id = sha512t24u(location_raw.encode("ascii"))
+    sequence = "" if not allele.state.sequence else allele.state.sequence.root
+    allele_raw = f'{{"location":"{location_id}","state":{{"sequence":"{sequence}","type":"LiteralSequenceExpression"}},"type":"Allele"}}'
+    allele_id = sha512t24u(allele_raw.encode("ascii"))
 
-        return vrs_v1_schemas.Allele(
-            id=f"ga4gh:VA.{allele_id}",
-            location=vrs_v1_schemas.SequenceLocation(
-                id=location_id,
-                sequence_id=sequence_id,
-                interval=vrs_v1_schemas.SequenceInterval(
-                    start=vrs_v1_schemas.Number(value=start, type="number"),
-                    end=vrs_v1_schemas.Number(value=end, type="number"),
-                ),
+    return vrs_v1_schemas.Allele(
+        id=f"ga4gh:VA.{allele_id}",
+        location=vrs_v1_schemas.SequenceLocation(
+            id=location_id,
+            sequence_id=sequence_id,
+            interval=vrs_v1_schemas.SequenceInterval(
+                start=vrs_v1_schemas.Number(value=start, type="number"),  # type: ignore
+                end=vrs_v1_schemas.Number(value=end, type="number"),  # type: ignore
             ),
-            state=vrs_v1_schemas.LiteralSequenceExpression(sequence=sequence),
+        ),
+        state=vrs_v1_schemas.LiteralSequenceExpression(sequence=sequence),
+    )
+
+
+def allele_to_vod(allele: Allele) -> vrs_v1_schemas.VariationDescriptor:
+    """Convert VRS 2.0 allele to comparable VRSATILE VariationDescriptor.
+
+    Some allele properties aren't available in the 1.3 allele, so we have to lift them
+    up to the VariationDescriptor.
+    """
+    allele_v1 = allele_to_v1_allele(allele)
+    original_expression = allele.expressions[0]  # type: ignore
+    expresions = [
+        vrs_v1_schemas.Expression(
+            syntax=original_expression.syntax.value,
+            value=original_expression.value,
+            syntax_version=None,
         )
-    raise NotImplementedError
+    ]
+    return vrs_v1_schemas.VariationDescriptor(
+        id=allele_v1.id,
+        variation=allele_v1,
+        type="VariationDescriptor",
+        expressions=expresions,
+        vrs_ref_allele_seq=allele.extensions[0].value,  # type: ignore
+        extensions=[],
+    )
+
+
+def haplotype_to_haplotype_1_3(haplotype: Haplotype) -> vrs_v1_schemas.Haplotype:
+    """Convert VRS 2.0 Haplotype to VRS 1.3 Haplotype.
+
+    :param haplotype: VRS 2.0 haplotype
+    :return: VRS 1.3 haplotype that contains VRSATILE variation descriptors (not alleles)
+    """
+    members = []
+    allele: Allele
+    for allele in haplotype.members:  # type: ignore
+        members.append(allele_to_vod(allele))
+    return vrs_v1_schemas.Haplotype(members=members)
 
 
 ###################### WORKING: ################################

@@ -54,7 +54,7 @@ async def map_scoreset(
         _logger.info("No mapping available for %s", metadata.urn)
         return
 
-    vrs_results = annotate(transcript, vrs_results, metadata)
+    vrs_results = annotate(vrs_results, transcript, metadata)
     save_mapped_output_json(
         metadata.urn, vrs_results, alignment_result, transcript, output_path
     )

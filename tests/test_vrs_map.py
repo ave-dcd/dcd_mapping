@@ -16,8 +16,7 @@ from dcd_mapping.schemas import (
     MappedScore,
     ScoresetMetadata,
     TxSelectResult,
-    VrsVersion,
-    to_schema,
+    allele_to_v1_allele,
 )
 from dcd_mapping.vrs_map import vrs_map
 
@@ -32,7 +31,7 @@ def _assert_correct_vrs_map(
         key in expected_mappings_data
     ), "Score row/layer combination is not in expected mappings"
     expected = expected_mappings_data[key]
-    vrs_2_to_1 = lambda var: to_schema(var, VrsVersion.V2_X, VrsVersion.V1_X)  # noqa: E731
+    vrs_2_to_1 = lambda var: allele_to_v1_allele(var)  # noqa: E731
     if isinstance(mapping.pre_mapped, Haplotype) and isinstance(
         mapping.post_mapped, Haplotype
     ):

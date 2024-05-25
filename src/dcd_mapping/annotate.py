@@ -9,9 +9,16 @@ import hgvs.parser
 import hgvs.posedit
 import hgvs.sequencevariant
 from Bio.SeqUtils import seq3
-from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
 from cool_seq_tool.schemas import AnnotationLayer
 from ga4gh.core import sha512t24u
+from ga4gh.core._internal.models import Extension
+from ga4gh.vrs._internal.models import (
+    Allele,
+    Expression,
+    Haplotype,
+    SequenceString,
+    Syntax,
+)
 
 from dcd_mapping.lookup import (
     get_chromosome_identifier,
@@ -26,74 +33,17 @@ from dcd_mapping.schemas import (
     ComputedReferenceSequence,
     MappedOutput,
     MappedReferenceSequence,
+    MappedScore,
+    ScoreAnnotation,
     ScoresetMetadata,
     TargetSequenceType,
     TxSelectResult,
     VrsMapping1_3,
+    allele_to_vod,
+    haplotype_to_haplotype_1_3,
 )
 
 _logger = logging.getLogger(__name__)
-
-
-def get_hgvs_string(allele: dict, dp: SeqRepoAccess, ac: str) -> str:
-    """Return an HGVS string for a given VRS allele
-
-    :param allele: A post-mapped VRS allele
-    :param dp: A SeqRepo instance
-    :param acc: A RefSeq accession
-    :return An HGVS string
-    """
-    stype = "p" if ac.startswith("NP") else "g"
-    start = allele["location"]["interval"]["start"]["value"]
-    end = allele["location"]["interval"]["end"]["value"]
-
-    if start == end:
-        ref = None
-        aas = dp.get_sequence(ac, start - 1, start)
-        aae = dp.get_sequence(ac, end, end + 1)
-        end += 1
-    else:
-        ref = dp.get_sequence(ac, start, end)
-        aas = dp.get_sequence(ac, start, start + 1)
-        aae = dp.get_sequence(ac, end - 1, end)
-        start += 1
-
-    if stype == "p":
-        ival = hgvs.location.Interval(
-            start=hgvs.location.AAPosition(base=start, aa=aas),
-            end=hgvs.location.AAPosition(base=end, aa=aae),
-        )
-    else:
-        ival = hgvs.location.Interval(
-            start=hgvs.location.SimplePosition(base=start),
-            end=hgvs.location.SimplePosition(base=end),
-        )
-    alt = allele["state"]["sequence"]
-
-    edit = ""  # Set default
-    if alt == ref:
-        edit = "="
-    if ref and (2 * ref == alt or len(ref) == 1 and set(ref) == set(alt)):
-        edit = "dup"
-    if alt == "":
-        edit = "del"
-
-    if edit != "dup" or edit != "del" or edit != "=":
-        edit = (
-            hgvs.edit.AARefAlt(ref=ref, alt=alt)
-            if stype == "p"
-            else hgvs.edit.NARefAlt(ref=ref, alt=alt)
-        )
-
-    if alt != ref:
-        posedit = hgvs.posedit.PosEdit(pos=ival, edit=edit)
-    else:
-        posedit = f"{seq3(ref)}{start!s}=" if stype == "p" else f"{end!s}{ref}="
-
-    var = str(hgvs.sequencevariant.SequenceVariant(ac=ac, type=stype, posedit=posedit))
-    if var.endswith("delins"):
-        var = var.replace("delins", "del")
-    return var
 
 
 def get_vod_premapped(allele: dict) -> dict:
@@ -325,136 +275,258 @@ def save_mapped_output_json(
         json.dump(mapped_ss_output, file, indent=4)
 
 
-def _format_start_end(ss: str, start: int, end: int) -> list[int]:
-    """Format start and end coordinates for vrs_ref_allele_seq for known edge cases
-
-    :param ss: score set
-    :param start: start coordinate
-    :param end: end coordinate
-    :return A list of start and end coordinates
-    """
+def _offset_allele_ref_seq(ss: str, start: int, end: int) -> tuple[int, int]:
+    """Handle known edge cases in start and end coordinates for vrs_ref_allele_seq."""
     if ss.startswith("urn:mavedb:00000060-a-1"):
         _logger.warning(
             "urn:mavedb:00000060-a-1 reports the entire human reference sequence as the target sequence, but the start and end positions need to be manually offset by 289"
         )
-        return [start + 289, end + 289]
+        return (start + 289, end + 289)
     if ss.startswith("urn:mavedb:00000060-a-2"):
         _logger.warning(
             "urn:mavedb:00000060-a-2 reports the entire human reference sequence as the target sequence, but the start and end positions need to be manually offset by 331"
         )
-        return [start + 331, end + 331]
-    return [start, end]
+        return (start + 331, end + 331)
+    return (start, end)
+
+
+def _get_vrs_ref_allele_seq(
+    allele: Allele, metadata: ScoresetMetadata, tx_select_results: TxSelectResult | None
+) -> Extension:
+    start, end = _offset_allele_ref_seq(
+        metadata.urn,
+        allele.location.interval.start.value,  # type: ignore
+        allele.location.interval.end.value,  # type: ignore
+    )
+    if metadata.urn.startswith(
+        (
+            "urn:mavedb:00000047",
+            "urn:mavedb:00000048",
+            "urn:mavedb:00000053",
+            "urn:mavedb:00000058-a-1",
+        )
+    ):
+        if tx_select_results is None:
+            # should be impossible - these scoresets are all protein coding
+            raise ValueError
+        seq = tx_select_results.sequence
+        ref = seq[start:end]
+    else:
+        seq = f"ga4gh:{allele.location.sequenceReference.refgetAccession}"  # type: ignore
+        sr = get_seqrepo()
+        ref = sr.get_sequence(seq, start, end)
+        if ref is None:
+            raise ValueError
+    return Extension(type="Extension", name="vrs_ref_allele_seq", value=ref)
+
+
+def _get_hgvs_string(allele: Allele, accession: str) -> tuple[str, Syntax]:
+    """Return an HGVS string for a given VRS allele
+
+    :param allele: A post-mapped VRS allele
+    :param accession: A RefSeq accession
+    :return An HGVS string and the Syntax value
+    """
+    if accession.startswith("NP"):
+        syntax = Syntax.HGVS_P
+        syntax_value = "p"
+    else:
+        syntax = Syntax.HGVS_G
+        syntax_value = "g"
+    start: int = allele.location.start  # type: ignore
+    end: int = allele.location.end  # type: ignore
+
+    dp = get_seqrepo()
+    if start == end:
+        ref = None
+        aas = dp.get_sequence(accession, start - 1, start)
+        aae = dp.get_sequence(accession, end, end + 1)
+        end += 1
+    else:
+        ref = dp.get_sequence(accession, start, end)
+        aas = dp.get_sequence(accession, start, start + 1)
+        aae = dp.get_sequence(accession, end - 1, end)
+        start += 1
+
+    if syntax == Syntax.HGVS_P:
+        ival = hgvs.location.Interval(
+            start=hgvs.location.AAPosition(base=start, aa=aas),
+            end=hgvs.location.AAPosition(base=end, aa=aae),
+        )
+    else:
+        ival = hgvs.location.Interval(
+            start=hgvs.location.SimplePosition(base=start),
+            end=hgvs.location.SimplePosition(base=end),
+        )
+    alt: SequenceString = allele.state.sequence  # type: ignore
+
+    edit = ""  # empty by default
+    if alt == ref:
+        edit = "="
+    if ref and (2 * ref == alt or len(ref) == 1 and set(ref) == set(alt)):
+        edit = "dup"
+    if alt == "":
+        edit = "del"
+
+    if edit != "dup" or edit != "del" or edit != "=":
+        edit = (
+            hgvs.edit.AARefAlt(ref=ref, alt=alt)
+            if syntax == Syntax.HGVS_P
+            else hgvs.edit.NARefAlt(ref=ref, alt=alt)
+        )
+
+    if alt != ref:
+        posedit = hgvs.posedit.PosEdit(pos=ival, edit=edit)
+    else:
+        posedit = (
+            f"{seq3(ref)}{start!s}=" if syntax == Syntax.HGVS_P else f"{end!s}{ref}="
+        )
+
+    var = str(
+        hgvs.sequencevariant.SequenceVariant(
+            ac=accession, type=syntax_value, posedit=posedit
+        )
+    )
+    if var.endswith("delins"):
+        var = var.replace("delins", "del")
+    return var, syntax
+
+
+def _annotate_allele_mapping(
+    mapped_score: MappedScore,
+    tx_results: TxSelectResult | None,
+    metadata: ScoresetMetadata,
+) -> ScoreAnnotation:
+    pre_mapped: Allele = mapped_score.pre_mapped
+    post_mapped: Allele = mapped_score.post_mapped
+
+    # get vrs_ref_allele_seq for pre-mapped variants
+    pre_mapped.extensions = [_get_vrs_ref_allele_seq(post_mapped, metadata, tx_results)]
+
+    # Determine reference sequence
+    if mapped_score.annotation_layer == AnnotationLayer.GENOMIC:
+        sequence_id = f"ga4gh:{mapped_score.post_mapped.location.sequenceReference.refgetAccession}"
+        accession = get_chromosome_identifier_from_vrs_id(sequence_id)
+        if accession is None:
+            raise ValueError
+        if accession.startswith("refseq:"):
+            accession = accession[7:]
+    else:
+        if tx_results is None:
+            raise ValueError  # impossible by definition
+        accession = tx_results.np
+
+    sr = get_seqrepo()
+    loc = mapped_score.post_mapped.location
+    sequence_id = f"ga4gh:{loc.sequenceReference.refgetAccession}"  # type: ignore
+    ref = sr.get_sequence(sequence_id, loc.start, loc.end)  # TODO type issues???
+    post_mapped.extensions = [
+        Extension(type="Extension", name="vrs_ref_allele_seq", value=ref)
+    ]
+    hgvs, syntax = _get_hgvs_string(post_mapped, accession)
+    post_mapped.expressions = [Expression(syntax=syntax, value=hgvs)]
+
+    pre_mapped_vod = allele_to_vod(pre_mapped)
+    post_mapped_vod = allele_to_vod(post_mapped)
+
+    return ScoreAnnotation(
+        pre_mapped=pre_mapped_vod,
+        post_mapped=post_mapped_vod,
+        pre_mapped_2_0=pre_mapped,
+        post_mapped_2_0=post_mapped,
+        mavedb_id=mapped_score.accession_id,
+        score=mapped_score.score,
+    )
+
+
+def _annotate_haplotype_mapping(
+    mapping: MappedScore, tx_results: TxSelectResult | None, metadata: ScoresetMetadata
+) -> ScoreAnnotation:
+    pre_mapped: Haplotype = mapping.pre_mapped  # type: ignore
+    post_mapped: Haplotype = mapping.post_mapped  # type: ignore
+    allele: Allele
+    # get vrs_ref_allele_seq for pre-mapped variants
+    for allele in pre_mapped.members:
+        allele.extensions = [_get_vrs_ref_allele_seq(allele, metadata, tx_results)]
+
+    # Determine reference sequence
+    if mapping.annotation_layer == AnnotationLayer.GENOMIC:
+        sequence_id = (
+            f"ga4gh:{post_mapped.members[0].location.sequenceReference.refgetAccession}"
+        )
+        accession = get_chromosome_identifier_from_vrs_id(sequence_id)
+        if accession is None:
+            raise ValueError
+        if accession.startswith("refseq:"):
+            accession = accession[7:]
+    else:
+        if tx_results is None:
+            raise ValueError  # impossible by definition
+        accession = tx_results.np
+
+    sr = get_seqrepo()
+    for allele in post_mapped.members:
+        loc = allele.location
+        sequence_id = f"ga4gh:{loc.sequenceReference.refgetAccession}"
+        ref = sr.get_sequence(sequence_id, loc.start, loc.end)  # TODO type issues??
+        allele.extensions = [
+            Extension(type="Extension", name="vrs_ref_allele_seq", value=ref)
+        ]
+        hgvs, syntax = _get_hgvs_string(allele, accession)
+        allele.expressions = [Expression(syntax=syntax, value=hgvs)]
+
+    pre_mapped_converted = haplotype_to_haplotype_1_3(pre_mapped)
+    post_mapped_converted = haplotype_to_haplotype_1_3(post_mapped)
+
+    return ScoreAnnotation(
+        pre_mapped=pre_mapped_converted,
+        post_mapped=post_mapped_converted,
+        pre_mapped_2_0=pre_mapped,
+        post_mapped_2_0=post_mapped,
+        mavedb_id=mapping.accession_id,
+        score=mapping.score,
+    )
 
 
 def annotate(
-    tx_select_results: TxSelectResult | None,
-    vrs_results: list[VrsMapping1_3],
+    mapped_scores: list[MappedScore],
+    tx_results: TxSelectResult | None,
     metadata: ScoresetMetadata,
-) -> list[VrsMapping1_3]:
+) -> list[ScoreAnnotation]:
     """Given a list of mappings, add additional contextual data:
 
     1. ``vrs_ref_allele_seq``: The sequence between the start and end positions
         indicated in the variant
     2. ``hgvs``: An HGVS string describing the variant (only included for post-mapped
         variants)
+    3. ``transcript_accession``: A description of the MANE annotation of the transcript,
+        if any  # < -- TODO I think we took this out
 
-    :param tx_select_results: transcript selection if available
+    ...and provide VRS 1.3-converted equivalents, too.
+
     :param vrs_results: in-progress variant mappings
+    :param tx_select_results: transcript selection if available
     :param metadata: MaveDB scoreset metadata
     :return: annotated mappings objects
     """
-    sr = get_seqrepo()
-    for var in vrs_results:
-        if not var:
-            continue
-        variant_list = var.pre_mapped_variants
-        if "members" in variant_list:
-            for sub_var in variant_list["members"]:
-                start_end = _format_start_end(
-                    metadata.urn,
-                    start=sub_var["location"]["interval"]["start"]["value"],
-                    end=sub_var["location"]["interval"]["end"]["value"],
-                )
-                if metadata.urn.startswith(
-                    (
-                        "urn:mavedb:00000047",
-                        "urn:mavedb:00000048",
-                        "urn:mavedb:00000053",
-                        "urn:mavedb:00000058-a-1",
-                    )
-                ):
-                    if tx_select_results is None:
-                        raise ValueError  # these scoresets are all protein coding
-                    seq = tx_select_results.sequence
-                    sub_var["vrs_ref_allele_seq"] = seq[start_end[0] : start_end[1]]
-                else:
-                    seq = sub_var["location"]["sequence_id"]
-                    sub_var["vrs_ref_allele_seq"] = sr.get_sequence(
-                        seq, start_end[0], start_end[1]
-                    )
-        else:
-            start_end = _format_start_end(
-                metadata.urn,
-                start=variant_list["location"]["interval"]["start"]["value"],
-                end=variant_list["location"]["interval"]["end"]["value"],
+    score_annotations = []
+    for mapped_score in mapped_scores:
+        if not mapped_score:
+            msg = "#TODO: I would like to know when/why this happens"
+            raise ValueError(msg)
+        if isinstance(mapped_score.pre_mapped, Haplotype) and isinstance(
+            mapped_score.post_mapped, Haplotype
+        ):
+            score_annotations.append(
+                _annotate_haplotype_mapping(mapped_score, tx_results, metadata)
             )
-            if metadata.urn.startswith(
-                (
-                    "urn:mavedb:00000047",
-                    "urn:mavedb:00000048",
-                    "urn:mavedb:00000053",
-                    "urn:mavedb:00000058-a-1",
-                )
-            ):
-                if tx_select_results is None:
-                    raise ValueError  # these scoresets are all protein coding
-                seq = tx_select_results.sequence
-                variant_list["vrs_ref_allele_seq"] = seq[start_end[0] : start_end[1]]
-            else:
-                seq = variant_list["location"]["sequence_id"]
-                variant_list["vrs_ref_allele_seq"] = sr.get_sequence(
-                    seq, start_end[0], start_end[1]
-                )
-
-        # Determine reference sequence
-        if var.layer == AnnotationLayer.GENOMIC:
-            if "members" in variant_list:
-                acc = get_chromosome_identifier_from_vrs_id(
-                    var.post_mapped_variants["members"][0]["location"]["sequence_id"]
-                )
-                if acc is None:
-                    raise ValueError
-                if acc.startswith("refseq:"):
-                    acc = acc[7:]
-            else:
-                acc = get_chromosome_identifier_from_vrs_id(
-                    var.post_mapped_variants["location"]["sequence_id"]
-                )
-                if acc is None:
-                    raise ValueError
-                if acc.startswith("refseq"):
-                    acc = acc[7:]
-        else:
-            if tx_select_results is None:
-                raise ValueError  # impossible by definition
-            acc = tx_select_results.np
-
-        # Add vrs_ref_allele_seq annotation and hgvs string to post-mapped variants
-        variant_list = var.post_mapped_variants
-        if "members" in variant_list:
-            for sub_var in variant_list["members"]:
-                sub_var["vrs_ref_allele_seq"] = sr.get_sequence(
-                    sub_var["location"]["sequence_id"],
-                    sub_var["location"]["interval"]["start"]["value"],
-                    sub_var["location"]["interval"]["end"]["value"],
-                )
-                sub_var["hgvs"] = get_hgvs_string(sub_var, sr, acc)
-        else:
-            variant_list["vrs_ref_allele_seq"] = sr.get_sequence(
-                variant_list["location"]["sequence_id"],
-                variant_list["location"]["interval"]["start"]["value"],
-                variant_list["location"]["interval"]["end"]["value"],
+        elif isinstance(mapped_score.pre_mapped, Allele) and isinstance(
+            mapped_score.post_mapped, Allele
+        ):
+            score_annotations.append(
+                _annotate_allele_mapping(mapped_score, tx_results, metadata)
             )
-            variant_list["hgvs"] = get_hgvs_string(variant_list, sr, acc)
+        else:
+            ValueError("inconsistent variant structure")
 
-    return vrs_results
+    return score_annotations
