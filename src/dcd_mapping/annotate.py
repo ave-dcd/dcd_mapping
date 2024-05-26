@@ -12,14 +12,9 @@ from Bio.SeqUtils import seq3
 from cool_seq_tool.schemas import AnnotationLayer
 from ga4gh.core import sha512t24u
 from ga4gh.core._internal.models import Extension
-from ga4gh.vrs._internal.models import (
-    Allele,
-    Expression,
-    Haplotype,
-    SequenceString,
-    Syntax,
-)
+from ga4gh.vrs._internal.models import Allele, Expression, Haplotype, Syntax
 
+from dcd_mapping import vrs_v1_schemas
 from dcd_mapping.lookup import (
     get_chromosome_identifier,
     get_chromosome_identifier_from_vrs_id,
@@ -39,141 +34,79 @@ from dcd_mapping.schemas import (
     ScoresetMetadata,
     TargetSequenceType,
     TxSelectResult,
-    allele_to_vod,
-    haplotype_to_haplotype_1_3,
 )
 
 _logger = logging.getLogger(__name__)
 
 
-def get_vod_haplotype(allele_list: list[dict]) -> dict:
-    """Define VOD model for haplotype
+def _allele_to_v1_allele(allele: Allele) -> vrs_v1_schemas.Allele:
+    """Convert VRS 2.0 allele to VRS 1.3 allele.
 
-    :param allele_list: A list of VRS allele dictionaries
-    :return A VRS Haplotype-like structure
+    :param allele: VRS 2.0a allele
+    :return: equivalent VRS 1.3 allele
     """
-    return {"type": "Haplotype", "members": allele_list}
+    start = allele.location.start  # type: ignore
+    end = allele.location.end  # type: ignore
+    sequence_id = f"ga4gh:{allele.location.sequenceReference.refgetAccession}"  # type: ignore
+    location_raw = f'{{"end":{{"type":"Number","value":{end}}},"sequence_id":"{sequence_id.split(".")[1]}","start":{{"type":"Number","value":{start}}},"type":"SequenceLocation"}}'
+    location_id = sha512t24u(location_raw.encode("ascii"))
+    sequence = "" if not allele.state.sequence else allele.state.sequence.root
+    allele_raw = f'{{"location":"{location_id}","state":{{"sequence":"{sequence}","type":"LiteralSequenceExpression"}},"type":"Allele"}}'
+    allele_id = sha512t24u(allele_raw.encode("ascii"))
 
-
-def get_computed_reference_sequence(
-    ss: str,
-    layer: AnnotationLayer,
-    tx_output: TxSelectResult | None = None,
-) -> ComputedReferenceSequence:
-    """Report the computed reference sequence for a score set
-
-    :param ss: A score set string
-    :param layer: AnnotationLayer
-    :param tx_output: Transcript data for a score set
-    :return A ComputedReferenceSequence object
-    """
-    if layer == AnnotationLayer.PROTEIN:
-        if tx_output is None:
-            raise ValueError
-        seq_id = f"ga4gh:SQ.{sha512t24u(tx_output.sequence.encode('ascii'))}"
-        return ComputedReferenceSequence(
-            sequence=tx_output.sequence,
-            sequence_type=TargetSequenceType.PROTEIN,
-            sequence_id=seq_id,
-        )
-    metadata = get_scoreset_metadata(ss)
-    seq_id = f"ga4gh:SQ.{sha512t24u(metadata.target_sequence.encode('ascii'))}"
-    return ComputedReferenceSequence(
-        sequence=metadata.target_sequence,
-        sequence_type=TargetSequenceType.DNA,
-        sequence_id=seq_id,
+    return vrs_v1_schemas.Allele(
+        id=f"ga4gh:VA.{allele_id}",
+        location=vrs_v1_schemas.SequenceLocation(
+            id=location_id,
+            sequence_id=sequence_id,
+            interval=vrs_v1_schemas.SequenceInterval(
+                start=vrs_v1_schemas.Number(value=start, type="number"),  # type: ignore
+                end=vrs_v1_schemas.Number(value=end, type="number"),  # type: ignore
+            ),
+        ),
+        state=vrs_v1_schemas.LiteralSequenceExpression(sequence=sequence),
     )
 
 
-def get_mapped_reference_sequence(
-    layer: AnnotationLayer,
-    tx_output: TxSelectResult | None = None,
-    align_result: AlignmentResult | None = None,
-) -> MappedReferenceSequence:
-    """Report the mapped reference sequence for a score set
+def _allele_to_vod(allele: Allele) -> vrs_v1_schemas.VariationDescriptor:
+    """Convert VRS 2.0 allele to comparable VRSATILE VariationDescriptor.
 
-    :param ss: A score set string
-    :param layer: AnnotationLayer
-    :param tx_output: Transcript data for a score set
-    :return A MappedReferenceSequence object
+    Some allele properties aren't available in the 1.3 allele, so we have to lift them
+    up to the VariationDescriptor.
     """
-    if layer == AnnotationLayer.PROTEIN and tx_output is not None:
-        vrs_id = get_vrs_id_from_identifier(tx_output.np)
-        if vrs_id is None:
-            raise ValueError
-        return MappedReferenceSequence(
-            sequence_type=TargetSequenceType.PROTEIN,
-            sequence_id=vrs_id,
-            sequence_accessions=[tx_output.np],
-        )
-    seq_id = get_chromosome_identifier(align_result.chrom)
-    vrs_id = get_vrs_id_from_identifier(seq_id)
-    if vrs_id is None:
-        raise ValueError
-    return MappedReferenceSequence(
-        sequence_type=TargetSequenceType.DNA,
-        sequence_id=vrs_id,
-        sequence_accessions=[seq_id],
+    allele_v1 = _allele_to_v1_allele(allele)
+    if allele.expressions:
+        original_expression = allele.expressions[0]  # type: ignore
+        expressions = [
+            vrs_v1_schemas.Expression(
+                syntax=original_expression.syntax.value,
+                value=original_expression.value,
+                syntax_version=None,
+            )
+        ]
+    else:
+        expressions = []
+    return vrs_v1_schemas.VariationDescriptor(
+        id=allele_v1.id,
+        variation=allele_v1,
+        type="VariationDescriptor",
+        expressions=expressions,
+        vrs_ref_allele_seq=allele.extensions[0].value,  # type: ignore
+        extensions=[],
     )
 
 
-def _set_scoreset_layer(
-    urn: str, mappings: list[ScoreAnnotationWithLayer]
-) -> AnnotationLayer:
-    """Many individual score results provide both genomic and protein variant
-    expressions. If genomic expressions are available, that's what we'd like to use.
-    This function tells us how to filter the final annotation objects.
+def _haplotype_to_haplotype_1_3(haplotype: Haplotype) -> vrs_v1_schemas.Haplotype:
+    """Convert VRS 2.0 Haplotype to VRS 1.3 Haplotype.
+
+    :param haplotype: VRS 2.0 haplotype
+    :return: VRS 1.3 haplotype that contains VRSATILE variation descriptors (not alleles)
     """
-    if urn.startswith("urn:mavedb:00000097"):
-        return AnnotationLayer.PROTEIN
-    for mapping in mappings:
-        if mapping.annotation_layer == AnnotationLayer.GENOMIC:
-            return AnnotationLayer.GENOMIC
-    return AnnotationLayer.PROTEIN
-
-
-def save_mapped_output_json(
-    urn: str,
-    mappings: list[ScoreAnnotationWithLayer],
-    align_result: AlignmentResult,
-    tx_output: TxSelectResult | None = None,
-    output_path: Path | None = None,
-) -> None:
-    """Save mapping output for a score set in a JSON file
-
-    :param urn: Score set accession
-    :param mave_vrs_mappings: A dictionary of VrsObject1_x objects
-    :param align_result: Alignment information for a score set
-    :param tx_output: Transcript output for a score set
-    :param output_path:
-    """
-    preferred_layer = _set_scoreset_layer(urn, mappings)
-    metadata = get_raw_scoreset_metadata(urn)
-    computed_reference_sequence = get_computed_reference_sequence(
-        urn, preferred_layer, tx_output
-    )
-    mapped_reference_sequence = get_mapped_reference_sequence(
-        preferred_layer, tx_output, align_result
-    )
-    mapped_scores = []
-    for m in mappings:
-        if m.annotation_layer == preferred_layer:
-            # drop annotation layer
-            mapped_scores.append(ScoreAnnotation(**m.model_dump()))
-
-    output = ScoresetMapping(
-        metadata=metadata,
-        computed_reference_sequence=computed_reference_sequence,
-        mapped_reference_sequence=mapped_reference_sequence,
-        mapped_scores=mapped_scores,
-    )
-
-    if not output_path:
-        urn = urn.removeprefix("urn:mavedb:")
-        output_path = LOCAL_STORE_PATH / f"{urn}_mapping.json"
-
-    with output_path.open("w") as file:
-        json.dump(output.model_dump_json(), file, indent=4)
+    members = []
+    allele: Allele
+    for allele in haplotype.members:  # type: ignore
+        members.append(_allele_to_vod(allele))
+    return vrs_v1_schemas.Haplotype(members=members)
 
 
 def _offset_allele_ref_seq(ss: str, start: int, end: int) -> tuple[int, int]:
@@ -194,22 +127,21 @@ def _offset_allele_ref_seq(ss: str, start: int, end: int) -> tuple[int, int]:
 def _get_vrs_ref_allele_seq(
     allele: Allele, metadata: ScoresetMetadata, tx_select_results: TxSelectResult | None
 ) -> Extension:
+    """Create `vrs_ref_allele_seq` property."""
     start, end = _offset_allele_ref_seq(
-        metadata.urn,
-        allele.location.interval.start.value,  # type: ignore
-        allele.location.interval.end.value,  # type: ignore
+        metadata.urn, allele.location.start, allele.location.end
     )
-    if metadata.urn.startswith(
-        (
-            "urn:mavedb:00000047",
-            "urn:mavedb:00000048",
-            "urn:mavedb:00000053",
-            "urn:mavedb:00000058-a-1",
+    if (
+        metadata.urn.startswith(
+            (
+                "urn:mavedb:00000047",
+                "urn:mavedb:00000048",
+                "urn:mavedb:00000053",
+                "urn:mavedb:00000058-a-1",
+            )
         )
+        and tx_select_results is not None
     ):
-        if tx_select_results is None:
-            # should be impossible - these scoresets are all protein coding
-            raise ValueError
         seq = tx_select_results.sequence
         ref = seq[start:end]
     else:
@@ -234,8 +166,8 @@ def _get_hgvs_string(allele: Allele, accession: str) -> tuple[str, Syntax]:
     else:
         syntax = Syntax.HGVS_G
         syntax_value = "g"
-    start: int = allele.location.start  # type: ignore
-    end: int = allele.location.end  # type: ignore
+    start: int = allele.location.start
+    end: int = allele.location.end
 
     dp = get_seqrepo()
     if start == end:
@@ -259,7 +191,7 @@ def _get_hgvs_string(allele: Allele, accession: str) -> tuple[str, Syntax]:
             start=hgvs.location.SimplePosition(base=start),
             end=hgvs.location.SimplePosition(base=end),
         )
-    alt: SequenceString = allele.state.sequence  # type: ignore
+    alt = allele.state.sequence.root
 
     edit = ""  # empty by default
     if alt == ref:
@@ -298,6 +230,7 @@ def _annotate_allele_mapping(
     tx_results: TxSelectResult | None,
     metadata: ScoresetMetadata,
 ) -> ScoreAnnotationWithLayer:
+    """Perform annotations and create VRS 1.3 equivalents for allele mappings."""
     pre_mapped: Allele = mapped_score.pre_mapped
     post_mapped: Allele = mapped_score.post_mapped
 
@@ -319,7 +252,7 @@ def _annotate_allele_mapping(
 
     sr = get_seqrepo()
     loc = mapped_score.post_mapped.location
-    sequence_id = f"ga4gh:{loc.sequenceReference.refgetAccession}"  # type: ignore
+    sequence_id = f"ga4gh:{loc.sequenceReference.refgetAccession}"
     ref = sr.get_sequence(sequence_id, loc.start, loc.end)  # TODO type issues???
     post_mapped.extensions = [
         Extension(type="Extension", name="vrs_ref_allele_seq", value=ref)
@@ -327,8 +260,8 @@ def _annotate_allele_mapping(
     hgvs, syntax = _get_hgvs_string(post_mapped, accession)
     post_mapped.expressions = [Expression(syntax=syntax, value=hgvs)]
 
-    pre_mapped_vod = allele_to_vod(pre_mapped)
-    post_mapped_vod = allele_to_vod(post_mapped)
+    pre_mapped_vod = _allele_to_vod(pre_mapped)
+    post_mapped_vod = _allele_to_vod(post_mapped)
 
     return ScoreAnnotationWithLayer(
         pre_mapped=pre_mapped_vod,
@@ -336,7 +269,7 @@ def _annotate_allele_mapping(
         pre_mapped_2_0=pre_mapped,
         post_mapped_2_0=post_mapped,
         mavedb_id=mapped_score.accession_id,
-        score=mapped_score.score,
+        score=float(mapped_score.score) if mapped_score.score != "NA" else None,
         annotation_layer=mapped_score.annotation_layer,
     )
 
@@ -344,9 +277,9 @@ def _annotate_allele_mapping(
 def _annotate_haplotype_mapping(
     mapping: MappedScore, tx_results: TxSelectResult | None, metadata: ScoresetMetadata
 ) -> ScoreAnnotationWithLayer:
+    """Perform annotations and create VRS 1.3 equivalents for haplotype mappings."""
     pre_mapped: Haplotype = mapping.pre_mapped  # type: ignore
     post_mapped: Haplotype = mapping.post_mapped  # type: ignore
-    allele: Allele
     # get vrs_ref_allele_seq for pre-mapped variants
     for allele in pre_mapped.members:
         allele.extensions = [_get_vrs_ref_allele_seq(allele, metadata, tx_results)]
@@ -377,8 +310,8 @@ def _annotate_haplotype_mapping(
         hgvs, syntax = _get_hgvs_string(allele, accession)
         allele.expressions = [Expression(syntax=syntax, value=hgvs)]
 
-    pre_mapped_converted = haplotype_to_haplotype_1_3(pre_mapped)
-    post_mapped_converted = haplotype_to_haplotype_1_3(post_mapped)
+    pre_mapped_converted = _haplotype_to_haplotype_1_3(pre_mapped)
+    post_mapped_converted = _haplotype_to_haplotype_1_3(post_mapped)
 
     return ScoreAnnotationWithLayer(
         pre_mapped=pre_mapped_converted,
@@ -386,7 +319,7 @@ def _annotate_haplotype_mapping(
         pre_mapped_2_0=pre_mapped,
         post_mapped_2_0=post_mapped,
         mavedb_id=mapping.accession_id,
-        score=mapping.score,
+        score=float(mapping.score) if mapping.score != "NA" else None,
         annotation_layer=mapping.annotation_layer,
     )
 
@@ -433,3 +366,127 @@ def annotate(
             ValueError("inconsistent variant structure")
 
     return score_annotations
+
+
+def _get_computed_reference_sequence(
+    ss: str,
+    layer: AnnotationLayer,
+    tx_output: TxSelectResult | None = None,
+) -> ComputedReferenceSequence:
+    """Report the computed reference sequence for a score set
+
+    :param ss: A score set string
+    :param layer: AnnotationLayer
+    :param tx_output: Transcript data for a score set
+    :return A ComputedReferenceSequence object
+    """
+    if layer == AnnotationLayer.PROTEIN:
+        if tx_output is None:
+            raise ValueError
+        seq_id = f"ga4gh:SQ.{sha512t24u(tx_output.sequence.encode('ascii'))}"
+        return ComputedReferenceSequence(
+            sequence=tx_output.sequence,
+            sequence_type=TargetSequenceType.PROTEIN,
+            sequence_id=seq_id,
+        )
+    metadata = get_scoreset_metadata(ss)
+    seq_id = f"ga4gh:SQ.{sha512t24u(metadata.target_sequence.encode('ascii'))}"
+    return ComputedReferenceSequence(
+        sequence=metadata.target_sequence,
+        sequence_type=TargetSequenceType.DNA,
+        sequence_id=seq_id,
+    )
+
+
+def _get_mapped_reference_sequence(
+    layer: AnnotationLayer,
+    tx_output: TxSelectResult | None = None,
+    align_result: AlignmentResult | None = None,
+) -> MappedReferenceSequence:
+    """Report the mapped reference sequence for a score set
+
+    :param ss: A score set string
+    :param layer: AnnotationLayer
+    :param tx_output: Transcript data for a score set
+    :return A MappedReferenceSequence object
+    """
+    if layer == AnnotationLayer.PROTEIN and tx_output is not None:
+        vrs_id = get_vrs_id_from_identifier(tx_output.np)
+        if vrs_id is None:
+            raise ValueError
+        return MappedReferenceSequence(
+            sequence_type=TargetSequenceType.PROTEIN,
+            sequence_id=vrs_id,
+            sequence_accessions=[tx_output.np],
+        )
+    seq_id = get_chromosome_identifier(align_result.chrom)
+    vrs_id = get_vrs_id_from_identifier(seq_id)
+    if vrs_id is None:
+        raise ValueError
+    return MappedReferenceSequence(
+        sequence_type=TargetSequenceType.DNA,
+        sequence_id=vrs_id,
+        sequence_accessions=[seq_id],
+    )
+
+
+def _set_scoreset_layer(
+    urn: str, mappings: list[ScoreAnnotationWithLayer]
+) -> AnnotationLayer:
+    """Many individual score results provide both genomic and protein variant
+    expressions. If genomic expressions are available, that's what we'd like to use.
+    This function tells us how to filter the final annotation objects.
+    """
+    if urn.startswith("urn:mavedb:00000097"):
+        _logger.debug(
+            "Manually selecting protein annotation for scores from urn:mavedb:00000097"
+        )
+        return AnnotationLayer.PROTEIN
+    for mapping in mappings:
+        if mapping.annotation_layer == AnnotationLayer.GENOMIC:
+            return AnnotationLayer.GENOMIC
+    return AnnotationLayer.PROTEIN
+
+
+def save_mapped_output_json(
+    urn: str,
+    mappings: list[ScoreAnnotationWithLayer],
+    align_result: AlignmentResult,
+    tx_output: TxSelectResult | None = None,
+    output_path: Path | None = None,
+) -> None:
+    """Save mapping output for a score set in a JSON file
+
+    :param urn: Score set accession
+    :param mave_vrs_mappings: A dictionary of VrsObject1_x objects
+    :param align_result: Alignment information for a score set
+    :param tx_output: Transcript output for a score set
+    :param output_path:
+    """
+    preferred_layer = _set_scoreset_layer(urn, mappings)
+    metadata = get_raw_scoreset_metadata(urn)
+    computed_reference_sequence = _get_computed_reference_sequence(
+        urn, preferred_layer, tx_output
+    )
+    mapped_reference_sequence = _get_mapped_reference_sequence(
+        preferred_layer, tx_output, align_result
+    )
+    mapped_scores = []
+    for m in mappings:
+        if m.annotation_layer == preferred_layer:
+            # drop annotation layer from mapping object
+            mapped_scores.append(ScoreAnnotation(**m.model_dump()))
+
+    output = ScoresetMapping(
+        metadata=metadata,
+        computed_reference_sequence=computed_reference_sequence,
+        mapped_reference_sequence=mapped_reference_sequence,
+        mapped_scores=mapped_scores,
+    )
+
+    if not output_path:
+        urn = urn.removeprefix("urn:mavedb:")
+        output_path = LOCAL_STORE_PATH / f"{urn}_mapping.json"
+
+    with output_path.open("w") as file:
+        json.dump(output.model_dump_json(), file, indent=4)
