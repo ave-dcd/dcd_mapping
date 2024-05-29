@@ -10,13 +10,13 @@ import pytest
 from cool_seq_tool.schemas import AnnotationLayer
 from ga4gh.vrs._internal.models import Allele, Haplotype
 
+from dcd_mapping.annotate import _allele_to_v1_allele
 from dcd_mapping.mavedb_data import _load_scoreset_records
 from dcd_mapping.schemas import (
     AlignmentResult,
     MappedScore,
     ScoresetMetadata,
     TxSelectResult,
-    allele_to_v1_allele,
 )
 from dcd_mapping.vrs_map import vrs_map
 
@@ -31,7 +31,7 @@ def _assert_correct_vrs_map(
         key in expected_mappings_data
     ), "Score row/layer combination is not in expected mappings"
     expected = expected_mappings_data[key]
-    vrs_2_to_1 = lambda var: allele_to_v1_allele(var)  # noqa: E731
+    vrs_2_to_1 = lambda var: _allele_to_v1_allele(var)  # noqa: E731
     if isinstance(mapping.pre_mapped, Haplotype) and isinstance(
         mapping.post_mapped, Haplotype
     ):
