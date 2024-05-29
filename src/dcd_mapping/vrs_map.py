@@ -480,11 +480,6 @@ def vrs_map(
     :param silent: If true, suppress console output
     :return: A list of mapping results
     """
-    msg = f"Mapping {metadata.urn} to VRS..."
-    if not silent:
-        click.echo(msg)
-    _logger.info(msg)
-
     if metadata.urn == "urn:mavedb:00000072-a-1":
         msg = f"No RefSeq accession is available for {metadata.urn}."
         if not silent:

@@ -1,4 +1,5 @@
 """Provide class definitions for commonly-used information objects."""
+from decimal import Decimal
 from enum import Enum
 from typing import Any, Literal
 
@@ -47,8 +48,7 @@ class ScoreRow(BaseModel):
 
     hgvs_pro: str
     hgvs_nt: str
-    # sometimes the score is "NA" or other strings, so this can't be a Decimal
-    score: str
+    score: Decimal | None
     accession: str
 
 
@@ -148,7 +148,7 @@ class MappedScore(BaseModel):
 
     accession_id: StrictStr
     annotation_layer: AnnotationLayer
-    score: str
+    score: Decimal | None
     pre_mapped: Allele | Haplotype
     post_mapped: Allele | Haplotype
 
@@ -165,7 +165,7 @@ class ScoreAnnotation(BaseModel):
     post_mapped_2_0: Allele | Haplotype | None = None
     mavedb_id: StrictStr
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
-    score: float | None
+    score: Decimal | None
 
 
 class ScoreAnnotationWithLayer(ScoreAnnotation):

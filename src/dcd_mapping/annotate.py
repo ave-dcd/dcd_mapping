@@ -266,7 +266,7 @@ def _annotate_allele_mapping(
     sr = get_seqrepo()
     loc = mapped_score.post_mapped.location
     sequence_id = f"ga4gh:{loc.sequenceReference.refgetAccession}"
-    ref = sr.get_sequence(sequence_id, loc.start, loc.end)  # TODO type issues???
+    ref = sr.get_sequence(sequence_id, loc.start, loc.end)
     post_mapped.extensions = [
         Extension(type="Extension", name="vrs_ref_allele_seq", value=ref)
     ]
@@ -282,7 +282,7 @@ def _annotate_allele_mapping(
         pre_mapped_2_0=pre_mapped,
         post_mapped_2_0=post_mapped,
         mavedb_id=mapped_score.accession_id,
-        score=float(mapped_score.score) if mapped_score.score != "NA" else None,
+        score=mapped_score.score,
         annotation_layer=mapped_score.annotation_layer,
     )
 
@@ -465,7 +465,7 @@ def save_mapped_output_json(
     tx_output: TxSelectResult | None,
     include_vrs_2: bool = False,
     output_path: Path | None = None,
-) -> None:
+) -> Path:
     """Save mapping output for a score set in a JSON file
 
     :param urn: Score set accession
@@ -475,6 +475,7 @@ def save_mapped_output_json(
     :param include_vrs_2: if true, also include VRS 2.0 mappings
     :param output_path: specific location to save output to. Default to
         <dcd_mapping_data_dir>/urn:mavedb:00000XXX-X-X_mapping_<ISO8601 datetime>.json
+    :return: output location
     """
     preferred_layer = _set_scoreset_layer(urn, mappings)
     metadata = get_raw_scoreset_metadata(urn)
@@ -506,9 +507,11 @@ def save_mapped_output_json(
         now = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
         output_path = LOCAL_STORE_PATH / f"{urn}_mapping_{now}.json"
 
+    _logger.info("Saving mapping output to %s", output_path)
     with output_path.open("w") as file:
         json.dump(
             json.loads(output.model_dump_json(exclude_unset=True, exclude_none=True)),
             file,
             indent=4,
         )
+    return output_path

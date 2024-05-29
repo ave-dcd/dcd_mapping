@@ -18,6 +18,12 @@ from dcd_mapping.vrs_map import VrsMapError, vrs_map
 _logger = logging.getLogger(__name__)
 
 
+def _emit_info(msg: str, silent: bool) -> None:
+    if not silent:
+        click.echo(msg)
+    _logger.info(msg)
+
+
 async def map_scoreset(
     metadata: ScoresetMetadata,
     records: list[ScoreRow],
@@ -33,20 +39,23 @@ async def map_scoreset(
     :param include_vrs_2: if true, include VRS 2.0 mappings in output JSON
     :param silent: if True, suppress console information output
     """
+    _emit_info(f"Performing alignment for {metadata.urn}...", silent)
     try:
         alignment_result = align(metadata, silent)
     except AlignmentError as e:
         _logger.error("Alignment failed for scoreset %s: %s", metadata.urn, e)
         raise e
+    _emit_info("Alignment complete.", silent)
 
+    _emit_info("Selecting reference sequence...", silent)
     try:
-        transcript = await select_transcript(
-            metadata, records, alignment_result, silent
-        )
+        transcript = await select_transcript(metadata, records, alignment_result)
     except TxSelectError as e:
         _logger.error("Transcript selection failed for scoreset %s", metadata.urn)
         raise e
+    _emit_info("Reference selection complete.", silent)
 
+    _emit_info("Mapping to VRS...", silent)
     try:
         vrs_results = vrs_map(metadata, alignment_result, records, transcript, silent)
     except VrsMapError as e:
@@ -55,9 +64,11 @@ async def map_scoreset(
     if vrs_results is None:
         _logger.info("No mapping available for %s", metadata.urn)
         return
+    _emit_info("VRS mapping complete.", silent)
 
+    _emit_info("Annotating metadata and saving to file...", silent)
     vrs_results = annotate(vrs_results, transcript, metadata)
-    save_mapped_output_json(
+    final_output = save_mapped_output_json(
         metadata.urn,
         vrs_results,
         alignment_result,
@@ -65,6 +76,7 @@ async def map_scoreset(
         include_vrs_2,
         output_path,
     )
+    _emit_info(f"Annotated scores saved to: {final_output}.", silent)
 
 
 async def map_scoreset_urn(
