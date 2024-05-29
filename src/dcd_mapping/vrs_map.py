@@ -1,11 +1,19 @@
 """Map transcripts to VRS objects."""
 import logging
+from itertools import cycle
 
 import click
 from Bio.Seq import Seq
 from cool_seq_tool.schemas import AnnotationLayer, Strand
 from ga4gh.core import ga4gh_identify, sha512t24u
-from ga4gh.vrs._internal.models import Allele, Haplotype, SequenceString
+from ga4gh.vrs._internal.models import (
+    Allele,
+    Haplotype,
+    LiteralSequenceExpression,
+    ReferenceLengthExpression,
+    SequenceLocation,
+    SequenceString,
+)
 from ga4gh.vrs.normalize import normalize
 
 from dcd_mapping.lookup import (
@@ -96,7 +104,6 @@ def _create_hgvs_strings(
 
 def _map_protein_coding_pro(
     row: ScoreRow,
-    score: str,
     align_result: AlignmentResult,
     sequence_id: str,
     transcript: TxSelectResult,
@@ -106,7 +113,6 @@ def _map_protein_coding_pro(
     These arguments are a little lazy and could be pruned down later
 
     :param row: A row of output from a MaveDB score set
-    :param score: The score for a given row of output
     :param align_result: The alignment data for a score set
     :param sequence: The target sequence for a score set
     :param sequence_id: The GA4GH accession for the provided sequence
@@ -127,7 +133,7 @@ def _map_protein_coding_pro(
         vrs_variation = translate_hgvs_to_vrs(row.hgvs_pro)
         return MappedScore(
             accession_id=row.accession,
-            score=score,
+            score=row.score,
             annotation_layer=AnnotationLayer.PROTEIN,
             pre_mapped=vrs_variation,
             post_mapped=vrs_variation,
@@ -153,7 +159,7 @@ def _map_protein_coding_pro(
     if pre_mapped_protein and post_mapped_protein:
         return MappedScore(
             accession_id=row.accession,
-            score=score,
+            score=row.score,
             annotation_layer=AnnotationLayer.PROTEIN,
             pre_mapped=pre_mapped_protein,
             post_mapped=post_mapped_protein,
@@ -232,7 +238,7 @@ def _map_protein_coding(
     variations: list[MappedScore] = []
     for row in records:
         hgvs_pro_mappings = _map_protein_coding_pro(
-            row, row.score, align_result, psequence_id, transcript
+            row, align_result, psequence_id, transcript
         )
         if hgvs_pro_mappings:
             variations.append(hgvs_pro_mappings)
@@ -333,6 +339,27 @@ def _map_regulatory_noncoding(
     return variations
 
 
+def _rle_to_lse(
+    rle: ReferenceLengthExpression, location: SequenceLocation
+) -> LiteralSequenceExpression:
+    """Coerce ReferenceLengthExpression to LiteralSequenceExpression.
+
+    RLEs are helpful for long repeating sequences but a) unnecessary here and b)
+    create incompatibilities with some data extraction further down so to simplify,
+    we'll just turn them into equivalent LiteralSequenceExpressions.
+    """
+    sr = get_seqrepo()
+    sequence_id = location.sequenceReference.refgetAccession
+    start: int = location.start
+    end = start + rle.repeatSubunitLength
+    subsequence = sr.get_sequence(f"ga4gh:{sequence_id}", start, end)
+    c = cycle(subsequence)
+    derived_sequence = ""
+    for _ in range(rle.length):
+        derived_sequence += next(c)
+    return LiteralSequenceExpression(sequence=derived_sequence)
+
+
 def _get_variation(
     hgvs_strings: list[str],
     layer: AnnotationLayer,
@@ -417,6 +444,13 @@ def _get_variation(
         if "=" in hgvs_string and layer == AnnotationLayer.PROTEIN:
             allele.state.sequence = SequenceString(_get_allele_sequence(allele))
         allele = normalize(allele, data_proxy=get_seqrepo())
+        if isinstance(allele.state, ReferenceLengthExpression):
+            _logger.debug(
+                "Coercing state for %s into LSE: %s",
+                hgvs_string,
+                allele.state.model_dump_json(),
+            )
+            allele.state = _rle_to_lse(allele.state, allele.location)
 
         # Run ga4gh_identify to assign VA digest
         allele.id = ga4gh_identify(allele)

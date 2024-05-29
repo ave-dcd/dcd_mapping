@@ -21,15 +21,17 @@ _logger = logging.getLogger(__name__)
 async def map_scoreset(
     metadata: ScoresetMetadata,
     records: list[ScoreRow],
-    silent: bool = True,
     output_path: Path | None = None,
+    include_vrs_2: bool = False,
+    silent: bool = True,
 ) -> None:
     """Given information about a MAVE experiment, map to VRS and save output as JSON.
 
     :param metadata: salient data gathered from scoreset on MaveDB
     :param records: experiment scoring results
-    :param silent: if True, suppress console information output
     :param output_path: optional path to save output at
+    :param include_vrs_2: if true, include VRS 2.0 mappings in output JSON
+    :param silent: if True, suppress console information output
     """
     try:
         alignment_result = align(metadata, silent)
@@ -56,18 +58,27 @@ async def map_scoreset(
 
     vrs_results = annotate(vrs_results, transcript, metadata)
     save_mapped_output_json(
-        metadata.urn, vrs_results, alignment_result, transcript, output_path
+        metadata.urn,
+        vrs_results,
+        alignment_result,
+        transcript,
+        include_vrs_2,
+        output_path,
     )
 
 
 async def map_scoreset_urn(
-    urn: str, silent: bool = True, output_path: Path | None = None
+    urn: str,
+    output_path: Path | None = None,
+    include_vrs_2: bool = False,
+    silent: bool = True,
 ) -> None:
     """Perform end-to-end mapping for a scoreset.
 
     :param urn: identifier for a scoreset.
-    :param silent: if True, suppress console information output
     :param output_path: optional path to save output at
+    :param include_vrs_2: if true, include VRS 2.0 mappings in output JSON
+    :param silent: if True, suppress console information output
     """
     try:
         metadata = get_scoreset_metadata(urn)
@@ -77,4 +88,4 @@ async def map_scoreset_urn(
         _logger.critical(msg)
         click.echo(f"Error: {msg}")
         raise e
-    await map_scoreset(metadata, records, silent, output_path)
+    await map_scoreset(metadata, records, output_path, include_vrs_2, silent)

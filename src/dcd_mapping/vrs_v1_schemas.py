@@ -13,7 +13,7 @@ from pydantic import BaseModel, StrictInt, StrictStr
 class Number(BaseModel):
     """Define VRS 1.3 Number."""
 
-    type: Literal["number"] = "number"
+    type: Literal["Number"] = "Number"
     value: StrictInt
 
 
@@ -28,7 +28,7 @@ class SequenceInterval(BaseModel):
 class SequenceLocation(BaseModel):
     """Define VRS 1.3 SequenceLocation."""
 
-    id: StrictStr
+    id: StrictStr | None
     type: Literal["SequenceLocation"] = "SequenceLocation"
     sequence_id: StrictStr
     interval: SequenceInterval

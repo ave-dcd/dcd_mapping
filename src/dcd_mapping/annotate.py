@@ -1,4 +1,5 @@
 """Annotate MaveDB score set metadata with mapped scores."""
+import datetime
 import json
 import logging
 from pathlib import Path
@@ -12,7 +13,13 @@ from Bio.SeqUtils import seq3
 from cool_seq_tool.schemas import AnnotationLayer
 from ga4gh.core import sha512t24u
 from ga4gh.core._internal.models import Extension
-from ga4gh.vrs._internal.models import Allele, Expression, Haplotype, Syntax
+from ga4gh.vrs._internal.models import (
+    Allele,
+    Expression,
+    Haplotype,
+    LiteralSequenceExpression,
+    Syntax,
+)
 
 from dcd_mapping import vrs_v1_schemas
 from dcd_mapping.lookup import (
@@ -45,8 +52,8 @@ def _allele_to_v1_allele(allele: Allele) -> vrs_v1_schemas.Allele:
     :param allele: VRS 2.0a allele
     :return: equivalent VRS 1.3 allele
     """
-    start = allele.location.start  # type: ignore
-    end = allele.location.end  # type: ignore
+    start = allele.location.start
+    end = allele.location.end
     sequence_id = f"ga4gh:{allele.location.sequenceReference.refgetAccession}"  # type: ignore
     location_raw = f'{{"end":{{"type":"Number","value":{end}}},"sequence_id":"{sequence_id.split(".")[1]}","start":{{"type":"Number","value":{start}}},"type":"SequenceLocation"}}'
     location_id = sha512t24u(location_raw.encode("ascii"))
@@ -60,8 +67,8 @@ def _allele_to_v1_allele(allele: Allele) -> vrs_v1_schemas.Allele:
             id=location_id,
             sequence_id=sequence_id,
             interval=vrs_v1_schemas.SequenceInterval(
-                start=vrs_v1_schemas.Number(value=start, type="number"),  # type: ignore
-                end=vrs_v1_schemas.Number(value=end, type="number"),  # type: ignore
+                start=vrs_v1_schemas.Number(value=start, type="Number"),
+                end=vrs_v1_schemas.Number(value=end, type="Number"),
             ),
         ),
         state=vrs_v1_schemas.LiteralSequenceExpression(sequence=sequence),
@@ -76,10 +83,10 @@ def _allele_to_vod(allele: Allele) -> vrs_v1_schemas.VariationDescriptor:
     """
     allele_v1 = _allele_to_v1_allele(allele)
     if allele.expressions:
-        original_expression = allele.expressions[0]  # type: ignore
+        original_expression = allele.expressions[0]
         expressions = [
             vrs_v1_schemas.Expression(
-                syntax=original_expression.syntax.value,
+                syntax=original_expression.syntax,
                 value=original_expression.value,
                 syntax_version=None,
             )
@@ -91,7 +98,7 @@ def _allele_to_vod(allele: Allele) -> vrs_v1_schemas.VariationDescriptor:
         variation=allele_v1,
         type="VariationDescriptor",
         expressions=expressions,
-        vrs_ref_allele_seq=allele.extensions[0].value,  # type: ignore
+        vrs_ref_allele_seq=allele.extensions[0].value,
         extensions=[],
     )
 
@@ -191,7 +198,13 @@ def _get_hgvs_string(allele: Allele, accession: str) -> tuple[str, Syntax]:
             start=hgvs.location.SimplePosition(base=start),
             end=hgvs.location.SimplePosition(base=end),
         )
-    alt = allele.state.sequence.root
+    if isinstance(allele.state, LiteralSequenceExpression):
+        alt = allele.state.sequence.root
+    else:
+        msg = (
+            f"Unable to handle string for non-LSE based allele in {allele.model_dump()}"
+        )
+        raise NotImplementedError(msg)
 
     edit = ""  # empty by default
     if alt == ref:
@@ -257,8 +270,8 @@ def _annotate_allele_mapping(
     post_mapped.extensions = [
         Extension(type="Extension", name="vrs_ref_allele_seq", value=ref)
     ]
-    hgvs, syntax = _get_hgvs_string(post_mapped, accession)
-    post_mapped.expressions = [Expression(syntax=syntax, value=hgvs)]
+    hgvs_string, syntax = _get_hgvs_string(post_mapped, accession)
+    post_mapped.expressions = [Expression(syntax=syntax, value=hgvs_string)]
 
     pre_mapped_vod = _allele_to_vod(pre_mapped)
     post_mapped_vod = _allele_to_vod(post_mapped)
@@ -347,9 +360,6 @@ def annotate(
     """
     score_annotations = []
     for mapped_score in mapped_scores:
-        if not mapped_score:
-            msg = "#TODO: I would like to know when/why this happens"
-            raise ValueError(msg)
         if isinstance(mapped_score.pre_mapped, Haplotype) and isinstance(
             mapped_score.post_mapped, Haplotype
         ):
@@ -452,7 +462,8 @@ def save_mapped_output_json(
     urn: str,
     mappings: list[ScoreAnnotationWithLayer],
     align_result: AlignmentResult,
-    tx_output: TxSelectResult | None = None,
+    tx_output: TxSelectResult | None,
+    include_vrs_2: bool = False,
     output_path: Path | None = None,
 ) -> None:
     """Save mapping output for a score set in a JSON file
@@ -461,7 +472,9 @@ def save_mapped_output_json(
     :param mave_vrs_mappings: A dictionary of VrsObject1_x objects
     :param align_result: Alignment information for a score set
     :param tx_output: Transcript output for a score set
-    :param output_path:
+    :param include_vrs_2: if true, also include VRS 2.0 mappings
+    :param output_path: specific location to save output to. Default to
+        <dcd_mapping_data_dir>/urn:mavedb:00000XXX-X-X_mapping_<ISO8601 datetime>.json
     """
     preferred_layer = _set_scoreset_layer(urn, mappings)
     metadata = get_raw_scoreset_metadata(urn)
@@ -471,7 +484,7 @@ def save_mapped_output_json(
     mapped_reference_sequence = _get_mapped_reference_sequence(
         preferred_layer, tx_output, align_result
     )
-    mapped_scores = []
+    mapped_scores: list[ScoreAnnotation] = []
     for m in mappings:
         if m.annotation_layer == preferred_layer:
             # drop annotation layer from mapping object
@@ -484,9 +497,18 @@ def save_mapped_output_json(
         mapped_scores=mapped_scores,
     )
 
+    if not include_vrs_2:
+        for m in output.mapped_scores:
+            m.pre_mapped_2_0 = None
+            m.post_mapped_2_0 = None
+
     if not output_path:
-        urn = urn.removeprefix("urn:mavedb:")
-        output_path = LOCAL_STORE_PATH / f"{urn}_mapping.json"
+        now = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
+        output_path = LOCAL_STORE_PATH / f"{urn}_mapping_{now}.json"
 
     with output_path.open("w") as file:
-        json.dump(output.model_dump_json(), file, indent=4)
+        json.dump(
+            json.loads(output.model_dump_json(exclude_unset=True, exclude_none=True)),
+            file,
+            indent=4,
+        )

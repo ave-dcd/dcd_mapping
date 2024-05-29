@@ -31,7 +31,19 @@ _logger = logging.getLogger(__name__)
     default=None,
     help="Desired location at which output file should be saved",
 )
-def cli(urn: str, debug: bool, output: Path | None) -> None:
+@click.option(
+    "--include_vrs_2",
+    "-v",
+    is_flag=True,
+    default=False,
+    help="Include VRS 2.0 mappings",
+)
+def cli(
+    urn: str,
+    debug: bool,
+    output: Path | None,
+    include_vrs_2: bool,
+) -> None:
     """Get VRS mapping on preferred transcript for URN.
 
     For example:
@@ -51,7 +63,7 @@ def cli(urn: str, debug: bool, output: Path | None) -> None:
     )
     _logger.debug("debug logging enabled")
     try:
-        asyncio.run(map_scoreset_urn(urn, silent=False, output_path=output))
+        asyncio.run(map_scoreset_urn(urn, output, include_vrs_2, silent=False))
     except (AlignmentError, TxSelectError, VrsMapError, ResourceAcquisitionError):
         click.get_current_context().exit(1)
 

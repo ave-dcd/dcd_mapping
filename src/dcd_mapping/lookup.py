@@ -33,7 +33,11 @@ from cool_seq_tool.sources.mane_transcript_mappings import ManeTranscriptMapping
 from cool_seq_tool.sources.transcript_mappings import TranscriptMappings
 from cool_seq_tool.sources.uta_database import UtaDatabase
 from ga4gh.core._internal.models import Extension, Gene
-from ga4gh.vrs._internal.models import Allele, SequenceLocation
+from ga4gh.vrs._internal.models import (
+    Allele,
+    LiteralSequenceExpression,
+    SequenceLocation,
+)
 from ga4gh.vrs.dataproxy import SeqRepoDataProxy, coerce_namespace
 from ga4gh.vrs.extras.translator import AlleleTranslator
 from gene.database import create_db
@@ -470,19 +474,15 @@ def translate_hgvs_to_vrs(hgvs: str) -> Allele:
         hgvs = hgvs.replace(":c.", ":g.")
 
     tr = TranslatorBuilder(get_seqrepo())
-    allele = tr.translate_from(hgvs, "hgvs", do_normalize=False)
+    allele: Allele = tr.translate_from(hgvs, "hgvs", do_normalize=False)
 
     if (
         not isinstance(allele.location, SequenceLocation)
         or not isinstance(allele.location.start, int)
         or not isinstance(allele.location.end, int)
+        or not isinstance(allele.state, LiteralSequenceExpression)
     ):
         raise ValueError
-
-    # TODO temporary, remove
-    if not isinstance(allele, Allele):
-        raise NotImplementedError
-
     return allele
 
 
