@@ -332,7 +332,7 @@ def _annotate_haplotype_mapping(
         pre_mapped_2_0=pre_mapped,
         post_mapped_2_0=post_mapped,
         mavedb_id=mapping.accession_id,
-        score=float(mapping.score) if mapping.score != "NA" else None,
+        score=float(mapping.score) if mapping.score is not None else None,
         annotation_layer=mapping.annotation_layer,
     )
 

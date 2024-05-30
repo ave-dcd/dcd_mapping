@@ -165,7 +165,7 @@ class ScoreAnnotation(BaseModel):
     post_mapped_2_0: Allele | Haplotype | None = None
     mavedb_id: StrictStr
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
-    score: Decimal | None
+    score: float | None
 
 
 class ScoreAnnotationWithLayer(ScoreAnnotation):
