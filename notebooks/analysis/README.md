@@ -9,3 +9,20 @@ Code for data analysis and figure generation for ["Mapping MAVE data for use in 
 ## Environment
 
 A compatible Python environment can be generated using the included `requirements.txt` file.
+
+First, create and activate a virtual environment of your preference. For example, using `virtualenv`:
+
+```shell
+python3 -m virtualenv venv
+source venv/bin/activate
+```
+
+Then install all requirements in `requirements.txt`:
+
+```shell
+python3 -m pip install -r requirements.txt
+```
+
+## Layout
+
+TODO
