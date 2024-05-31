@@ -58,10 +58,10 @@
       "description": "Define VRS 1.3 Number.",
       "properties": {
         "type": {
-          "const": "number",
-          "default": "number",
+          "const": "Number",
+          "default": "Number",
           "enum": [
-            "number"
+            "Number"
           ],
           "title": "Type",
           "type": "string"
@@ -275,8 +275,15 @@
           "type": "string"
         },
         "score": {
-          "title": "Score",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Score"
         }
       },
       "required": [
@@ -405,7 +412,7 @@
       "type": "object"
     },
     "SequenceString": {
-      "description": "A character string of Residues that represents a biological sequence using the conventional sequence order (5’-to-3’ for nucleic acid sequences, and amino-to-carboxyl for amino acid sequences). IUPAC ambiguity codes are permitted in Sequence Strings.",
+      "description": "A character string of Residues that represents a biological sequence using the conventional sequence order (5\u2019-to-3\u2019 for nucleic acid sequences, and amino-to-carboxyl for amino acid sequences). IUPAC ambiguity codes are permitted in Sequence Strings.",
       "pattern": "^[A-Z*\\-]*$",
       "title": "SequenceString",
       "type": "string"
@@ -643,8 +650,15 @@
       "description": "Define VRS 1.3 SequenceLocation.",
       "properties": {
         "id": {
-          "title": "Id",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Id"
         },
         "type": {
           "const": "SequenceLocation",
