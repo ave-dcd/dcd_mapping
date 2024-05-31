@@ -1,5 +1,4 @@
 """Provide class definitions for commonly-used information objects."""
-from decimal import Decimal
 from enum import Enum
 from typing import Any, Literal
 
@@ -48,7 +47,7 @@ class ScoreRow(BaseModel):
 
     hgvs_pro: str
     hgvs_nt: str
-    score: Decimal | None
+    score: str | None
     accession: str
 
 
@@ -137,9 +136,6 @@ class TxSelectResult(BaseModel):
     sequence: str
 
 
-###################### NEW: ####################################
-
-
 class MappedScore(BaseModel):
     """Provide mappings for an individual experiment score.
 
@@ -148,7 +144,7 @@ class MappedScore(BaseModel):
 
     accession_id: StrictStr
     annotation_layer: AnnotationLayer
-    score: Decimal | None
+    score: str | None
     pre_mapped: Allele | Haplotype
     post_mapped: Allele | Haplotype
 

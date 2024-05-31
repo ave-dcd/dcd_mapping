@@ -282,7 +282,7 @@ def _annotate_allele_mapping(
         pre_mapped_2_0=pre_mapped,
         post_mapped_2_0=post_mapped,
         mavedb_id=mapped_score.accession_id,
-        score=mapped_score.score,
+        score=float(mapped_score.score) if mapped_score.score else None,
         annotation_layer=mapped_score.annotation_layer,
     )
 

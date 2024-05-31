@@ -7,7 +7,6 @@ import json
 import logging
 import tempfile
 import zipfile
-from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -194,7 +193,7 @@ def _load_scoreset_records(path: Path) -> list[ScoreRow]:
             if row["score"] == "NA":
                 row["score"] = None
             else:
-                row["score"] = Decimal(row["score"])
+                row["score"] = row["score"]
             scores_data.append(ScoreRow(**row))
     return scores_data
 
