@@ -11,7 +11,6 @@ from Bio.SearchIO import HSP
 from Bio.SearchIO import read as read_blat
 from Bio.SearchIO._model import Hit, QueryResult
 from cool_seq_tool.schemas import Strand
-from gene.database.database import click
 
 from dcd_mapping.lookup import get_chromosome_identifier, get_gene_location
 from dcd_mapping.mavedb_data import (
@@ -296,17 +295,5 @@ def align(scoreset_metadata: ScoresetMetadata, silent: bool = True) -> Alignment
     :param silent: suppress BLAT process output if true
     :return: data wrapper containing alignment results
     """
-    msg = f"Performing alignment for {scoreset_metadata.urn}..."
-    if not silent:
-        click.echo(msg)
-    _logger.info(msg)
-
     blat_output = _get_blat_output(scoreset_metadata, silent)
-    match = _get_best_match(blat_output, scoreset_metadata)
-
-    msg = "Alignment complete."
-    if not silent:
-        click.echo(msg)
-    _logger.info(msg)
-
-    return match
+    return _get_best_match(blat_output, scoreset_metadata)

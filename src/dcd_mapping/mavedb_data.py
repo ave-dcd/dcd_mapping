@@ -1,6 +1,6 @@
 """Handle requests for MaveDB data, such as scoresets or scoreset metadata.
 
-Much of this can/should be replaced by the ``mavetools`` library. (and/or ``wags-tails``.)
+Much of this can/should be replaced by the ``mavetools`` library? (and/or ``wags-tails``.)
 """
 import csv
 import json
@@ -190,6 +190,10 @@ def _load_scoreset_records(path: Path) -> list[ScoreRow]:
     with path.open() as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
+            if row["score"] == "NA":
+                row["score"] = None
+            else:
+                row["score"] = row["score"]
             scores_data.append(ScoreRow(**row))
     return scores_data
 

@@ -1,0 +1,1255 @@
+{
+  "$defs": {
+    "ComputedReferenceSequence": {
+      "description": "Define metadata describing a computed reference sequence",
+      "properties": {
+        "sequence_type": {
+          "$ref": "#/$defs/TargetSequenceType"
+        },
+        "sequence_id": {
+          "title": "Sequence Id",
+          "type": "string"
+        },
+        "sequence": {
+          "title": "Sequence",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sequence_type",
+        "sequence_id",
+        "sequence"
+      ],
+      "title": "ComputedReferenceSequence",
+      "type": "object"
+    },
+    "IRI": {
+      "description": "An IRI Reference (either an IRI or a relative-reference), according to `RFC3986 section 4.1  <https://datatracker.ietf.org/doc/html/rfc3986#section-4.1>` and `RFC3987 section 2.1 <https://datatracker.ietf.org/doc/html/rfc3987#section-2.1>`. MAY be a JSON Pointer as an IRI fragment, as  described by `RFC6901 section 6 <https://datatracker.ietf.org/doc/html/rfc6901#section-6>`.",
+      "title": "IRI",
+      "type": "string"
+    },
+    "MappedReferenceSequence": {
+      "description": "Define metadata describing a mapped, human reference sequence",
+      "properties": {
+        "sequence_type": {
+          "$ref": "#/$defs/TargetSequenceType"
+        },
+        "sequence_id": {
+          "title": "Sequence Id",
+          "type": "string"
+        },
+        "sequence_accessions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sequence Accessions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "sequence_type",
+        "sequence_id",
+        "sequence_accessions"
+      ],
+      "title": "MappedReferenceSequence",
+      "type": "object"
+    },
+    "Number": {
+      "description": "Define VRS 1.3 Number.",
+      "properties": {
+        "type": {
+          "const": "Number",
+          "default": "Number",
+          "enum": [
+            "Number"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "title": "Number",
+      "type": "object"
+    },
+    "Range": {
+      "description": "An inclusive range of values bounded by one or more integers.",
+      "items": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Range",
+      "type": "array"
+    },
+    "ReferenceLengthExpression": {
+      "description": "An expression sequence derived from a reference.",
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The 'logical' identifier of the entity in the system of record, e.g. a UUID. This 'id' is  unique within a given system. The identified entity may have a different 'id' in a different  system, or may refer to an 'id' for the shared concept in another system (e.g. a CURIE).",
+          "title": "Id"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A primary label for the entity.",
+          "title": "Label"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A free-text description of the entity.",
+          "title": "Description"
+        },
+        "extensions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ga4gh__core___internal__models__Extension"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extensions"
+        },
+        "type": {
+          "const": "ReferenceLengthExpression",
+          "default": "ReferenceLengthExpression",
+          "description": "MUST be \"ReferenceLengthExpression\"",
+          "enum": [
+            "ReferenceLengthExpression"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "length": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Range"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "description": "The number of residues of the expressed sequence.",
+          "title": "Length"
+        },
+        "sequence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SequenceString"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the Sequence encoded by the Reference Length Expression."
+        },
+        "repeatSubunitLength": {
+          "default": null,
+          "description": "The number of residues of the repeat subunit.",
+          "title": "Repeatsubunitlength",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "length"
+      ],
+      "title": "ReferenceLengthExpression",
+      "type": "object"
+    },
+    "ResidueAlphabet": {
+      "enum": [
+        "aa",
+        "na"
+      ],
+      "title": "ResidueAlphabet",
+      "type": "string"
+    },
+    "ScoreAnnotation": {
+      "description": "Provide extra annotations on top of mappings for an individual experiment score.\n\nThis model defines what an individual mapping instance looks like in the final JSON.",
+      "properties": {
+        "pre_mapped": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VariationDescriptor"
+            },
+            {
+              "$ref": "#/$defs/dcd_mapping__vrs_v1_schemas__Haplotype"
+            }
+          ],
+          "title": "Pre Mapped"
+        },
+        "post_mapped": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VariationDescriptor"
+            },
+            {
+              "$ref": "#/$defs/dcd_mapping__vrs_v1_schemas__Haplotype"
+            }
+          ],
+          "title": "Post Mapped"
+        },
+        "pre_mapped_2_0": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ga4gh__vrs___internal__models__Allele"
+            },
+            {
+              "$ref": "#/$defs/ga4gh__vrs___internal__models__Haplotype"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pre Mapped 2 0"
+        },
+        "post_mapped_2_0": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ga4gh__vrs___internal__models__Allele"
+            },
+            {
+              "$ref": "#/$defs/ga4gh__vrs___internal__models__Haplotype"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Post Mapped 2 0"
+        },
+        "mavedb_id": {
+          "title": "Mavedb Id",
+          "type": "string"
+        },
+        "relation": {
+          "const": "SO:is_homologous_to",
+          "default": "SO:is_homologous_to",
+          "enum": [
+            "SO:is_homologous_to"
+          ],
+          "title": "Relation",
+          "type": "string"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Score"
+        }
+      },
+      "required": [
+        "pre_mapped",
+        "post_mapped",
+        "mavedb_id",
+        "score"
+      ],
+      "title": "ScoreAnnotation",
+      "type": "object"
+    },
+    "SequenceInterval": {
+      "description": "Define VRS 1.3 SequenceInterval.",
+      "properties": {
+        "type": {
+          "const": "SequenceInterval",
+          "default": "SequenceInterval",
+          "enum": [
+            "SequenceInterval"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "start": {
+          "$ref": "#/$defs/Number"
+        },
+        "end": {
+          "$ref": "#/$defs/Number"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "SequenceInterval",
+      "type": "object"
+    },
+    "SequenceReference": {
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The 'logical' identifier of the entity in the system of record, e.g. a UUID. This 'id' is  unique within a given system. The identified entity may have a different 'id' in a different  system, or may refer to an 'id' for the shared concept in another system (e.g. a CURIE).",
+          "title": "Id"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A primary label for the entity.",
+          "title": "Label"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A free-text description of the entity.",
+          "title": "Description"
+        },
+        "extensions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ga4gh__core___internal__models__Extension"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extensions"
+        },
+        "type": {
+          "const": "SequenceReference",
+          "default": "SequenceReference",
+          "description": "MUST be \"SequenceReference\"",
+          "enum": [
+            "SequenceReference"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "refgetAccession": {
+          "description": "A `GA4GH RefGet <http://samtools.github.io/hts-specs/refget.html>` identifier for the referenced sequence, using the sha512t24u digest.",
+          "pattern": "^SQ.[0-9A-Za-z_\\-]{32}$",
+          "title": "Refgetaccession",
+          "type": "string"
+        },
+        "residueAlphabet": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ResidueAlphabet"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "refgetAccession"
+      ],
+      "title": "SequenceReference",
+      "type": "object"
+    },
+    "SequenceString": {
+      "description": "A character string of Residues that represents a biological sequence using the conventional sequence order (5\u2019-to-3\u2019 for nucleic acid sequences, and amino-to-carboxyl for amino acid sequences). IUPAC ambiguity codes are permitted in Sequence Strings.",
+      "pattern": "^[A-Z*\\-]*$",
+      "title": "SequenceString",
+      "type": "string"
+    },
+    "Syntax": {
+      "description": "Define constraints for syntax",
+      "enum": [
+        "hgvs.c",
+        "hgvs.p",
+        "hgvs.g",
+        "hgvs.m",
+        "hgvs.n",
+        "hgvs.r",
+        "iscn",
+        "gnomad",
+        "spdi"
+      ],
+      "title": "Syntax",
+      "type": "string"
+    },
+    "TargetSequenceType": {
+      "description": "Define target sequence type. Add more definitions as needed.",
+      "enum": [
+        "protein",
+        "dna"
+      ],
+      "title": "TargetSequenceType",
+      "type": "string"
+    },
+    "VariationDescriptor": {
+      "description": "Define VRSATILE VariationDescriptor.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "VariationDescriptor",
+          "default": "VariationDescriptor",
+          "enum": [
+            "VariationDescriptor"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "variation": {
+          "$ref": "#/$defs/dcd_mapping__vrs_v1_schemas__Allele"
+        },
+        "expressions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/dcd_mapping__vrs_v1_schemas__Expression"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expressions"
+        },
+        "vrs_ref_allele_seq": {
+          "title": "Vrs Ref Allele Seq",
+          "type": "string"
+        },
+        "extensions": {
+          "items": {
+            "$ref": "#/$defs/dcd_mapping__vrs_v1_schemas__Extension"
+          },
+          "title": "Extensions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "variation",
+        "vrs_ref_allele_seq",
+        "extensions"
+      ],
+      "title": "VariationDescriptor",
+      "type": "object"
+    },
+    "dcd_mapping__vrs_v1_schemas__Allele": {
+      "description": "Define VRS 1.3 Allele.",
+      "properties": {
+        "type": {
+          "const": "Allele",
+          "default": "Allele",
+          "enum": [
+            "Allele"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "location": {
+          "$ref": "#/$defs/dcd_mapping__vrs_v1_schemas__SequenceLocation"
+        },
+        "state": {
+          "$ref": "#/$defs/dcd_mapping__vrs_v1_schemas__LiteralSequenceExpression"
+        }
+      },
+      "required": [
+        "id",
+        "location",
+        "state"
+      ],
+      "title": "Allele",
+      "type": "object"
+    },
+    "dcd_mapping__vrs_v1_schemas__Expression": {
+      "description": "Define VRS 1.3 Expression.",
+      "properties": {
+        "type": {
+          "const": "Expression",
+          "default": "Expression",
+          "enum": [
+            "Expression"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "syntax": {
+          "title": "Syntax",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "string"
+        },
+        "syntax_version": {
+          "title": "Syntax Version"
+        }
+      },
+      "required": [
+        "syntax",
+        "value",
+        "syntax_version"
+      ],
+      "title": "Expression",
+      "type": "object"
+    },
+    "dcd_mapping__vrs_v1_schemas__Extension": {
+      "description": "Define VRS 1.3 Extension.",
+      "properties": {
+        "type": {
+          "const": "Extension",
+          "default": "Extension",
+          "enum": [
+            "Extension"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "title": "Extension",
+      "type": "object"
+    },
+    "dcd_mapping__vrs_v1_schemas__Haplotype": {
+      "description": "Define VRS 1.3 Haplotype.",
+      "properties": {
+        "type": {
+          "const": "Haplotype",
+          "default": "Haplotype",
+          "enum": [
+            "Haplotype"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "members": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/dcd_mapping__vrs_v1_schemas__Allele"
+              },
+              "type": "array"
+            },
+            {
+              "items": {
+                "$ref": "#/$defs/VariationDescriptor"
+              },
+              "type": "array"
+            }
+          ],
+          "title": "Members"
+        }
+      },
+      "required": [
+        "members"
+      ],
+      "title": "Haplotype",
+      "type": "object"
+    },
+    "dcd_mapping__vrs_v1_schemas__LiteralSequenceExpression": {
+      "description": "Define VRS 1.3 LiteralSequenceExpression.",
+      "properties": {
+        "type": {
+          "const": "LiteralSequenceExpression",
+          "default": "LiteralSequenceExpression",
+          "enum": [
+            "LiteralSequenceExpression"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "sequence": {
+          "title": "Sequence",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sequence"
+      ],
+      "title": "LiteralSequenceExpression",
+      "type": "object"
+    },
+    "dcd_mapping__vrs_v1_schemas__SequenceLocation": {
+      "description": "Define VRS 1.3 SequenceLocation.",
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Id"
+        },
+        "type": {
+          "const": "SequenceLocation",
+          "default": "SequenceLocation",
+          "enum": [
+            "SequenceLocation"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "sequence_id": {
+          "title": "Sequence Id",
+          "type": "string"
+        },
+        "interval": {
+          "$ref": "#/$defs/SequenceInterval"
+        }
+      },
+      "required": [
+        "id",
+        "sequence_id",
+        "interval"
+      ],
+      "title": "SequenceLocation",
+      "type": "object"
+    },
+    "ga4gh__core___internal__models__Extension": {
+      "additionalProperties": true,
+      "description": "The Extension class provides VODs with a means to extend descriptions with other\nattributes unique to a content provider. These extensions are not expected to be\nnatively understood under VRSATILE, but may be used for pre-negotiated exchange of\nmessage attributes when needed.",
+      "properties": {
+        "type": {
+          "const": "Extension",
+          "default": "Extension",
+          "description": "MUST be \"Extension\".",
+          "enum": [
+            "Extension"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "description": "A name for the Extension",
+          "title": "Name",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object"
+            },
+            {
+              "items": {},
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Any primitive or structured object",
+          "title": "Value"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "Extension",
+      "type": "object"
+    },
+    "ga4gh__vrs___internal__models__Allele": {
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The 'logical' identifier of the entity in the system of record, e.g. a UUID. This 'id' is  unique within a given system. The identified entity may have a different 'id' in a different  system, or may refer to an 'id' for the shared concept in another system (e.g. a CURIE).",
+          "title": "Id"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A primary label for the entity.",
+          "title": "Label"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A free-text description of the entity.",
+          "title": "Description"
+        },
+        "extensions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ga4gh__core___internal__models__Extension"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extensions"
+        },
+        "type": {
+          "const": "Allele",
+          "default": "Allele",
+          "description": "MUST be \"Allele\"",
+          "enum": [
+            "Allele"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9A-Za-z_\\-]{32}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A sha512t24u digest created using the VRS Computed Identifier algorithm.",
+          "title": "Digest"
+        },
+        "expressions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ga4gh__vrs___internal__models__Expression"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expressions"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IRI"
+            },
+            {
+              "$ref": "#/$defs/ga4gh__vrs___internal__models__SequenceLocation"
+            }
+          ],
+          "description": "The location of the Allele",
+          "title": "Location"
+        },
+        "state": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ga4gh__vrs___internal__models__LiteralSequenceExpression"
+            },
+            {
+              "$ref": "#/$defs/ReferenceLengthExpression"
+            }
+          ],
+          "description": "An expression of the sequence state",
+          "title": "State"
+        }
+      },
+      "required": [
+        "location",
+        "state"
+      ],
+      "title": "Allele",
+      "type": "object"
+    },
+    "ga4gh__vrs___internal__models__Expression": {
+      "description": "Representation of a variation by a specified nomenclature or syntax for a\nVariation object. Common examples of expressions for the description of molecular\nvariation include the HGVS and ISCN nomenclatures.",
+      "properties": {
+        "syntax": {
+          "$ref": "#/$defs/Syntax"
+        },
+        "value": {
+          "title": "Value",
+          "type": "string"
+        },
+        "syntax_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Syntax Version"
+        }
+      },
+      "required": [
+        "syntax",
+        "value"
+      ],
+      "title": "Expression",
+      "type": "object"
+    },
+    "ga4gh__vrs___internal__models__Haplotype": {
+      "description": "A set of non-overlapping Allele members that co-occur on the same molecule.",
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The 'logical' identifier of the entity in the system of record, e.g. a UUID. This 'id' is  unique within a given system. The identified entity may have a different 'id' in a different  system, or may refer to an 'id' for the shared concept in another system (e.g. a CURIE).",
+          "title": "Id"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A primary label for the entity.",
+          "title": "Label"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A free-text description of the entity.",
+          "title": "Description"
+        },
+        "extensions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ga4gh__core___internal__models__Extension"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extensions"
+        },
+        "type": {
+          "const": "Haplotype",
+          "default": "Haplotype",
+          "description": "MUST be \"Haplotype\"",
+          "enum": [
+            "Haplotype"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9A-Za-z_\\-]{32}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A sha512t24u digest created using the VRS Computed Identifier algorithm.",
+          "title": "Digest"
+        },
+        "expressions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ga4gh__vrs___internal__models__Expression"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expressions"
+        },
+        "members": {
+          "description": "A list of Alleles (or IRI references to `Alleles`) that comprise a Haplotype. Since each `Haplotype` member MUST be an `Allele`, and all members MUST share a common `SequenceReference`, implementations MAY use a compact representation of Haplotype that omits type and `SequenceReference` information in individual Haplotype members. Implementations MUST transform compact `Allele` representations into an `Allele` when computing GA4GH identifiers.",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ga4gh__vrs___internal__models__Allele"
+              },
+              {
+                "$ref": "#/$defs/IRI"
+              }
+            ]
+          },
+          "minItems": 2,
+          "title": "Members",
+          "type": "array"
+        }
+      },
+      "required": [
+        "members"
+      ],
+      "title": "Haplotype",
+      "type": "object"
+    },
+    "ga4gh__vrs___internal__models__LiteralSequenceExpression": {
+      "description": "An explicit expression of a Sequence.",
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The 'logical' identifier of the entity in the system of record, e.g. a UUID. This 'id' is  unique within a given system. The identified entity may have a different 'id' in a different  system, or may refer to an 'id' for the shared concept in another system (e.g. a CURIE).",
+          "title": "Id"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A primary label for the entity.",
+          "title": "Label"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A free-text description of the entity.",
+          "title": "Description"
+        },
+        "extensions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ga4gh__core___internal__models__Extension"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extensions"
+        },
+        "type": {
+          "const": "LiteralSequenceExpression",
+          "default": "LiteralSequenceExpression",
+          "description": "MUST be \"LiteralSequenceExpression\"",
+          "enum": [
+            "LiteralSequenceExpression"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "sequence": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/SequenceString"
+            }
+          ],
+          "description": "the literal sequence"
+        }
+      },
+      "required": [
+        "sequence"
+      ],
+      "title": "LiteralSequenceExpression",
+      "type": "object"
+    },
+    "ga4gh__vrs___internal__models__SequenceLocation": {
+      "description": "A `Location` defined by an interval on a referenced `Sequence`.",
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The 'logical' identifier of the entity in the system of record, e.g. a UUID. This 'id' is  unique within a given system. The identified entity may have a different 'id' in a different  system, or may refer to an 'id' for the shared concept in another system (e.g. a CURIE).",
+          "title": "Id"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A primary label for the entity.",
+          "title": "Label"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A free-text description of the entity.",
+          "title": "Description"
+        },
+        "extensions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ga4gh__core___internal__models__Extension"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extensions"
+        },
+        "type": {
+          "const": "SequenceLocation",
+          "default": "SequenceLocation",
+          "description": "MUST be \"SequenceLocation\"",
+          "enum": [
+            "SequenceLocation"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9A-Za-z_\\-]{32}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A sha512t24u digest created using the VRS Computed Identifier algorithm.",
+          "title": "Digest"
+        },
+        "sequenceReference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IRI"
+            },
+            {
+              "$ref": "#/$defs/SequenceReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A SequenceReference.",
+          "title": "Sequencereference"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Range"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "description": "The start coordinate or range of the SequenceLocation. The minimum value of this coordinate or range is 0. MUST represent a coordinate or range less than the value of `end`.",
+          "title": "Start"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Range"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "description": "The end coordinate or range of the SequenceLocation. The minimum value of this coordinate or range is 0. MUST represent a coordinate or range greater than the value of `start`.",
+          "title": "End"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "SequenceLocation",
+      "type": "object"
+    }
+  },
+  "description": "Provide all mapped scores for a scoreset.",
+  "properties": {
+    "metadata": {
+      "title": "Metadata"
+    },
+    "computed_reference_sequence": {
+      "$ref": "#/$defs/ComputedReferenceSequence"
+    },
+    "mapped_reference_sequence": {
+      "$ref": "#/$defs/MappedReferenceSequence"
+    },
+    "mapped_scores": {
+      "items": {
+        "$ref": "#/$defs/ScoreAnnotation"
+      },
+      "title": "Mapped Scores",
+      "type": "array"
+    }
+  },
+  "required": [
+    "metadata",
+    "computed_reference_sequence",
+    "mapped_reference_sequence",
+    "mapped_scores"
+  ],
+  "title": "ScoresetMapping",
+  "type": "object"
+}

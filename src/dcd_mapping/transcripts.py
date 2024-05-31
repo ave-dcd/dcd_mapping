@@ -6,7 +6,6 @@ from Bio.Data.CodonTable import IUPACData
 from Bio.Seq import Seq
 from Bio.SeqUtils import seq1
 from cool_seq_tool.schemas import TranscriptPriority
-from gene.database.database import click
 
 from dcd_mapping.lookup import (
     get_chromosome_identifier,
@@ -312,7 +311,6 @@ async def select_transcript(
     metadata: ScoresetMetadata,
     records: list[ScoreRow],
     align_result: AlignmentResult,
-    silent: bool = False,
 ) -> TxSelectResult | None:
     """Select appropriate human reference sequence for scoreset.
 
@@ -325,11 +323,6 @@ async def select_transcript(
     :param align_result: alignment results
     :return: Transcript description (accession ID, offset, selected sequence, etc)
     """
-    msg = f"Selecting reference sequence for {metadata.urn}..."
-    if not silent:
-        click.echo(msg)
-    _logger.info(msg)
-
     if metadata.urn.startswith("urn:mavedb:00000097"):
         _logger.info(
             "Score sets in urn:mavedb:00000097 are already expressed in full HGVS strings -- using predefined results because additional hard-coding is unnecessary"
@@ -352,9 +345,4 @@ async def select_transcript(
         if offset:
             transcript_reference.start = offset
 
-    transcript_reference = _handle_edge_cases(metadata.urn, transcript_reference)
-
-    msg = "Reference selection complete."
-    if not silent:
-        click.echo(msg)
-    return transcript_reference
+    return _handle_edge_cases(metadata.urn, transcript_reference)

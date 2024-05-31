@@ -21,7 +21,7 @@ jobs:
 
       - name: Run tests
         # only run tests known to work in CI
-        run: python3 -m pytest tests/test_resources.py tests/test_vrs_map.py
+        run: python3 -m pytest tests/test_mavedb_data.py tests/test_vrs_map.py
   lint:
     runs-on: ubuntu-latest
     steps:
