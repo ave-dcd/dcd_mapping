@@ -4,12 +4,10 @@ This library implements a novel method for mapping [MaveDB scoreset data](https:
 
 ## Installation
 
-Create and initiate a virtual environment, and install with `pip` via source code provided on GitHub:
+Install from PyPI:
 
 ```
-python3 -m virtualenv venv
-source venv/bin/activate
-python3 -m pip install git:https://github.com/ave-dcd/dcd_mapping.git#egg=dcd_mapping
+python3 -m pip install dcd-mapping
 ```
 
 Also ensure the following data dependencies are available:
