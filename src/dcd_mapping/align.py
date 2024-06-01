@@ -37,6 +37,10 @@ class AlignmentError(Exception):
     """Raise when errors encountered during alignment."""
 
 
+class BlatNotFoundError(AlignmentError):
+    """Raise when BLAT binary appears to be missing."""
+
+
 def _write_query_file(file: Path, lines: list[str]) -> None:
     """Write lines to query file. This method is broken out to enable easy mocking while
     testing.
@@ -118,6 +122,8 @@ def _run_blat(
         stderr=subprocess.PIPE,
     )
     _logger.debug("BLAT command finished with result %s", result.returncode)
+    if result.returncode == 127:
+        raise BlatNotFoundError
     if result.returncode != 0:
         msg = f"BLAT process returned error code {result.returncode}: {target_args} {query_file} {out_file}"
         raise AlignmentError(msg)

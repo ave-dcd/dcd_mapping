@@ -14,6 +14,7 @@ from pathlib import Path
 import polars as pl
 import requests
 from biocommons.seqrepo import SeqRepo
+from biocommons.seqrepo.seqaliasdb.seqaliasdb import sqlite3
 from cool_seq_tool.app import (
     LRG_REFSEQGENE_PATH,
     MANE_SUMMARY_PATH,
@@ -42,7 +43,7 @@ from ga4gh.vrs.dataproxy import SeqRepoDataProxy, coerce_namespace
 from ga4gh.vrs.extras.translator import AlleleTranslator
 from gene.database import create_db
 from gene.query import QueryHandler
-from gene.schemas import SourceName
+from gene.schemas import MatchType, SourceName
 
 from dcd_mapping.schemas import GeneLocation, ManeDescription, ScoresetMetadata
 
@@ -65,6 +66,10 @@ __all__ = [
 _logger = logging.getLogger(__name__)
 
 # ---------------------------------- Global ---------------------------------- #
+
+
+class DataLookupError(Exception):
+    """Raise for misc. issues related to resource acquisition/lookup."""
 
 
 class CoolSeqToolBuilder:
@@ -187,6 +192,19 @@ class TranslatorBuilder:
 # ----------------------------------- UTA ----------------------------------- #
 
 
+async def check_uta() -> None:
+    """Check that UTA connection appears to be working.
+
+    :raise LookupError: if schema check fails. Realistically, if UTA isn't working right,
+        another error will probably get raised first.
+    """
+    uta = CoolSeqToolBuilder().uta_db
+    query = f"select * from {uta.schema}.meta"  # noqa: S608
+    result = await uta.execute_query(query)
+    if not result:
+        raise DataLookupError
+
+
 async def get_protein_accession(transcript: str) -> str | None:
     """Retrieve protein accession for a transcript.
 
@@ -234,6 +252,14 @@ async def get_transcripts(
 
 
 # ------------------------------ Gene Normalizer ------------------------------ #
+
+
+def check_gene_normalizer() -> None:
+    q = GeneNormalizerBuilder()
+    if (not q.db.check_schema_initialized()) or not (q.db.check_tables_populated()):
+        raise DataLookupError
+    if q.normalize("BRAF").match_type == MatchType.NO_MATCH:
+        raise DataLookupError
 
 
 def _get_hgnc_symbol(term: str) -> str | None:
@@ -360,6 +386,25 @@ def get_gene_location(metadata: ScoresetMetadata) -> GeneLocation | None:
 
 
 # --------------------------------- SeqRepo --------------------------------- #
+
+
+def check_seqrepo() -> None:
+    sr = get_seqrepo()
+    if not sr.sr["NC_000001.11"][780000:780020]:
+        raise DataLookupError
+    try:
+        conn = sr.sr.aliases._db
+        cursor = conn.cursor()
+        cursor.execute("CREATE TABLE IF NOT EXISTS test_table (id INTEGER PRIMARY KEY)")
+        cursor.execute("INSERT INTO test_table (id) VALUES (1)")
+        conn.commit()
+        cursor.execute("DELETE FROM test_table WHERE id = 1")
+        cursor.execute("DROP TABLE test_table")
+        conn.commit()
+        conn.close()
+    except sqlite3.Error as e:
+        _logger.error("SeqRepo sequences DB isn't writeable.")
+        raise DataLookupError from e
 
 
 def get_chromosome_identifier(chromosome: str) -> str:
