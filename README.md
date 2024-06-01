@@ -1,15 +1,22 @@
 # dcd-map: Map MaveDB data to computable and interoperable variant objects
 
+[![image](https://img.shields.io/pypi/v/dcd_mapping.svg)](https://pypi.python.org/pypi/dcd_mapping)
+[![image](https://img.shields.io/pypi/l/dcd_mapping.svg)](https://pypi.python.org/pypi/dcd_mapping)
+[![image](https://img.shields.io/pypi/pyversions/dcd_mapping.svg)](https://pypi.python.org/pypi/dcd_mapping)
+[![Actions status](https://github.com/ave-dcd/dcd_mapping/actions/workflows/checks.yaml/badge.svg)](https://github.com/ave-dcd/dcd_mapping/actions/checks.yaml)
+
+<!-- description -->
+
 This library implements a novel method for mapping [MaveDB scoreset data](https://mavedb.org/) to [GA4GH Variation Representation Specification (VRS)](https://vrs.ga4gh.org/en/stable/) objects, enhancing interoperability for genomic medicine applications. See [Arbesfeld et. al. (2023)](https://www.biorxiv.org/content/10.1101/2023.06.20.545702v1) for more information, or [download the resulting mappings directly](https://mavedb-mapping.s3.us-east-2.amazonaws.com/mappings.tar.gz).
+
+<!-- /description -->
 
 ## Installation
 
-Create and initiate a virtual environment, and install with `pip` via source code provided on GitHub:
+Install from PyPI:
 
 ```
-python3 -m virtualenv venv
-source venv/bin/activate
-python3 -m pip install git:https://github.com/ave-dcd/dcd_mapping.git#egg=dcd_mapping
+python3 -m pip install dcd-mapping
 ```
 
 Also ensure the following data dependencies are available:
