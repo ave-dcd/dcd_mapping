@@ -1,0 +1,626 @@
+{
+  "urn:mavedb:00000002-a-2": {
+    "chrom": "chr11",
+    "strand": 1,
+    "coverage": 100.0,
+    "ident_pct": 77.45098039215686,
+    "query_range": {
+      "start": 0,
+      "end": 102
+    },
+    "query_subranges": [
+      {
+        "start": 0,
+        "end": 60
+      },
+      {
+        "start": 60,
+        "end": 102
+      }
+    ],
+    "hit_range": {
+      "start": 102114329,
+      "end": 102162492
+    },
+    "hit_subranges": [
+      {
+        "start": 102114329,
+        "end": 102114389
+      },
+      {
+        "start": 102162450,
+        "end": 102162492
+      }
+    ]
+  },
+  "urn:mavedb:00000007-a-2": {
+    "chrom": "chr11",
+    "strand": 1,
+    "coverage": 100.0,
+    "ident_pct": 77.45098039215686,
+    "query_range": {
+      "start": 0,
+      "end": 102
+    },
+    "query_subranges": [
+      {
+        "start": 0,
+        "end": 60
+      },
+      {
+        "start": 60,
+        "end": 102
+      }
+    ],
+    "hit_range": {
+      "start": 102114329,
+      "end": 102162492
+    },
+    "hit_subranges": [
+      {
+        "start": 102114329,
+        "end": 102114389
+      },
+      {
+        "start": 102162450,
+        "end": 102162492
+      }
+    ]
+  },
+  "urn:mavedb:00000099-a-1": {
+    "chrom": "chr3",
+    "strand": 1,
+    "coverage": 100.0,
+    "ident_pct": 100.0,
+    "query_range": {
+      "start": 0,
+      "end": 1047
+    },
+    "query_subranges": [
+      {
+        "start": 0,
+        "end": 361
+      },
+      {
+        "start": 361,
+        "end": 530
+      },
+      {
+        "start": 530,
+        "end": 696
+      },
+      {
+        "start": 696,
+        "end": 936
+      },
+      {
+        "start": 936,
+        "end": 1047
+      }
+    ],
+    "hit_range": {
+      "start": 129528733,
+      "end": 129533718
+    },
+    "hit_subranges": [
+      {
+        "start": 129528733,
+        "end": 129529094
+      },
+      {
+        "start": 129530875,
+        "end": 129531044
+      },
+      {
+        "start": 129532250,
+        "end": 129532416
+      },
+      {
+        "start": 129532532,
+        "end": 129532772
+      },
+      {
+        "start": 129533607,
+        "end": 129533718
+      }
+    ]
+  },
+  "urn:mavedb:00000103-c-1": {
+    "chrom": "chr22",
+    "strand": -1,
+    "coverage": 100.0,
+    "ident_pct": 99.9071494893222,
+    "query_range": {
+      "start": 0,
+      "end": 360
+    },
+    "query_subranges": [
+      {
+        "start": 0,
+        "end": 39
+      },
+      {
+        "start": 40,
+        "end": 101
+      },
+      {
+        "start": 101,
+        "end": 164
+      },
+      {
+        "start": 164,
+        "end": 203
+      },
+      {
+        "start": 203,
+        "end": 241
+      },
+      {
+        "start": 241,
+        "end": 285
+      },
+      {
+        "start": 285,
+        "end": 322
+      },
+      {
+        "start": 322,
+        "end": 360
+      }
+    ],
+    "hit_range": {
+      "start": 21769206,
+      "end": 21867440
+    },
+    "hit_subranges": [
+      {
+        "start": 21867323,
+        "end": 21867440
+      },
+      {
+        "start": 21807662,
+        "end": 21807845
+      },
+      {
+        "start": 21805849,
+        "end": 21806038
+      },
+      {
+        "start": 21799011,
+        "end": 21799128
+      },
+      {
+        "start": 21788694,
+        "end": 21788808
+      },
+      {
+        "start": 21788257,
+        "end": 21788389
+      },
+      {
+        "start": 21772872,
+        "end": 21772983
+      },
+      {
+        "start": 21769206,
+        "end": 21769320
+      }
+    ]
+  },
+  "urn:mavedb:00000041-a-1": {
+    "chrom": "chr20",
+    "strand": 1,
+    "coverage": 100.0,
+    "ident_pct": 99.86666666666666,
+    "query_range": {
+      "start": 0,
+      "end": 750
+    },
+    "query_subranges": [
+      {
+        "start": 0,
+        "end": 52
+      },
+      {
+        "start": 52,
+        "end": 232
+      },
+      {
+        "start": 232,
+        "end": 309
+      },
+      {
+        "start": 309,
+        "end": 463
+      },
+      {
+        "start": 463,
+        "end": 595
+      },
+      {
+        "start": 595,
+        "end": 750
+      }
+    ],
+    "hit_range": {
+      "start": 37397802,
+      "end": 37403325
+    },
+    "hit_subranges": [
+      {
+        "start": 37397802,
+        "end": 37397854
+      },
+      {
+        "start": 37400114,
+        "end": 37400294
+      },
+      {
+        "start": 37401601,
+        "end": 37401678
+      },
+      {
+        "start": 37402434,
+        "end": 37402588
+      },
+      {
+        "start": 37402748,
+        "end": 37402880
+      },
+      {
+        "start": 37403170,
+        "end": 37403325
+      }
+    ]
+  },
+  "urn:mavedb:00000018-a-1": {
+    "chrom": "chr11",
+    "strand": 1,
+    "coverage": 100.0,
+    "ident_pct": 100.0,
+    "query_range": {
+      "start": 0,
+      "end": 187
+    },
+    "query_subranges": [
+      {
+        "start": 0,
+        "end": 187
+      }
+    ],
+    "hit_range": {
+      "start": 5227021,
+      "end": 5227208
+    },
+    "hit_subranges": [
+      {
+        "start": 5227021,
+        "end": 5227208
+      }
+    ]
+  },
+  "urn:mavedb:00000001-a-4": {
+    "chrom": "chr16",
+    "strand": 1,
+    "coverage": 100.0,
+    "ident_pct": 100.0,
+    "query_range": {
+      "start": 0,
+      "end": 477
+    },
+    "query_subranges": [
+      {
+        "start": 0,
+        "end": 66
+      },
+      {
+        "start": 66,
+        "end": 150
+      },
+      {
+        "start": 150,
+        "end": 223
+      },
+      {
+        "start": 223,
+        "end": 333
+      },
+      {
+        "start": 333,
+        "end": 413
+      },
+      {
+        "start": 413,
+        "end": 477
+      }
+    ],
+    "hit_range": {
+      "start": 1314030,
+      "end": 1324793
+    },
+    "hit_subranges": [
+      {
+        "start": 1314030,
+        "end": 1314096
+      },
+      {
+        "start": 1314292,
+        "end": 1314376
+      },
+      {
+        "start": 1315653,
+        "end": 1315726
+      },
+      {
+        "start": 1320173,
+        "end": 1320283
+      },
+      {
+        "start": 1320437,
+        "end": 1320517
+      },
+      {
+        "start": 1324729,
+        "end": 1324793
+      }
+    ]
+  },
+  "urn:mavedb:00000098-a-1": {
+    "chrom": "chr3",
+    "strand": -1,
+    "coverage": 100.0,
+    "ident_pct": 100.0,
+    "query_range": {
+      "start": 0,
+      "end": 12
+    },
+    "query_subranges": [
+      {
+        "start": 0,
+        "end": 12
+      }
+    ],
+    "hit_range": {
+      "start": 38551475,
+      "end": 38551511
+    },
+    "hit_subranges": [
+      {
+        "start": 38551475,
+        "end": 38551511
+      }
+    ]
+  },
+  "urn:mavedb:00000061-h-1": {
+    "chrom": "chr3",
+    "strand": -1,
+    "coverage": 100.0,
+    "ident_pct": 100.0,
+    "query_range": {
+      "start": 0,
+      "end": 117
+    },
+    "query_subranges": [
+      {
+        "start": 54,
+        "end": 117
+      },
+      {
+        "start": 0,
+        "end": 54
+      }
+    ],
+    "hit_range": {
+      "start": 12611999,
+      "end": 12618568
+    },
+    "hit_subranges": [
+      {
+        "start": 1261199,
+        "end": 12612062
+      },
+      {
+        "start": 12618514,
+        "end": 12618568
+      }
+    ]
+  },
+  "urn:mavedb:00000068-a-1": {
+    "chrom": "chr17",
+    "strand": -1,
+    "coverage": 99.83079526226734,
+    "ident_pct": 99.91525423728814,
+    "query_range": {
+      "start": 0,
+      "end": 1180
+    },
+    "query_subranges": [
+      {
+        "start": 1100,
+        "end": 1180
+      },
+      {
+        "start": 993,
+        "end": 1100
+      },
+      {
+        "start": 919,
+        "end": 993
+      },
+      {
+        "start": 782,
+        "end": 919
+      },
+      {
+        "start": 672,
+        "end": 782
+      },
+      {
+        "start": 559,
+        "end": 672
+      },
+      {
+        "start": 375,
+        "end": 559
+      },
+      {
+        "start": 96,
+        "end": 375
+      },
+      {
+        "start": 74,
+        "end": 96
+      },
+      {
+        "start": 0,
+        "end": 74
+      }
+    ],
+    "hit_range": {
+      "start": 7676520,
+      "end": 7669690
+    },
+    "hit_subranges": [
+      {
+        "start": 7669610,
+        "end": 7669690
+      },
+      {
+        "start": 7670608,
+        "end": 7670715
+      },
+      {
+        "start": 7673534,
+        "end": 7673608
+      },
+      {
+        "start": 7673700,
+        "end": 7673837
+      },
+      {
+        "start": 7674180,
+        "end": 7674290
+      },
+      {
+        "start": 7674858,
+        "end": 7674971
+      },
+      {
+        "start": 7675052,
+        "end": 7675236
+      },
+      {
+        "start": 7675993,
+        "end": 7676272
+      },
+      {
+        "start": 7676381,
+        "end": 7676403
+      },
+      {
+        "start": 7676520,
+        "end": 7676594
+      }
+    ]
+  },
+  "urn:mavedb:00000093-a-1": {
+    "chrom": "chr17",
+    "strand": -1,
+    "coverage": 100.0,
+    "ident_pct": 100.0,
+    "query_range": {
+      "start": 0,
+      "end": 300
+    },
+    "query_subranges": [
+      {
+        "start": 212,
+        "end": 300
+      },
+      {
+        "start": 134,
+        "end": 212
+      },
+      {
+        "start": 80,
+        "end": 134
+      },
+      {
+        "start": 0,
+        "end": 80
+      }
+    ],
+    "hit_range": {
+      "start": 43104868,
+      "end": 43124096
+    },
+    "hit_subranges": [
+      {
+        "start": 43104868,
+        "end": 43104956
+      },
+      {
+        "start": 43106455,
+        "end": 43106533
+      },
+      {
+        "start": 43115725,
+        "end": 43115779
+      },
+      {
+        "start": 43124016,
+        "end": 43124096
+      }
+    ]
+  },
+  "urn:mavedb:00000001-b-2": {
+    "chrom": "chr2",
+    "strand": -1,
+    "coverage": 97.05882352941177,
+    "ident_pct": 100.0,
+    "query_range": {
+      "start": 9,
+      "end": 306
+    },
+    "query_subranges": [
+      {
+        "start": 237,
+        "end": 306
+      },
+      {
+        "start": 165,
+        "end": 237
+      },
+      {
+        "start": 87,
+        "end": 165
+      },
+      {
+        "start": 9,
+        "end": 87
+      }
+    ],
+    "hit_range": {
+      "start": 202207252,
+      "end": 202220109
+    },
+    "hit_subranges": [
+      {
+        "start": 202207252,
+        "end": 202207321
+      },
+      {
+        "start": 202210734,
+        "end": 202210806
+      },
+      {
+        "start": 202214356,
+        "end": 202214434
+      },
+      {
+        "start": 202220031,
+        "end": 202220109
+      }
+    ]
+  }
+}

@@ -1,0 +1,213 @@
+{
+  "urn:mavedb:00000093-a-1": {
+    "title": "BASE_ACMG quantities derived from the RING domain M2H functional assay",
+    "methodText": "Scores were calculated using the methods described in 10.1101/092619v2.  Note that we are using c.1A>A;p.M1M as pidgin HGVS for wild-type.\r\n\r\nColumn Description\r\nDTYPE: Numerical indicator of how the variant was used\r\n- 0: test\r\n- 1: calibration\r\n- 2: validation\r\nVTYPE: Numerical indicator of variant type\r\n- 0: amino acid substitution\r\n- 1: single amino acid deletion\r\n- 2: amino acid deletion\r\n- 3: proline substitution\r\nscore: Assay-derived values expressed in the BASE_ACMG points system.\r\nBASE_SCALED: BASE_ACMG centered and scaled to -6 to +6.  Note that 6.1 is to be read as > 6.1 and -6.1 is to be read as <-6.1.\r\nOBS: The number of observations of the variant in all the experiments.",
+    "abstractText": " ",
+    "shortDescription": "BASE_ACMG are the quantitatively defined ACMG strength of evidence categories and ACMG-scaled points. This score set reports the BASE_ACMG values for variants used in the RING domain M2H functional assays across multiple experiments.",
+    "extraMetadata": {},
+    "urn": "urn:mavedb:00000093-a-1",
+    "numVariants": 853,
+    "experiment": {
+      "title": "Functional Evaluation of BRCA1 RING Domain Missense Substitutions",
+      "shortDescription": "We tested every BRCA1 RING domain missense substitution that can be created by a single nucleotide change for its effect on heterodimerization with BARD1 in a Mammalian 2-hybrid assay.  The assay data collected were calibrated, validated, and integrated with other available data to arrive at clinically applicable classifications.  About 89% of the missense substitutions could be assigned clinical classifications with about 20% being pathogenic.",
+      "abstractText": "BRCA1 is a high-risk susceptibility gene for breast and ovarian cancer. Pathogenic protein truncating variants are scattered across the open reading frame, but all known missense substitutions that are pathogenic because of missense dysfunction are located in either the amino- terminal RING domain or the carboxy-terminal BRCT domain. Heterodimerization of the BRCA1 and BARD1 RING domains is a molecularly defined obligate activity. Hence, we tested every BRCA1 RING domain missense substitution that can be created by a single nucleotide change for heterodimerization with BARD1 in a Mammalian 2-hybrid assay. Downstream of the laboratory assay, we addressed three additional challenges: assay calibration, validation thereof, and integration of the calibrated results with other available data such as computational evidence and patient/population observational data to achieve clinically applicable classification. Overall, we found that 15%-20% of BRCA1 RING domain missense substitutions are pathogenic. Using a Bayesian point system for data integration and variant classification, we achieved clinical classification of 89% of observed missense substitutions. Moreover, among missense substitutions not present in the human observational data used here, we find an additional 45 with concordant computational and functional assay evidence in favor of pathogenicity plus 223 with concordant evidence in favor of benignity; these are particularly likely to be classified as Likely Pathogenic and Likely Benign, respectively, once human observational data become available.",
+      "methodText": "Pre-set analysis choices.\r\nA number of key analysis parameters were set before the resulting analyses were conducted. These included:\r\n1. Calibration would be based on some sort of multivariate logistic regression using human\r\nobservational data, and excluding computational or functional assay data.\r\n2. The calibration set of RING domain sequence variants used inclusion thresholds of published\r\nhuman observational data having Posterior probability of pathogenicity (Post_P)<0.10, or Post_P>0.90, starting from an assumed BRCA1/2 key domain prior probability in favor of pathogenicity (Prior_P) of 0.35 (Easton et al., PMID: 17924331. Li et al., PMID: 31853058).\r\n3. Because the calibration set had more pathogenic than benign calibrant variants, it was decided in advance to include the two presumed benign variants extracted from our existing protein multiple sequence alignment: p.K45R and p.C91H (Tavtigian et al., PMID: 18951461).\r\nConsiderations #2 and #3 resulted in a set of 30 “calibration series” sequence variants (Table 1), 29 missense substitutions and one in-frame deletion. One of these, c.211A>G (p.R71G) was excluded from calibration because our prior analyses predicted that it would damage mRNA splicing and then it was shown to be pathogenic on that basis (Vallee et al., PMID: 26913838. Parsons et al., Parsons et al., PMID: 31131967)\r\nReporter cell line for the Mammalian 2-hybrid assay.\r\nA HEK293 cell line was prepared with two GAL4-responsive M2H reporters, one with ZsGreen readout and blasticidin resistance, and the other with Tdtomato and puromycin resistance.\r\n\r\nBRCA1 RING domain variant library generation.\r\nPlasmid libraries containing the variants to assay in the multiplexed format were generated using a HiFi assembly-based cloning strategy. We developed three different backbone vectors, based on pBIND (E245A; Promega) for cloning three 100 bp sections of the BRCA1 RING domain. Each backbone encoded the complete BRCA1 RING domain (amino acids 1-100, plus an additional 84 aa) fused to the GAL4 DNA binding domain, and the three vectors together allow mutagenesis of the entire RING domain. Following the GAL4 sequence, we inserted a P2A sequence followed by a BFP sequence. The BFP acts as a proxy for productive BRCA1 expression and allows gating on a tight range of BRCA1 expression during the sort step of the M2H assay. Oligonucleotide pools representing the three thirds of the ring domain were synthesized by Twist Bioscience with the following features: 1) the missense substitutions and in-frame indels to be tested; 2) each missense substitution or in-frame indel was synthesized with 4 different pairs of silent substitutions that acted as a barcode identifier (8 different 2 nt barcodes were designed for each third of the RING domain, with the silent substitutions chosen from alternate nucleotides that are wt in a non-human primate); 3) 5’ and 3’ sequence tails for HiFi assembly. Barcode combinations with the wildtype peptide sequence were generated for each barcode used, and synthesized at a 3:1 ratio to variants in the oligo pool to insure capture of all wildtype-barcode combinations in the assay. The oligo pool was amplified (12 cycles) in three separate reactions using primer sets corresponding to 5’ and 3’ ends of the three thirds of the ring domain, with the resulting amplified pools representing each third. Each amplified pool was cloned en masse into the corresponding backbone vector using NEB HiFi assembly mastermix (E2621) and transformed. Single colonies were picked and arrayed in a 96-well format for individual plasmid preps (Invitrogen) and resulting plasmid DNAs re-arrayed into the inner 60- wells of a 96-well plate (to avoid edge effects in the subsequent transfections), and then diluted to 25 ng/μl.\r\n\r\nThe BARD1 RING domain, encoded within the first 200 amino acids, fused to HA, was cloned into a modified pACT vector (E246A, Promega), with the VP16 sequence moved distal to the BARD1 coding sequence, to create a C-terminal fusion. Similar to the BRCA1-GAL4 construct, following the VP16 sequence, we inserted a P2A sequence followed by zsYellow sequence for gating purposes.\r\nMultiplexed mammalian 2-hybrid assay.\r\nIndividual transfection reactions for each plasmid were set up with 20,000 reporter cells per well and 50 ng of pACT_BARD1:zsYELLOW plus 50 ng of the corresponding BRCA1-GAL4:BFP plasmid (1:1 molar ratio) from the dilution plates described in the previous section. 48 hours post-infection, cells were harvested, pooled, and FACs sorted on a BD 5 laser FACSAria. The strategy relied first on gating a narrow range of zsYellow+/BFP+ to ensure evaluation of only cells productively transfected with both plasmids, and to limit the range of BRCA1-GAL4 and BARD1-VP16 expression. Gated cells were sorted into one of six bins based on increasing expression of both the dtTomato and zsGreen reporters. RNA was isolated from each bin using the Direct-zol RNA miniprep kit (Zymo Research); bins with less than 1 X106 cells were adjusted to 1 X106 with HEK293 cells to insure uniformity in RNA isolation. Total RNA was converted to cDNA using the SuperScript VILO cDNA Synthesis Kit (Invitrogen). The RING sequence of BRCA1 was then isolated by RT-PCR using primers corresponding to sequence 5 bp 5’ of the intron engineered into the BRCA1 construct and nucleotides 305-330 of the BRCA1 CDS. Sequencing libraries were prepared using the Ovation Ultralow Library System (NUGEN # 0344NB-A01), excluding the end-repair step and using a different barcode for each of the bins. The libraries were sequenced on an Illumina MiSeq channel using the MiSeq 300 bp Cycle Paired-end sequencing protocol. Each paired-end read set was combined into one read using FLASH 25 and aligned to an index containing the individual BRCA1-RING domain variant sequences with barcodes using Novoalign. We counted each alignment as positive only if there was a perfect match along the 427 bp length of the amplicon. The distribution of positive counts exhibited a discontinuity at about 2,000, with values above 2,000 forming a smooth curve. The frequency of counts below 2,000 declined sharply, suggesting a threshold effect. Accordingly, we restricted further analyses to variant-barcode combinations with counts above 2,000; these were tabulated resulting in the counts per bin (1-6) data for each individual variant-barcode assayed, which was one of the input tables for the statistical analyses.",
+      "extraMetadata": {},
+      "urn": "urn:mavedb:00000093-a",
+      "createdBy": {
+        "orcidId": "0000-0002-7160-7753",
+        "firstName": "Russell",
+        "lastName": "Bell"
+      },
+      "modifiedBy": {
+        "orcidId": "0000-0002-7160-7753",
+        "firstName": "Russell",
+        "lastName": "Bell"
+      },
+      "creationDate": "2021-11-04",
+      "modificationDate": "2022-01-22",
+      "publishedDate": "2021-12-23",
+      "experimentSetUrn": "urn:mavedb:00000093",
+      "scoreSetUrns": ["urn:mavedb:00000093-a-1"],
+      "doiIdentifiers": [
+        {
+          "identifier": "10.1101/092619",
+          "id": 27,
+          "url": "http://doi.org/10.1101/092619"
+        }
+      ],
+      "primaryPublicationIdentifiers": [],
+      "secondaryPublicationIdentifiers": [],
+      "rawReadIdentifiers": [],
+      "keywords": [
+        "FACS",
+        "Mammalian two-hybrid",
+        "heteroduplex",
+        "In-frame deletion-scanning",
+        "Proline-scanning",
+        "RING domain",
+        "protein binding",
+        "Deep mutational scanning",
+        "regression",
+        "Flow Cytometry",
+        "Alanine-scanning",
+        "ACMG AMP variant classification",
+        "Calibration",
+        "Validation"
+      ]
+    },
+    "license": {
+      "longName": "CC0 (Public domain)",
+      "shortName": "CC0",
+      "link": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "version": "1.0",
+      "id": 1
+    },
+    "metaAnalyzesScoreSetUrns": [],
+    "metaAnalyzedByScoreSetUrns": [],
+    "doiIdentifiers": [
+      {
+        "identifier": "10.1101/092619v2",
+        "id": 28,
+        "url": "http://doi.org/10.1101/092619v2"
+      }
+    ],
+    "primaryPublicationIdentifiers": [],
+    "secondaryPublicationIdentifiers": [
+      {
+        "identifier": "32720330",
+        "dbName": "PubMed",
+        "url": "http://www.ncbi.nlm.nih.gov/pubmed/32720330",
+        "referenceHtml": "Tavtigian SV, <i>et al</i>. Fitting a naturally scaled point system to the ACMG/AMP variant classification guidelines. Fitting a naturally scaled point system to the ACMG/AMP variant classification guidelines. 2020; 41:1734-1737. doi: 10.1002/humu.24088",
+        "title": "Fitting a naturally scaled point system to the ACMG/AMP variant classification guidelines.",
+        "abstract": "Recently, we demonstrated that the qualitative American College of Medical Genetics and Genomics/Association for Medical Pathology (ACMG/AMP) guidelines for evaluation of Mendelian disease gene variants are fundamentally compatible with a quantitative Bayesian formulation. Here, we show that the underlying ACMG/AMP \"strength of evidence categories\" can be abstracted into a point system. These points are proportional to Log(odds), are additive, and produce a system that recapitulates the Bayesian formulation of the ACMG/AMP guidelines. The strengths of this system are its simplicity and that the connection between point values and odds of pathogenicity allows empirical calibration of the strength of evidence for individual data types. Weaknesses include that a narrow range of prior probabilities is locked in and that the Bayesian nature of the system is inapparent. We conclude that a points-based system has the practical attribute of user-friendliness and can be useful so long as the underlying Bayesian principles are acknowledged.",
+        "authors": [
+          { "name": "Tavtigian, Sean V", "primary": "True" },
+          { "name": "Harrison, Steven M", "primary": "False" },
+          { "name": "Boucher, Kenneth M", "primary": "False" },
+          { "name": "Biesecker, Leslie G", "primary": "False" }
+        ],
+        "publicationDoi": "10.1002/humu.24088",
+        "publicationYear": 2020,
+        "publicationJournal": "Hum Mutat",
+        "id": 64
+      },
+      {
+        "identifier": "25741868",
+        "dbName": "PubMed",
+        "url": "http://www.ncbi.nlm.nih.gov/pubmed/25741868",
+        "referenceHtml": "Richards S, <i>et al</i>. Standards and guidelines for the interpretation of sequence variants: a joint consensus recommendation of the American College of Medical Genetics and Genomics and the Association for Molecular Pathology. Standards and guidelines for the interpretation of sequence variants: a joint consensus recommendation of the American College of Medical Genetics and Genomics and the Association for Molecular Pathology. 2015; 17:405-24. doi: 10.1038/gim.2015.30",
+        "title": "Standards and guidelines for the interpretation of sequence variants: a joint consensus recommendation of the American College of Medical Genetics and Genomics and the Association for Molecular Pathology.",
+        "abstract": "The American College of Medical Genetics and Genomics (ACMG) previously developed guidance for the interpretation of sequence variants.(1) In the past decade, sequencing technology has evolved rapidly with the advent of high-throughput next-generation sequencing. By adopting and leveraging next-generation sequencing, clinical laboratories are now performing an ever-increasing catalogue of genetic testing spanning genotyping, single genes, gene panels, exomes, genomes, transcriptomes, and epigenetic assays for genetic disorders. By virtue of increased complexity, this shift in genetic testing has been accompanied by new challenges in sequence interpretation. In this context the ACMG convened a workgroup in 2013 comprising representatives from the ACMG, the Association for Molecular Pathology (AMP), and the College of American Pathologists to revisit and revise the standards and guidelines for the interpretation of sequence variants. The group consisted of clinical laboratory directors and clinicians. This report represents expert opinion of the workgroup with input from ACMG, AMP, and College of American Pathologists stakeholders. These recommendations primarily apply to the breadth of genetic tests used in clinical laboratories, including genotyping, single genes, panels, exomes, and genomes. This report recommends the use of specific standard terminology-\"pathogenic,\" \"likely pathogenic,\" \"uncertain significance,\" \"likely benign,\" and \"benign\"-to describe variants identified in genes that cause Mendelian disorders. Moreover, this recommendation describes a process for classifying variants into these five categories based on criteria using typical types of variant evidence (e.g., population data, computational data, functional data, segregation data). Because of the increased complexity of analysis and interpretation of clinical genetic testing described in this report, the ACMG strongly recommends that clinical molecular genetic testing should be performed in a Clinical Laboratory Improvement Amendments-approved laboratory, with results interpreted by a board-certified clinical molecular geneticist or molecular genetic pathologist or the equivalent.",
+        "authors": [
+          { "name": "Richards, Sue", "primary": "True" },
+          { "name": "Aziz, Nazneen", "primary": "False" },
+          { "name": "Bale, Sherri", "primary": "False" },
+          { "name": "Bick, David", "primary": "False" },
+          { "name": "Das, Soma", "primary": "False" },
+          { "name": "Gastier-Foster, Julie", "primary": "False" },
+          { "name": "Grody, Wayne W", "primary": "False" },
+          { "name": "Hegde, Madhuri", "primary": "False" },
+          { "name": "Lyon, Elaine", "primary": "False" },
+          { "name": "Spector, Elaine", "primary": "False" },
+          { "name": "Voelkerding, Karl", "primary": "False" },
+          { "name": "Rehm, Heidi L", "primary": "False" },
+          { "name": "None, None", "primary": "False" }
+        ],
+        "publicationDoi": "10.1038/gim.2015.30",
+        "publicationYear": 2015,
+        "publicationJournal": "Genet Med",
+        "id": 65
+      },
+      {
+        "identifier": "33208383",
+        "dbName": "PubMed",
+        "url": "http://www.ncbi.nlm.nih.gov/pubmed/33208383",
+        "referenceHtml": "Garrett A, <i>et al</i>. Combining evidence for and against pathogenicity for variants in cancer susceptibility genes: CanVIG-UK consensus recommendations. Combining evidence for and against pathogenicity for variants in cancer susceptibility genes: CanVIG-UK consensus recommendations. 2021; 58:297-304. doi: 10.1136/jmedgenet-2020-107248",
+        "title": "Combining evidence for and against pathogenicity for variants in cancer susceptibility genes: CanVIG-UK consensus recommendations.",
+        "abstract": "Accurate classification of variants in cancer susceptibility genes (CSGs) is key for correct estimation of cancer risk and management of patients. Consistency in the weighting assigned to individual elements of evidence has been much improved by the American College of Medical Genetics (ACMG) 2015 framework for variant classification, UK Association for Clinical Genomic Science (UK-ACGS) Best Practice Guidelines and subsequent Cancer Variant Interpretation Group UK (CanVIG-UK) consensus specification for CSGs. However, considerable inconsistency persists regarding practice in the combination of evidence elements. CanVIG-UK is a national subspecialist multidisciplinary network for cancer susceptibility genomic variant interpretation, comprising clinical scientist and clinical geneticist representation from each of the 25 diagnostic laboratories/clinical genetic units across the UK and Republic of Ireland. Here, we summarise the aggregated evidence elements and combinations possible within different variant classification schemata currently employed for CSGs (ACMG, UK-ACGS, CanVIG-UK and ClinGen gene-specific guidance for PTEN, TP53 and CDH1). We present consensus recommendations from CanVIG-UK regarding (1) consistent scoring for combinations of evidence elements using a validated numerical 'exponent score' (2) new combinations of evidence elements constituting likely pathogenic' and 'pathogenic' classification categories, (3) which evidence elements can and cannot be used in combination for specific variant types and (4) classification of variants for which there are evidence elements for both pathogenicity and benignity.",
+        "authors": [
+          { "name": "Garrett, Alice", "primary": "True" },
+          { "name": "Durkie, Miranda", "primary": "False" },
+          { "name": "Callaway, Alison", "primary": "False" },
+          { "name": "Burghel, George J", "primary": "False" },
+          { "name": "Robinson, Rachel", "primary": "False" },
+          { "name": "Drummond, James", "primary": "False" },
+          { "name": "Torr, Bethany", "primary": "False" },
+          { "name": "Cubuk, Cankut", "primary": "False" },
+          { "name": "Berry, Ian R", "primary": "False" },
+          { "name": "Wallace, Andrew J", "primary": "False" },
+          { "name": "Ellard, Sian", "primary": "False" },
+          { "name": "Eccles, Diana M", "primary": "False" },
+          { "name": "Tischkowitz, Marc", "primary": "False" },
+          { "name": "Hanson, Helen", "primary": "False" },
+          { "name": "Turnbull, Clare", "primary": "False" },
+          { "name": "None, None", "primary": "False" }
+        ],
+        "publicationDoi": "10.1136/jmedgenet-2020-107248",
+        "publicationYear": 2021,
+        "publicationJournal": "J Med Genet",
+        "id": 66
+      }
+    ],
+    "publishedDate": "2021-12-23",
+    "creationDate": "2021-11-10",
+    "modificationDate": "2021-12-23",
+    "createdBy": {
+      "orcidId": "0000-0002-7160-7753",
+      "firstName": "Russell",
+      "lastName": "Bell"
+    },
+    "modifiedBy": {
+      "orcidId": "0000-0002-7160-7753",
+      "firstName": "Russell",
+      "lastName": "Bell"
+    },
+    "targetGenes": [
+      {
+        "name": "BRCA1 translation start through RING domain",
+        "category": "Protein coding",
+        "externalIdentifiers": [
+          {
+            "identifier": {
+              "dbName": "RefSeq",
+              "identifier": "NM_007294.3",
+              "url": "http://www.ncbi.nlm.nih.gov/entrez/viewer.fcgi?val=NM_007294.3"
+            },
+            "offset": 233
+          },
+          {
+            "identifier": {
+              "dbName": "UniProt",
+              "identifier": "P38398",
+              "url": "http://purl.uniprot.org/uniprot/P38398"
+            },
+            "offset": 0
+          }
+        ],
+        "id": 276,
+        "targetSequence": {
+          "sequenceType": "dna",
+          "sequence": "ATGGATTTATCTGCTCTTCGCGTTGAAGAAGTACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGTCTGGAGTTGATCAAGGAACCTGTCTCCACAAAGTGTGACCACATATTTTGCAAATTTTGCATGCTGAAACTTCTCAACCAGAAGAAAGGGCCTTCACAGTGTCCTTTATGTAAGAATGATATAACCAAAAGGAGCCTACAAGAAAGTACGAGATTTAGTCAACTTGTTGAAGAGCTATTGAAAATCATTTGTGCTTTTCAGCTTGACACAGGTTTGGAG",
+          "taxonomy": {
+            "taxId": 9606,
+            "organismName": "Homo sapiens",
+            "commonName": "human",
+            "rank": "SPECIES",
+            "hasDescribedSpeciesName": true,
+            "articleReference": "NCBI:txid9606",
+            "id": 15,
+            "url": "https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=info&id=9606"
+          }
+        }
+      }
+    ],
+    "datasetColumns": {
+      "countColumns": [],
+      "scoreColumns": ["score", "BASE_SCALED", "DTYPE", "VTYPE", "OBS"]
+    },
+    "keywords": [],
+    "private": false,
+    "processingState": "success"
+  }
+}

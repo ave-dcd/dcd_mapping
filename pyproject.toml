@@ -1,21 +1,156 @@
-[tool.poetry]
+[project]
 name = "dcd-mapping"
-version = "0.1.0"
-description = ""
-authors = ["Alex Handler Wagner <Alex.Wagner@nationwidechildrens.org>"]
+description = "Map MaveDB scoresets to VRS objects"
+authors = [
+    {name = "Alex Handler Wagner", email = "Alex.Wagner@nationwidechildrens.org"},
+    {name = "Jeremy Arbesfeld", email = "Jeremy.Arbesfeld@nationwidechildrens.org"},
+    {name = "Samriddhi Singh", email = "todo@todo.org"},
+    {name = "James Stevenson", email = "James.Stevenson@nationwidechildrens.org"},
+]
 readme = "README.md"
-packages = [{include = "dcd_mapping"}]
+license = { file = "LICENSE" }
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: Pydantic",
+    "Framework :: Pydantic :: 2",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "requests",
+    "biopython",
+    "tqdm",
+    "click",
+    "cool-seq-tool>=0.4.0.dev1",
+    "ga4gh.vrs~=2.0.0-a6",
+    "gene-normalizer>=0.3.0-dev1",
+    "pydantic>=2",
+    "python-dotenv",
+    "setuptools>=68.0",  # tmp -- ensure 3.12 compatibility
+]
+dynamic = ["version"]
 
-[tool.poetry.dependencies]
-python = "^3.9"
-jupyter = "*"
-jupyterlab = "*"
-bs4 = "*"
-requests = "*"
-biopython = '*'
-"biocommons.seqrepo" = "*"
+[project.scripts]
+dcd-map = "dcd_mapping.cli:cli"
+
+[project.optional-dependencies]
+tests = [
+    "pytest",
+    "pytest-mock",
+    "pytest-cov",
+    "pytest-asyncio",
+    "requests-mock"
+]
+dev = [
+    "ruff==0.2.0",
+    "pre-commit"
+]
+
+[project.urls]
+Homepage = "https://www.varianteffect.org/"
+Documentation = "https://github.com/ave-dcd/dcd_mapping/README.md"
+Source = "https://github.com/ave-dcd/dcd_mapping"
 
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools>=64", "setuptools_scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+
+[tool.pytest.ini_options]
+addopts = "--cov=src --cov-report term-missing"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+
+[tool.coverage.run]
+branch = true
+
+[tool.ruff]
+src = ["src"]
+exclude = ["misc/*"]
+
+[tool.ruff.lint]
+select = [
+    "F",  # https://docs.astral.sh/ruff/rules/#pyflakes-f
+    "E", "W",  # https://docs.astral.sh/ruff/rules/#pycodestyle-e-w
+    "I",  # https://docs.astral.sh/ruff/rules/#isort-i
+    "N",  # https://docs.astral.sh/ruff/rules/#pep8-naming-n
+    "D",  # https://docs.astral.sh/ruff/rules/#pydocstyle-d
+    "UP",  # https://docs.astral.sh/ruff/rules/#pyupgrade-up
+    "ANN",  # https://docs.astral.sh/ruff/rules/#flake8-annotations-ann
+    "ASYNC",  # https://docs.astral.sh/ruff/rules/#flake8-async-async
+    "S",  # https://docs.astral.sh/ruff/rules/#flake8-bandit-s
+    "B",  # https://docs.astral.sh/ruff/rules/#flake8-bugbear-b
+    "A",  # https://docs.astral.sh/ruff/rules/#flake8-builtins-a
+    "C4",  # https://docs.astral.sh/ruff/rules/#flake8-comprehensions-c4
+    "DTZ",  # https://docs.astral.sh/ruff/rules/#flake8-datetimez-dtz
+    "T10",  # https://docs.astral.sh/ruff/rules/#flake8-datetimez-dtz
+    "EM",  # https://docs.astral.sh/ruff/rules/#flake8-errmsg-em
+    "G",  # https://docs.astral.sh/ruff/rules/#flake8-logging-format-g
+    "PIE",  # https://docs.astral.sh/ruff/rules/#flake8-pie-pie
+    "T20",  # https://docs.astral.sh/ruff/rules/#flake8-print-t20
+    "PT",  # https://docs.astral.sh/ruff/rules/#flake8-pytest-style-pt
+    "Q",  # https://docs.astral.sh/ruff/rules/#flake8-quotes-q
+    "RSE",  # https://docs.astral.sh/ruff/rules/#flake8-raise-rse
+    "RET",  # https://docs.astral.sh/ruff/rules/#flake8-return-ret
+    "SIM",  # https://docs.astral.sh/ruff/rules/#flake8-simplify-sim
+    "PTH",  # https://docs.astral.sh/ruff/rules/#flake8-use-pathlib-pth
+    "PGH",  # https://docs.astral.sh/ruff/rules/#pygrep-hooks-pgh
+    "RUF",  # https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
+]
+fixable = [
+    "I",
+    "F401",
+    "D",
+    "UP",
+    "ANN",
+    "B",
+    "C4",
+    "G",
+    "PIE",
+    "PT",
+    "RSE",
+    "SIM",
+    "RUF"
+]
+# ANN101 - missing-type-self
+# ANN003 - missing-type-kwargs
+# D203 - one-blank-line-before-class
+# D205 - blank-line-after-summary
+# D206 - indent-with-spaces*
+# D213 - multi-line-summary-second-line
+# D300 - triple-single-quotes*
+# D400 - ends-in-period
+# D415 - ends-in-punctuation
+# E111 - indentation-with-invalid-multiple*
+# E114 - indentation-with-invalid-multiple-comment*
+# E117 - over-indented*
+# E501 - line-too-long*
+# W191 - tab-indentation*
+# S321 - suspicious-ftp-lib-usage
+# *ignored for compatibility with formatter
+ignore = [
+    "ANN101", "ANN003",
+    "D203", "D205", "D206", "D213", "D300", "D400", "D415",
+    "E111", "E114", "E117", "E501",
+    "W191",
+    "S321",
+    "PGH003",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# ANN001 - missing-type-function-argument
+# ANN2 - missing-return-type
+# ANN102 - missing-type-cls
+# S101 - assert
+# B011 - assert-false
+"tests/*" = ["ANN001", "ANN2", "ANN102", "S101", "B011", "D103"]
