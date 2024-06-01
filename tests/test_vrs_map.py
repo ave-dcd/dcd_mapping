@@ -1,6 +1,7 @@
 """Test ``vrs_map.py``
 
-* Use 2.0a VA IDs rather than 1.3 IDs
+* Use 2.0a VA IDs rather than 1.3 IDs. Currently converting to 1.3 and testing b/c
+we're focused on remaining consistent w/ previous results.
 * Move expected data into a separate JSON file or something?
 """
 from pathlib import Path
