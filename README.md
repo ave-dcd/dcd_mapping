@@ -4,6 +4,7 @@
 [![image](https://img.shields.io/pypi/l/dcd_mapping.svg)](https://pypi.python.org/pypi/dcd_mapping)
 [![image](https://img.shields.io/pypi/pyversions/dcd_mapping.svg)](https://pypi.python.org/pypi/dcd_mapping)
 [![Actions status](https://github.com/ave-dcd/dcd_mapping/actions/workflows/checks.yaml/badge.svg)](https://github.com/ave-dcd/dcd_mapping/actions/checks.yaml)
+[![DOI](https://zenodo.org/badge/472473437.svg)](https://zenodo.org/doi/10.5281/zenodo.11406657)
 
 <!-- description -->
 
