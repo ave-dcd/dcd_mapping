@@ -64,7 +64,13 @@ def cli(
     _logger.debug("debug logging enabled")
     try:
         asyncio.run(map_scoreset_urn(urn, output, include_vrs_2, silent=False))
-    except (AlignmentError, TxSelectError, VrsMapError, ResourceAcquisitionError):
+    except (
+        LookupError,
+        AlignmentError,
+        TxSelectError,
+        VrsMapError,
+        ResourceAcquisitionError,
+    ):
         click.get_current_context().exit(1)
 
 
