@@ -2,10 +2,10 @@
 name = "dcd-mapping"
 description = "Map MaveDB scoresets to VRS objects"
 authors = [
-    {name = "Alex Handler Wagner", email = "Alex.Wagner@nationwidechildrens.org"},
     {name = "Jeremy Arbesfeld", email = "Jeremy.Arbesfeld@nationwidechildrens.org"},
-    {name = "Samriddhi Singh", email = "todo@todo.org"},
     {name = "James Stevenson", email = "James.Stevenson@nationwidechildrens.org"},
+    {name = "Alan Rubin", email = "alan.rubin@wehi.edu.au"},
+    {name = "Alex Handler Wagner", email = "Alex.Wagner@nationwidechildrens.org"},
 ]
 readme = "README.md"
 license = { file = "LICENSE" }
