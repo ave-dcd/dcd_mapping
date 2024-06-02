@@ -17,7 +17,7 @@ This library implements a novel method for mapping [MaveDB scoreset data](https:
 * Universal Transcript Archive (UTA): see [README](https://github.com/biocommons/uta?tab=readme-ov-file#installing-uta-locally) for setup instructions. Users with access to Docker on their local devices can use the available Docker image; otherwise, start a relatively recent (version 14+) PostgreSQL instance and add data from the available database dump.
 * SeqRepo: see [README](https://github.com/biocommons/biocommons.seqrepo?tab=readme-ov-file#requirements) for setup instructions. The SeqRepo data directory must be writeable; see specific instructions [here](https://github.com/biocommons/biocommons.seqrepo/blob/main/docs/store.rst) for more.
 * Gene Normalizer: see [documentation](https://gene-normalizer.readthedocs.io/0.3.0-dev1/install.html) for data setup instructions.
-* blat: Must be available on the local PATH and executable by the user. Otherwise, its location can be set manually with the `BLAT_BIN_PATH` env var. See the [UCSC Genome Browser FAQ](https://genome.ucsc.edu/FAQ/FAQblat.html#blat3) for download instructions. For our experiments, we placed the binary in the same directory as these notebooks.
+* blat: Must be available on the local PATH and executable by the user. Otherwise, its location can be set manually with the `BLAT_BIN_PATH` env var. See the [UCSC Genome Browser FAQ](https://genome.ucsc.edu/FAQ/FAQblat.html#blat3) for download instructions. 
 
 
 ## Installation
