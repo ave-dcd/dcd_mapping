@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  load_uta:
+    build: ./load_uta
+    container_name: load_uta
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - POSTGRES_URL=postgresql://postgres@postgres:5432/postgres
+    command: ["sh", "-c", "./load_uta.sh"]
+
+  load_gene_normalizer:
+    build: ./load_gene_normalizer
+    container_name: load_gene_normalizer
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - POSTGRES_URL=postgresql://postgres@postgres:5432/postgres
+    command: ["sh", "-c", "./load_gene_normalizer.sh"]
+
+  # setup_seqrepo:
+  #   build: ./setup_seqrepo
+  #   container_name: setup_seqrepo
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   volumes:
+  #     - seqrepo_data:/usr/src/app/seqrepo
+
+# volumes:
+#   seqrepo_data:
