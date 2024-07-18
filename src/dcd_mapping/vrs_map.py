@@ -6,9 +6,9 @@ import click
 from Bio.Seq import Seq
 from cool_seq_tool.schemas import AnnotationLayer, Strand
 from ga4gh.core import ga4gh_identify, sha512t24u
-from ga4gh.vrs._internal.models import (
+from ga4gh.vrs.models import (
     Allele,
-    Haplotype,
+    CisPhasedBlock,
     LiteralSequenceExpression,
     ReferenceLengthExpression,
     SequenceLocation,
@@ -367,7 +367,7 @@ def _get_variation(
     alignment: AlignmentResult,
     pre_map: bool,
     offset: int = 0,
-) -> Allele | Haplotype | None:
+) -> Allele | CisPhasedBlock | None:
     """Create variation (allele).
 
     :param hgvs_strings: The HGVS suffix that represents a variant
@@ -379,7 +379,7 @@ def _get_variation(
     :param offset: The offset to adjust the start and end positions in allele. This
         parameter is used if the annotation layer is protein. For genomic variants, the
         offset is computed with respect to the alignment block.
-    :return: an allele or haplotype
+    :return: an allele or cis-phased block of alleles
     """
     if sequence_id.startswith("ga4gh:"):
         sequence_id = sequence_id[6:]
@@ -460,7 +460,7 @@ def _get_variation(
         return None
     if len(alleles) == 1:
         return alleles[0]
-    return Haplotype(members=alleles)
+    return CisPhasedBlock(members=alleles)
 
 
 def vrs_map(

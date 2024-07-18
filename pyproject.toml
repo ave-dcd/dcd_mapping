@@ -29,10 +29,10 @@ dependencies = [
     "biopython",
     "tqdm",
     "click",
-    "cool-seq-tool==0.4.0.dev3",
-    "ga4gh.vrs==2.0.0-a6",
+    "cool-seq-tool~=0.5.0",
+    "ga4gh.vrs==2.0.0-a9",
     # probably easiest to just include pg dependency group even if it's not always necessary
-    "gene-normalizer[pg]==0.3.0-dev1",
+    "gene-normalizer[pg]~=0.4.0",
     "pydantic~=2.0",
     "python-dotenv",
     "setuptools>=68.0",  # tmp -- ensure 3.12 compatibility

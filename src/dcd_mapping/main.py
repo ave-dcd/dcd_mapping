@@ -122,7 +122,7 @@ async def map_scoreset(
     metadata: ScoresetMetadata,
     records: list[ScoreRow],
     output_path: Path | None = None,
-    include_vrs_2: bool = False,
+    include_vrs_1_3: bool = False,
     silent: bool = True,
 ) -> None:
     """Given information about a MAVE experiment, map to VRS and save output as JSON.
@@ -130,7 +130,7 @@ async def map_scoreset(
     :param metadata: salient data gathered from scoreset on MaveDB
     :param records: experiment scoring results
     :param output_path: optional path to save output at
-    :param include_vrs_2: if true, include VRS 2.0 mappings in output JSON
+    :param include_vrs_1_3: if true, include VRS 1.3 mappings in output JSON
     :param silent: if True, suppress console information output
     """
     await _check_data_prereqs(silent)
@@ -181,7 +181,7 @@ async def map_scoreset(
         vrs_results,
         alignment_result,
         transcript,
-        include_vrs_2,
+        include_vrs_1_3,
         output_path,
     )
     _emit_info(f"Annotated scores saved to: {final_output}.", silent)

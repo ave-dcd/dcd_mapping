@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from cool_seq_tool.schemas import AnnotationLayer
-from ga4gh.vrs._internal.models import Allele, Haplotype
+from ga4gh.vrs.models import Allele, CisPhasedBlock
 
 from dcd_mapping.annotate import _allele_to_v1_allele
 from dcd_mapping.mavedb_data import _load_scoreset_records
@@ -33,8 +33,8 @@ def _assert_correct_vrs_map(
     ), "Score row/layer combination is not in expected mappings"
     expected = expected_mappings_data[key]
     vrs_2_to_1 = lambda var: _allele_to_v1_allele(var)  # noqa: E731
-    if isinstance(mapping.pre_mapped, Haplotype) and isinstance(
-        mapping.post_mapped, Haplotype
+    if isinstance(mapping.pre_mapped, CisPhasedBlock) and isinstance(
+        mapping.post_mapped, CisPhasedBlock
     ):
         assert all(
             len(x) == len(mapping.pre_mapped.members)

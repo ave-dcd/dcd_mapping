@@ -1,4 +1,4 @@
-"""Define Allele and Haplotype objects, as well as component parts, in conformance with
+"""Define Allele and VariationList objects, as well as component parts, in conformance with
 a subset of VRS 1.3 and VRSATILE.
 
 Note that this is not an exhaustive definition of those components -- rather, the schema
@@ -78,8 +78,10 @@ class VariationDescriptor(BaseModel):
     extensions: list[Extension]
 
 
-class Haplotype(BaseModel):
-    """Define VRS 1.3 Haplotype."""
+class VariationList(BaseModel):
+    """Define container for list of VRSATILE Variation Descriptors.
 
-    type: Literal["Haplotype"] = "Haplotype"
-    members: list[Allele] | list[VariationDescriptor]  # not a real VRS 1.3 Haplotype
+    Similar to a VRS 1.3 Haplotype.
+    """
+
+    members: list[VariationDescriptor]
