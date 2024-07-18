@@ -190,14 +190,15 @@ async def map_scoreset(
 async def map_scoreset_urn(
     urn: str,
     output_path: Path | None = None,
-    include_vrs_2: bool = False,
+    include_vrs_1_3: bool = False,
     silent: bool = True,
 ) -> None:
     """Perform end-to-end mapping for a scoreset.
 
     :param urn: identifier for a scoreset.
     :param output_path: optional path to save output at
-    :param include_vrs_2: if true, include VRS 2.0 mappings in output JSON
+    :param include_vrs_1_3: if true, include VRS 1.3 mappings in output JSON in addition
+        to 2.0 mappings
     :param silent: if True, suppress console information output
     """
     try:
@@ -208,4 +209,4 @@ async def map_scoreset_urn(
         _logger.critical(msg)
         click.echo(f"Error: {msg}")
         raise e
-    await map_scoreset(metadata, records, output_path, include_vrs_2, silent)
+    await map_scoreset(metadata, records, output_path, include_vrs_1_3, silent)

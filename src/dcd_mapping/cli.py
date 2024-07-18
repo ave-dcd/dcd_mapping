@@ -32,28 +32,24 @@ _logger = logging.getLogger(__name__)
     help="Desired location at which output file should be saved",
 )
 @click.option(
-    "--include_vrs_2",
+    "--include_vrs_1_3",
     "-v",
     is_flag=True,
     default=False,
-    help="Include VRS 2.0 mappings",
+    help="Include VRS 1.3 mappings",
 )
 def cli(
     urn: str,
     debug: bool,
     output: Path | None,
-    include_vrs_2: bool,
+    include_vrs_1_3: bool,
 ) -> None:
     """Get VRS mapping on preferred transcript for URN.
 
     For example:
 
     % dcd-map 'urn:mavedb:00000329-a-1'
-
-    \f
-    :param urn: scoreset URN
-    :param debug: if True, enable debug logging
-    """  # noqa: D301
+    """
     log_level = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(
         filename="dcd-mapping.log",
@@ -63,7 +59,7 @@ def cli(
     )
     _logger.debug("debug logging enabled")
     try:
-        asyncio.run(map_scoreset_urn(urn, output, include_vrs_2, silent=False))
+        asyncio.run(map_scoreset_urn(urn, output, include_vrs_1_3, silent=False))
     except (
         LookupError,
         AlignmentError,
