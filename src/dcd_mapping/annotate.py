@@ -46,37 +46,8 @@ from dcd_mapping.schemas import (
 _logger = logging.getLogger(__name__)
 
 
-# def _allele_to_v1_allele(allele: Allele) -> vrs_v1_schemas.Allele:
-#     """Convert VRS 2.0 allele to VRS 1.3 allele.
-#
-#     :param allele: VRS 2.0a allele
-#     :return: equivalent VRS 1.3 allele
-#     """
-#     start = allele.location.start
-#     end = allele.location.end
-#     sequence_id = f"ga4gh:{allele.location.sequenceReference.refgetAccession}"
-#     location_raw = f'{{"end":{{"type":"Number","value":{end}}},"sequence_id":"{sequence_id.split(".")[1]}","start":{{"type":"Number","value":{start}}},"type":"SequenceLocation"}}'
-#     location_id = sha512t24u(location_raw.encode("ascii"))
-#     sequence = "" if not allele.state.sequence else allele.state.sequence.root
-#     allele_raw = f'{{"location":"{location_id}","state":{{"sequence":"{sequence}","type":"LiteralSequenceExpression"}},"type":"Allele"}}'
-#     allele_id = sha512t24u(allele_raw.encode("ascii"))
-#
-#     return vrs_v1_schemas.Allele(
-#         id=f"ga4gh:VA.{allele_id}",
-#         location=vrs_v1_schemas.SequenceLocation(
-#             id=location_id,
-#             sequence_id=sequence_id,
-#             interval=vrs_v1_schemas.SequenceInterval(
-#                 start=vrs_v1_schemas.Number(value=allele.location.start, type="Number"),
-#                 end=vrs_v1_schemas.Number(value=allele.location.end, type="Number"),
-#             ),
-#         ),
-#         state=vrs_v1_schemas.LiteralSequenceExpression(sequence="" if not allele.state.sequence else allele.state.sequence.root),
-#     )
-
-
 def _allele_to_1_3_allele(allele: Allele) -> vrs_v1_schemas.Allele:
-    """TODO"""
+    """Convert VRS 2.0 allele to 1.3 allele instance."""
     sequence = allele.state.sequence.root if allele.state.sequence else ""
     return vrs_v1_schemas.Allele(
         id=ga4gh_identify(allele, as_version=PrevVrsVersion.V1_3),
@@ -298,10 +269,6 @@ def _annotate_allele_mapping(
         pre_mapped_1_3=pre_mapped_1_3,
         post_mapped=post_mapped,
         post_mapped_1_3=post_mapped_1_3,
-        # pre_mapped=pre_mapped_vod,
-        # post_mapped=post_mapped_vod,
-        # pre_mapped_2_0=pre_mapped,
-        # post_mapped_2_0=post_mapped,
         mavedb_id=mapped_score.accession_id,
         score=float(mapped_score.score) if mapped_score.score else None,
         annotation_layer=mapped_score.annotation_layer,
@@ -530,12 +497,8 @@ def save_mapped_output_json(
 
     _logger.info("Saving mapping output to %s", output_path)
     with output_path.open("w") as f:
+        # temporarily using BaseModel.dict() -- should use .model_dump_json()
+        # once fix to serializer is made in VRS-Python
         json.dump(output.dict(exclude_none=True), f, indent=4)
-    # with output_path.open("w") as file:
-    #     json.dump(
-    #         json.loads(output.model_dump_json(exclude_unset=True, exclude_none=True)),
-    #         file,
-    #         indent=4,
-    #     )
 
     return output_path
