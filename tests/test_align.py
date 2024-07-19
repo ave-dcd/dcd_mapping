@@ -37,7 +37,7 @@ def test_align_src_catalytic_domain(scoreset_metadata_fixture, align_result_fixt
     urn = "urn:mavedb:00000041-a-1"
     scoreset_metadata = scoreset_metadata_fixture[urn]
     align_result = align(scoreset_metadata)
-    expected = AlignmentResult(**align_result_fixture[urn])
+    expected = align_result_fixture[urn]
     assert align_result
     check_alignment_result_equality(align_result, expected)
 
@@ -47,7 +47,7 @@ def test_align_hbb(scoreset_metadata_fixture, align_result_fixture):
     urn = "urn:mavedb:00000018-a-1"
     scoreset_metadata = scoreset_metadata_fixture[urn]
     align_result = align(scoreset_metadata)
-    expected = AlignmentResult(**align_result_fixture[urn])
+    expected = align_result_fixture[urn]
     assert align_result
     check_alignment_result_equality(align_result, expected)
 
@@ -57,7 +57,7 @@ def test_align_ube2i(scoreset_metadata_fixture, align_result_fixture):
     urn = "urn:mavedb:00000001-a-4"
     scoreset_metadata = scoreset_metadata_fixture[urn]
     align_result = align(scoreset_metadata)
-    expected = AlignmentResult(**align_result_fixture[urn])
+    expected = align_result_fixture[urn]
     assert align_result
     check_alignment_result_equality(align_result, expected)
 
@@ -67,7 +67,7 @@ def test_align_scn5a(scoreset_metadata_fixture, align_result_fixture):
     urn = "urn:mavedb:00000098-a-1"
     scoreset_metadata = scoreset_metadata_fixture[urn]
     align_result = align(scoreset_metadata)
-    expected = AlignmentResult(**align_result_fixture[urn])
+    expected = align_result_fixture[urn]
     assert align_result
     check_alignment_result_equality(align_result, expected)
 
@@ -77,7 +77,7 @@ def test_align_raf(scoreset_metadata_fixture, align_result_fixture):
     urn = "urn:mavedb:00000061-h-1"
     scoreset_metadata = scoreset_metadata_fixture[urn]
     align_result = align(scoreset_metadata)
-    expected = AlignmentResult(**align_result_fixture[urn])
+    expected = align_result_fixture[urn]
     assert align_result
     check_alignment_result_equality(align_result, expected)
 
@@ -87,6 +87,6 @@ def test_align_tp53(scoreset_metadata_fixture, align_result_fixture):
     urn = "urn:mavedb:00000068-a-1"
     metadata = scoreset_metadata_fixture[urn]
     align_result = align(metadata)
-    expected = AlignmentResult(**align_result_fixture[urn])
+    expected = align_result_fixture[urn]
     assert align_result
     check_alignment_result_equality(align_result, expected)
