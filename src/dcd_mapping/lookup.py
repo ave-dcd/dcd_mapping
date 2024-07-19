@@ -405,6 +405,8 @@ def check_seqrepo() -> None:
     except sqlite3.Error as e:
         _logger.error("SeqRepo sequences DB isn't writeable.")
         raise DataLookupError from e
+    # delete the CST instance so that future calls are made against an open SeqAlias
+    # connection, since we close it above
     del CoolSeqToolBuilder.instance
 
 
