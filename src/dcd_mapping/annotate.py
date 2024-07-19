@@ -499,6 +499,6 @@ def save_mapped_output_json(
     with output_path.open("w") as f:
         # temporarily using BaseModel.dict() -- should use .model_dump_json()
         # once fix to serializer is made in VRS-Python
-        json.dump(output.dict(exclude_none=True), f, indent=4)
+        json.dump(output.model_dump(exclude_none=True), f, indent=4)
 
     return output_path
