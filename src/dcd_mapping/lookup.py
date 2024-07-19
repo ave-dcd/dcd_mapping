@@ -405,6 +405,7 @@ def check_seqrepo() -> None:
     except sqlite3.Error as e:
         _logger.error("SeqRepo sequences DB isn't writeable.")
         raise DataLookupError from e
+    del CoolSeqToolBuilder.instance
 
 
 def get_chromosome_identifier(chromosome: str) -> str:
