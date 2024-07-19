@@ -1,9 +1,4 @@
-"""Test ``vrs_map.py``
-
-* Use 2.0a VA IDs rather than 1.3 IDs. Currently converting to 1.3 and testing b/c
-we're focused on remaining consistent w/ previous results.
-* Move expected data into a separate JSON file or something?
-"""
+"""Test ``vrs_map.py``"""
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -11,7 +6,6 @@ import pytest
 from cool_seq_tool.schemas import AnnotationLayer
 from ga4gh.vrs.models import Allele, CisPhasedBlock
 
-from dcd_mapping.annotate import _allele_to_v1_allele
 from dcd_mapping.mavedb_data import _load_scoreset_records
 from dcd_mapping.schemas import (
     AlignmentResult,
@@ -32,7 +26,6 @@ def _assert_correct_vrs_map(
         key in expected_mappings_data
     ), "Score row/layer combination is not in expected mappings"
     expected = expected_mappings_data[key]
-    vrs_2_to_1 = lambda var: _allele_to_v1_allele(var)  # noqa: E731
     if isinstance(mapping.pre_mapped, CisPhasedBlock) and isinstance(
         mapping.post_mapped, CisPhasedBlock
     ):
@@ -44,23 +37,23 @@ def _assert_correct_vrs_map(
                 expected["post_mapped"],
             )
         ), "mappings are different lengths"
-        for va_id in expected["pre_mapped"]:
+        for expected_id in expected["pre_mapped"]:
             for variant in mapping.pre_mapped.members:
-                if vrs_2_to_1(variant).id == va_id:
+                if variant.id == expected_id:
                     break
             else:
-                pytest.fail(f"Failed to find {va_id} in pre-mapped variants.")
-        for va_id in expected["post_mapped"]:
+                pytest.fail(f"Failed to find {expected_id} in pre-mapped variants.")
+        for expected_id in expected["post_mapped"]:
             for variant in mapping.post_mapped.members:
-                if vrs_2_to_1(variant).id == va_id:
+                if variant.id == expected_id:
                     break
             else:
-                pytest.fail(f"Failed to find {va_id} in post-mapped variants.")
+                pytest.fail(f"Failed to find {expected_id} in post-mapped variants.")
     elif isinstance(mapping.pre_mapped, Allele) and isinstance(
         mapping.post_mapped, Allele
     ):
-        assert vrs_2_to_1(mapping.pre_mapped).id == expected["pre_mapped"]
-        assert vrs_2_to_1(mapping.post_mapped).id == expected["post_mapped"]
+        assert mapping.pre_mapped.id == expected["pre_mapped"]
+        assert mapping.post_mapped.id == expected["post_mapped"]
     else:
         pytest.fail("mapping format appears to be broken")
 
