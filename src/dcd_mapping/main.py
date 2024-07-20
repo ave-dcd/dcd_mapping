@@ -1,4 +1,5 @@
 """Provide core MaveDB mapping methods."""
+
 import logging
 import os
 import subprocess
@@ -67,8 +68,8 @@ async def _check_data_prereqs(silent: bool) -> None:
     try:
         configured_blat_bin = os.environ.get("BLAT_BIN_PATH")
         if configured_blat_bin:
-            result = subprocess.run(  # noqa: ASYNC101
-                configured_blat_bin,  # noqa: S603
+            result = subprocess.run(  # noqa: ASYNC221 S603
+                configured_blat_bin,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
@@ -87,8 +88,8 @@ async def _check_data_prereqs(silent: bool) -> None:
                     logging.ERROR,
                 )
         else:
-            result = subprocess.run(  # noqa: ASYNC101
-                "blat",  # noqa: S603 S607
+            result = subprocess.run(  # noqa: S603 ASYNC221
+                "blat",  # noqa: S607
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )

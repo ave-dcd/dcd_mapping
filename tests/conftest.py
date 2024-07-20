@@ -12,6 +12,7 @@ Notes on test cases:
 * urn:mavedb:00000061-h-1: RAF, protein coding, DNA, uniprot ref with offset
 * urn:mavedb:00000068-a-1: TP53, protein-coding, DNA
 """
+
 import json
 import os
 from pathlib import Path
@@ -24,7 +25,7 @@ from dcd_mapping.schemas import AlignmentResult, ScoresetMetadata, TxSelectResul
 FIXTURE_DATA_DIR = Path(__file__).parents[0].resolve() / "fixtures"
 
 
-def pytest_sessionstart(session) -> None:
+def pytest_sessionstart(session) -> None:  # noqa: ARG001
     """Initialize testing environment."""
     os.environ["MAVEDB_STORAGE_DIR"] = str(FIXTURE_DATA_DIR.absolute())
 

@@ -1,4 +1,5 @@
 """Annotate MaveDB score set metadata with mapped scores."""
+
 import datetime
 import json
 import logging
@@ -97,10 +98,7 @@ def _cpb_to_varlist_1_3(cpb: CisPhasedBlock) -> vrs_v1_schemas.VariationList:
     :param cpb: VRS 2.0 CisPhasedBlock
     :return: list that contains VRSATILE variation descriptors
     """
-    members = []
-    allele: Allele
-    for allele in cpb.members:
-        members.append(_allele_to_vod(allele))
+    members = [_allele_to_vod(allele) for allele in cpb.members]
     return vrs_v1_schemas.VariationList(members=members)
 
 
@@ -473,11 +471,12 @@ def save_mapped_output_json(
     mapped_reference_sequence = _get_mapped_reference_sequence(
         preferred_layer, tx_output, align_result
     )
-    mapped_scores: list[ScoreAnnotation] = []
-    for m in mappings:
-        if m.annotation_layer == preferred_layer:
-            # drop annotation layer from mapping object
-            mapped_scores.append(ScoreAnnotation(**m.model_dump()))
+    mapped_scores: list[ScoreAnnotation] = [
+        # drop annotation layer from mapping object
+        ScoreAnnotation(**m.model_dump())
+        for m in mappings
+        if m.annotation_layer == preferred_layer
+    ]
 
     output = ScoresetMapping(
         metadata=metadata,

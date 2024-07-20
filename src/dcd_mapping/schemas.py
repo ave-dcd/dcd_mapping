@@ -1,4 +1,5 @@
 """Provide class definitions for commonly-used information objects."""
+
 from enum import Enum
 from typing import Any, Literal
 
@@ -157,8 +158,12 @@ class ScoreAnnotation(BaseModel):
 
     pre_mapped: Allele | CisPhasedBlock
     post_mapped: Allele | CisPhasedBlock
-    pre_mapped_1_3: vrs_v1_schemas.VariationDescriptor | vrs_v1_schemas.VariationList | None = None
-    post_mapped_1_3: vrs_v1_schemas.VariationDescriptor | vrs_v1_schemas.VariationList | None = None
+    pre_mapped_1_3: (
+        vrs_v1_schemas.VariationDescriptor | vrs_v1_schemas.VariationList | None
+    ) = None
+    post_mapped_1_3: (
+        vrs_v1_schemas.VariationDescriptor | vrs_v1_schemas.VariationList | None
+    ) = None
     mavedb_id: StrictStr
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
     score: float | None

@@ -1,4 +1,5 @@
 """Test ``vrs_map.py``"""
+
 from pathlib import Path
 from unittest.mock import MagicMock
 

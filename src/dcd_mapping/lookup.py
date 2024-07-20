@@ -7,6 +7,7 @@ Data sources/handlers include:
 * the `VRS-Python Translator tool <https://github.com/ga4gh/vrs-python>`_
 * the UniProt web API
 """
+
 import logging
 import os
 
@@ -319,7 +320,7 @@ def check_seqrepo() -> None:
     if not sr.sr["NC_000001.11"][780000:780020]:
         raise DataLookupError
     try:
-        conn = sr.sr.aliases._db
+        conn = sr.sr.aliases._db  # noqa: SLF001
         cursor = conn.cursor()
         cursor.execute("CREATE TABLE IF NOT EXISTS test_table (id INTEGER PRIMARY KEY)")
         cursor.execute("INSERT INTO test_table (id) VALUES (1)")
@@ -352,7 +353,7 @@ def get_chromosome_identifier(chromosome: str) -> str:
             f"{assembly}:{chromosome}", target_namespaces="refseq"
         )
         for ac in tmp_acs:
-            acs.append(ac.split("refseq:")[-1])
+            acs.append(ac.split("refseq:")[-1])  # noqa: PERF401
     if not acs:
         raise KeyError
 
@@ -486,28 +487,27 @@ def get_mane_transcripts(transcripts: list[str]) -> list[ManeDescription]:
 
     mane_df = CoolSeqToolBuilder().mane_transcript_mappings.df
     mane_results = mane_df.filter(pl.col("RefSeq_nuc").is_in(transcripts))
-    mane_data = []
-    for row in mane_results.rows(named=True):
-        mane_data.append(
-            ManeDescription(
-                ncbi_gene_id=row["#NCBI_GeneID"],
-                ensembl_gene_id=row["Ensembl_Gene"],
-                hgnc_gene_id=row["HGNC_ID"],
-                symbol=row["symbol"],
-                name=row["name"],
-                refseq_nuc=row["RefSeq_nuc"],
-                refseq_prot=row["RefSeq_prot"],
-                ensembl_nuc=row["Ensembl_nuc"],
-                ensembl_prot=row["Ensembl_prot"],
-                transcript_priority=TranscriptPriority(
-                    "_".join(row["MANE_status"].lower().split())
-                ),
-                grch38_chr=row["GRCh38_chr"],
-                chr_start=row["chr_start"],
-                chr_end=row["chr_end"],
-                chr_strand=row["chr_strand"],
-            )
+    mane_data = [
+        ManeDescription(
+            ncbi_gene_id=row["#NCBI_GeneID"],
+            ensembl_gene_id=row["Ensembl_Gene"],
+            hgnc_gene_id=row["HGNC_ID"],
+            symbol=row["symbol"],
+            name=row["name"],
+            refseq_nuc=row["RefSeq_nuc"],
+            refseq_prot=row["RefSeq_prot"],
+            ensembl_nuc=row["Ensembl_nuc"],
+            ensembl_prot=row["Ensembl_prot"],
+            transcript_priority=TranscriptPriority(
+                "_".join(row["MANE_status"].lower().split())
+            ),
+            grch38_chr=row["GRCh38_chr"],
+            chr_start=row["chr_start"],
+            chr_end=row["chr_end"],
+            chr_strand=row["chr_strand"],
         )
+        for row in mane_results.rows(named=True)
+    ]
     mane_data.sort(key=_sort_mane_result)
     return mane_data
 

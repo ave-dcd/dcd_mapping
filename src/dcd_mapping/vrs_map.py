@@ -1,4 +1,5 @@
 """Map transcripts to VRS objects."""
+
 import logging
 from itertools import cycle
 

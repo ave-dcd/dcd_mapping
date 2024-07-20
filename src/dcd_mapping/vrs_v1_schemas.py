@@ -5,6 +5,7 @@ Note that this is not an exhaustive definition of those components -- rather, th
 generated here validates objects that are also validated by the VRS 1.3 schema,
 but other valid VRS 1.3 objects might not be compatible with the schema defined here.
 """
+
 from typing import Any, Literal
 
 from pydantic import BaseModel, StrictInt, StrictStr
