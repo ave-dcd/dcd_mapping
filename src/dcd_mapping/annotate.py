@@ -13,7 +13,7 @@ import hgvs.sequencevariant
 from Bio.SeqUtils import seq3
 from cool_seq_tool.schemas import AnnotationLayer
 from ga4gh.core import sha512t24u
-from ga4gh.core.entity_models import Extension, Syntax
+from ga4gh.core.entity_models import Coding, ConceptMapping, Extension, Relation, Syntax
 from ga4gh.core.identifiers import PrevVrsVersion, ga4gh_identify
 from ga4gh.vrs.models import (
     Allele,
@@ -22,7 +22,6 @@ from ga4gh.vrs.models import (
     LiteralSequenceExpression,
 )
 
-from dcd_mapping import vrs_v1_schemas
 from dcd_mapping.lookup import (
     get_chromosome_identifier,
     get_chromosome_identifier_from_vrs_id,
@@ -47,59 +46,15 @@ from dcd_mapping.schemas import (
 _logger = logging.getLogger(__name__)
 
 
-def _allele_to_1_3_allele(allele: Allele) -> vrs_v1_schemas.Allele:
-    """Convert VRS 2.0 allele to 1.3 allele instance."""
-    sequence = allele.state.sequence.root if allele.state.sequence else ""
-    return vrs_v1_schemas.Allele(
-        id=ga4gh_identify(allele, as_version=PrevVrsVersion.V1_3),
-        location=vrs_v1_schemas.SequenceLocation(
-            id=ga4gh_identify(allele.location, as_version=PrevVrsVersion.V1_3),
-            sequence_id=f"ga4gh:{allele.location.sequenceReference.refgetAccession}",
-            interval=vrs_v1_schemas.SequenceInterval(
-                start=vrs_v1_schemas.Number(value=allele.location.start),
-                end=vrs_v1_schemas.Number(value=allele.location.end),
-            ),
+def _get_vrs_1_3_mapping(allele: Allele) -> ConceptMapping:
+    return ConceptMapping(
+        relation=Relation.EXACT_MATCH,
+        coding=Coding(
+            system="https://www.github.com/ga4gh/vrs",
+            code=ga4gh_identify(allele, as_version=PrevVrsVersion.V1_3),
+            version="1.3",
         ),
-        state=vrs_v1_schemas.LiteralSequenceExpression(sequence=sequence),
     )
-
-
-def _allele_to_vod(allele: Allele) -> vrs_v1_schemas.VariationDescriptor:
-    """Convert VRS 2.0 allele to comparable VRSATILE VariationDescriptor.
-
-    Some allele properties aren't available in the 1.3 allele, so we have to lift them
-    up to the VariationDescriptor.
-    """
-    allele_v1 = _allele_to_1_3_allele(allele)
-    if allele.expressions:
-        original_expression = allele.expressions[0]
-        expressions = [
-            vrs_v1_schemas.Expression(
-                syntax=original_expression.syntax,
-                value=original_expression.value,
-                syntax_version=None,
-            )
-        ]
-    else:
-        expressions = []
-    return vrs_v1_schemas.VariationDescriptor(
-        id=allele_v1.id,
-        variation=allele_v1,
-        type="VariationDescriptor",
-        expressions=expressions,
-        vrs_ref_allele_seq=allele.extensions[0].value,
-        extensions=[],
-    )
-
-
-def _cpb_to_varlist_1_3(cpb: CisPhasedBlock) -> vrs_v1_schemas.VariationList:
-    """Convert VRS 2.0 CisPhasedBlock to list of VRS 1.3 variations.
-
-    :param cpb: VRS 2.0 CisPhasedBlock
-    :return: list that contains VRSATILE variation descriptors
-    """
-    members = [_allele_to_vod(allele) for allele in cpb.members]
-    return vrs_v1_schemas.VariationList(members=members)
 
 
 def _offset_allele_ref_seq(ss: str, start: int, end: int) -> tuple[int, int]:
@@ -143,7 +98,7 @@ def _get_vrs_ref_allele_seq(
         ref = sr.get_sequence(seq, start, end)
         if ref is None:
             raise ValueError
-    return Extension(type="Extension", name="vrs_ref_allele_seq", value=ref)
+    return Extension(name="vrs_ref_allele_seq", value=ref)
 
 
 def _get_hgvs_string(allele: Allele, accession: str) -> tuple[str, Syntax]:
@@ -235,6 +190,7 @@ def _annotate_allele_mapping(
 
     # get vrs_ref_allele_seq for pre-mapped variants
     pre_mapped.extensions = [_get_vrs_ref_allele_seq(post_mapped, metadata, tx_results)]
+    pre_mapped.mappings = [_get_vrs_1_3_mapping(pre_mapped)]
 
     # Determine reference sequence
     if mapped_score.annotation_layer == AnnotationLayer.GENOMIC:
@@ -253,24 +209,28 @@ def _annotate_allele_mapping(
     loc = mapped_score.post_mapped.location
     sequence_id = f"ga4gh:{loc.sequenceReference.refgetAccession}"
     ref = sr.get_sequence(sequence_id, loc.start, loc.end)
-    post_mapped.extensions = [
-        Extension(type="Extension", name="vrs_ref_allele_seq", value=ref)
-    ]
+    post_mapped.extensions = [Extension(name="vrs_ref_allele_seq", value=ref)]
+    post_mapped.mappings = [_get_vrs_1_3_mapping(post_mapped)]
     hgvs_string, syntax = _get_hgvs_string(post_mapped, accession)
     post_mapped.expressions = [Expression(syntax=syntax, value=hgvs_string)]
 
-    pre_mapped_1_3 = _allele_to_vod(pre_mapped)
-    post_mapped_1_3 = _allele_to_vod(post_mapped)
-
     return ScoreAnnotationWithLayer(
         pre_mapped=pre_mapped,
-        pre_mapped_1_3=pre_mapped_1_3,
         post_mapped=post_mapped,
-        post_mapped_1_3=post_mapped_1_3,
         mavedb_id=mapped_score.accession_id,
         score=float(mapped_score.score) if mapped_score.score else None,
         annotation_layer=mapped_score.annotation_layer,
     )
+
+
+def _get_vrs_1_3_haplotype_id(cpb: CisPhasedBlock) -> str:
+    allele_ids = [
+        ga4gh_identify(a, as_version=PrevVrsVersion.V1_3).replace("ga4gh:VA.", "")
+        for a in cpb.members
+    ]
+    serialized_allele_ids = ",".join([f'"{a_id}"' for a_id in allele_ids])
+    serialized_haplotype = f'{{"members":[{serialized_allele_ids}],"type":"Haplotype"}}'
+    return sha512t24u(serialized_haplotype.encode("ascii"))
 
 
 def _annotate_cpb_mapping(
@@ -282,7 +242,7 @@ def _annotate_cpb_mapping(
     # get vrs_ref_allele_seq for pre-mapped variants
     for allele in pre_mapped.members:
         allele.extensions = [_get_vrs_ref_allele_seq(allele, metadata, tx_results)]
-
+        allele.mappings = [_get_vrs_1_3_mapping(allele)]
     # Determine reference sequence
     if mapping.annotation_layer == AnnotationLayer.GENOMIC:
         sequence_id = (
@@ -302,21 +262,38 @@ def _annotate_cpb_mapping(
     for allele in post_mapped.members:
         loc = allele.location
         sequence_id = f"ga4gh:{loc.sequenceReference.refgetAccession}"
-        ref = sr.get_sequence(sequence_id, loc.start, loc.end)  # TODO type issues??
+        ref = sr.get_sequence(sequence_id, loc.start, loc.end)
         allele.extensions = [
-            Extension(type="Extension", name="vrs_ref_allele_seq", value=ref)
+            Extension(name="vrs_ref_allele_seq", value=ref),
         ]
+        allele.mappings = [_get_vrs_1_3_mapping(allele)]
         hgvs, syntax = _get_hgvs_string(allele, accession)
         allele.expressions = [Expression(syntax=syntax, value=hgvs)]
 
-    pre_mapped_converted = _cpb_to_varlist_1_3(pre_mapped)
-    post_mapped_converted = _cpb_to_varlist_1_3(post_mapped)
+    pre_mapped.mappings = [
+        ConceptMapping(
+            relation=Relation.EXACT_MATCH,
+            coding=Coding(
+                system="https://www.github.com/ga4gh/vrs",
+                version="1.3",
+                code=_get_vrs_1_3_haplotype_id(pre_mapped),
+            ),
+        )
+    ]
+    post_mapped.mappings = [
+        ConceptMapping(
+            relation=Relation.EXACT_MATCH,
+            coding=Coding(
+                system="https://www.github.com/ga4gh/vrs",
+                version="1.3",
+                code=_get_vrs_1_3_haplotype_id(post_mapped),
+            ),
+        )
+    ]
 
     return ScoreAnnotationWithLayer(
         pre_mapped=pre_mapped,
         post_mapped=post_mapped,
-        pre_mapped_1_3=pre_mapped_converted,
-        post_mapped_1_3=post_mapped_converted,
         mavedb_id=mapping.accession_id,
         score=float(mapping.score) if mapping.score is not None else None,
         annotation_layer=mapping.annotation_layer,
@@ -449,7 +426,6 @@ def save_mapped_output_json(
     mappings: list[ScoreAnnotationWithLayer],
     align_result: AlignmentResult,
     tx_output: TxSelectResult | None,
-    include_vrs_1_3: bool = False,
     output_path: Path | None = None,
 ) -> Path:
     """Save mapping output for a score set in a JSON file
@@ -458,7 +434,6 @@ def save_mapped_output_json(
     :param mave_vrs_mappings: A dictionary of VrsObject1_x objects
     :param align_result: Alignment information for a score set
     :param tx_output: Transcript output for a score set
-    :param include_vrs_1_3: if true, also include VRS 1.3 mappings
     :param output_path: specific location to save output to. Default to
         <dcd_mapping_data_dir>/urn:mavedb:00000XXX-X-X_mapping_<ISO8601 datetime>.json
     :return: output location
@@ -485,18 +460,13 @@ def save_mapped_output_json(
         mapped_scores=mapped_scores,
     )
 
-    if not include_vrs_1_3:
-        for m in output.mapped_scores:
-            m.pre_mapped_1_3 = None
-            m.post_mapped_1_3 = None
-
     if not output_path:
         now = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
         output_path = LOCAL_STORE_PATH / f"{urn}_mapping_{now}.json"
 
     _logger.info("Saving mapping output to %s", output_path)
     with output_path.open("w") as f:
-        # temporarily using BaseModel.dict() -- should use .model_dump_json()
+        # temporarily using BaseModel.model_dump() -- should use .model_dump_json()
         # once fix to serializer is made in VRS-Python
         json.dump(output.model_dump(exclude_none=True), f, indent=4)
 

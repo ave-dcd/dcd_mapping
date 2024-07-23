@@ -7,8 +7,6 @@ from cool_seq_tool.schemas import AnnotationLayer, Strand, TranscriptPriority
 from ga4gh.vrs.models import Allele, CisPhasedBlock
 from pydantic import BaseModel, StrictBool, StrictInt, StrictStr
 
-from dcd_mapping import vrs_v1_schemas
-
 
 class TargetSequenceType(str, Enum):
     """Define target sequence type. Add more definitions as needed."""
@@ -158,12 +156,6 @@ class ScoreAnnotation(BaseModel):
 
     pre_mapped: Allele | CisPhasedBlock
     post_mapped: Allele | CisPhasedBlock
-    pre_mapped_1_3: (
-        vrs_v1_schemas.VariationDescriptor | vrs_v1_schemas.VariationList | None
-    ) = None
-    post_mapped_1_3: (
-        vrs_v1_schemas.VariationDescriptor | vrs_v1_schemas.VariationList | None
-    ) = None
     mavedb_id: StrictStr
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
     score: float | None

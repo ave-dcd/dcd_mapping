@@ -123,18 +123,20 @@ async def map_scoreset(
     metadata: ScoresetMetadata,
     records: list[ScoreRow],
     output_path: Path | None = None,
-    include_vrs_1_3: bool = False,
     silent: bool = True,
+    check_data_prereqs: bool = True,
 ) -> None:
     """Given information about a MAVE experiment, map to VRS and save output as JSON.
 
     :param metadata: salient data gathered from scoreset on MaveDB
     :param records: experiment scoring results
     :param output_path: optional path to save output at
-    :param include_vrs_1_3: if true, include VRS 1.3 mappings in output JSON
-    :param silent: if True, suppress console information output
+    :param silent: if ``True``, suppress console information output
+    :param check_data_prereqs: if ``True``, check for external data availability
+        before performing mapping
     """
-    await _check_data_prereqs(silent)
+    if check_data_prereqs:
+        await _check_data_prereqs(silent)
 
     _emit_info(f"Performing alignment for {metadata.urn}...", silent)
     try:
@@ -182,7 +184,6 @@ async def map_scoreset(
         vrs_results,
         alignment_result,
         transcript,
-        include_vrs_1_3,
         output_path,
     )
     _emit_info(f"Annotated scores saved to: {final_output}.", silent)
@@ -191,15 +192,12 @@ async def map_scoreset(
 async def map_scoreset_urn(
     urn: str,
     output_path: Path | None = None,
-    include_vrs_1_3: bool = False,
     silent: bool = True,
 ) -> None:
     """Perform end-to-end mapping for a scoreset.
 
     :param urn: identifier for a scoreset.
     :param output_path: optional path to save output at
-    :param include_vrs_1_3: if true, include VRS 1.3 mappings in output JSON in addition
-        to 2.0 mappings
     :param silent: if True, suppress console information output
     """
     try:
@@ -210,4 +208,4 @@ async def map_scoreset_urn(
         _logger.critical(msg)
         click.echo(f"Error: {msg}")
         raise e
-    await map_scoreset(metadata, records, output_path, include_vrs_1_3, silent)
+    await map_scoreset(metadata, records, output_path, silent)
