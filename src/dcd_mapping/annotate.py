@@ -13,7 +13,7 @@ import hgvs.sequencevariant
 from Bio.SeqUtils import seq3
 from cool_seq_tool.schemas import AnnotationLayer
 from ga4gh.core import sha512t24u
-from ga4gh.core.entity_models import Coding, ConceptMapping, Extension, Relation, Syntax
+from ga4gh.core.entity_models import Extension, Syntax
 from ga4gh.core.identifiers import PrevVrsVersion, ga4gh_identify
 from ga4gh.vrs.models import (
     Allele,
@@ -46,14 +46,9 @@ from dcd_mapping.schemas import (
 _logger = logging.getLogger(__name__)
 
 
-def _get_vrs_1_3_mapping(allele: Allele) -> ConceptMapping:
-    return ConceptMapping(
-        relation=Relation.EXACT_MATCH,
-        coding=Coding(
-            system="https://www.github.com/ga4gh/vrs",
-            code=ga4gh_identify(allele, as_version=PrevVrsVersion.V1_3),
-            version="1.3",
-        ),
+def _get_vrs_1_3_ext(allele: Allele) -> Extension:
+    return Extension(
+        name="vrs_v1.3_id", value=ga4gh_identify(allele, as_version=PrevVrsVersion.V1_3)
     )
 
 
@@ -184,13 +179,15 @@ def _annotate_allele_mapping(
     tx_results: TxSelectResult | None,
     metadata: ScoresetMetadata,
 ) -> ScoreAnnotationWithLayer:
-    """Perform annotations and create VRS 1.3 equivalents for allele mappings."""
+    """Perform annotations for allele mappings."""
     pre_mapped: Allele = mapped_score.pre_mapped
     post_mapped: Allele = mapped_score.post_mapped
 
     # get vrs_ref_allele_seq for pre-mapped variants
-    pre_mapped.extensions = [_get_vrs_ref_allele_seq(post_mapped, metadata, tx_results)]
-    pre_mapped.mappings = [_get_vrs_1_3_mapping(pre_mapped)]
+    pre_mapped.extensions = [
+        _get_vrs_ref_allele_seq(post_mapped, metadata, tx_results),
+        _get_vrs_1_3_ext(pre_mapped),
+    ]
 
     # Determine reference sequence
     if mapped_score.annotation_layer == AnnotationLayer.GENOMIC:
@@ -209,8 +206,10 @@ def _annotate_allele_mapping(
     loc = mapped_score.post_mapped.location
     sequence_id = f"ga4gh:{loc.sequenceReference.refgetAccession}"
     ref = sr.get_sequence(sequence_id, loc.start, loc.end)
-    post_mapped.extensions = [Extension(name="vrs_ref_allele_seq", value=ref)]
-    post_mapped.mappings = [_get_vrs_1_3_mapping(post_mapped)]
+    post_mapped.extensions = [
+        Extension(name="vrs_ref_allele_seq", value=ref),
+        _get_vrs_1_3_ext(post_mapped),
+    ]
     hgvs_string, syntax = _get_hgvs_string(post_mapped, accession)
     post_mapped.expressions = [Expression(syntax=syntax, value=hgvs_string)]
 
@@ -241,8 +240,10 @@ def _annotate_cpb_mapping(
     post_mapped: CisPhasedBlock = mapping.post_mapped  # type: ignore
     # get vrs_ref_allele_seq for pre-mapped variants
     for allele in pre_mapped.members:
-        allele.extensions = [_get_vrs_ref_allele_seq(allele, metadata, tx_results)]
-        allele.mappings = [_get_vrs_1_3_mapping(allele)]
+        allele.extensions = [
+            _get_vrs_ref_allele_seq(allele, metadata, tx_results),
+            _get_vrs_1_3_ext(allele),
+        ]
     # Determine reference sequence
     if mapping.annotation_layer == AnnotationLayer.GENOMIC:
         sequence_id = (
@@ -265,30 +266,16 @@ def _annotate_cpb_mapping(
         ref = sr.get_sequence(sequence_id, loc.start, loc.end)
         allele.extensions = [
             Extension(name="vrs_ref_allele_seq", value=ref),
+            _get_vrs_1_3_ext(allele),
         ]
-        allele.mappings = [_get_vrs_1_3_mapping(allele)]
         hgvs, syntax = _get_hgvs_string(allele, accession)
         allele.expressions = [Expression(syntax=syntax, value=hgvs)]
 
-    pre_mapped.mappings = [
-        ConceptMapping(
-            relation=Relation.EXACT_MATCH,
-            coding=Coding(
-                system="https://www.github.com/ga4gh/vrs",
-                version="1.3",
-                code=_get_vrs_1_3_haplotype_id(pre_mapped),
-            ),
-        )
+    pre_mapped.extensions = [
+        Extension(name="vrs_v1.3_id", value=_get_vrs_1_3_haplotype_id(pre_mapped))
     ]
     post_mapped.mappings = [
-        ConceptMapping(
-            relation=Relation.EXACT_MATCH,
-            coding=Coding(
-                system="https://www.github.com/ga4gh/vrs",
-                version="1.3",
-                code=_get_vrs_1_3_haplotype_id(post_mapped),
-            ),
-        )
+        Extension(name="vrs_v1.3_id", value=_get_vrs_1_3_haplotype_id(post_mapped))
     ]
 
     return ScoreAnnotationWithLayer(
