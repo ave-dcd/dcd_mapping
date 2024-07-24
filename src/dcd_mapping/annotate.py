@@ -1,4 +1,5 @@
 """Annotate MaveDB score set metadata with mapped scores."""
+
 import datetime
 import json
 import logging
@@ -248,7 +249,7 @@ def _annotate_allele_mapping(
     post_mapped: Allele = mapped_score.post_mapped
 
     # get vrs_ref_allele_seq for pre-mapped variants
-    pre_mapped.extensions = [_get_vrs_ref_allele_seq(post_mapped, metadata, tx_results)]
+    pre_mapped.extensions = [_get_vrs_ref_allele_seq(pre_mapped, metadata, tx_results)]
 
     # Determine reference sequence
     if mapped_score.annotation_layer == AnnotationLayer.GENOMIC:
