@@ -185,7 +185,7 @@ def _annotate_allele_mapping(
 
     # get vrs_ref_allele_seq for pre-mapped variants
     pre_mapped.extensions = [
-        _get_vrs_ref_allele_seq(post_mapped, metadata, tx_results),
+        _get_vrs_ref_allele_seq(pre_mapped, metadata, tx_results),
         _get_vrs_1_3_ext(pre_mapped),
     ]
 
