@@ -229,7 +229,7 @@ def _get_vrs_1_3_haplotype_id(cpb: CisPhasedBlock) -> str:
     ]
     serialized_allele_ids = ",".join([f'"{a_id}"' for a_id in allele_ids])
     serialized_haplotype = f'{{"members":[{serialized_allele_ids}],"type":"Haplotype"}}'
-    return sha512t24u(serialized_haplotype.encode("ascii"))
+    return f"ga4gh:VH.{sha512t24u(serialized_haplotype.encode("ascii"))}"
 
 
 def _annotate_cpb_mapping(
@@ -274,7 +274,7 @@ def _annotate_cpb_mapping(
     pre_mapped.extensions = [
         Extension(name="vrs_v1.3_id", value=_get_vrs_1_3_haplotype_id(pre_mapped))
     ]
-    post_mapped.mappings = [
+    post_mapped.extensions = [
         Extension(name="vrs_v1.3_id", value=_get_vrs_1_3_haplotype_id(post_mapped))
     ]
 

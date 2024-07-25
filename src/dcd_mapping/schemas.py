@@ -154,8 +154,8 @@ class ScoreAnnotation(BaseModel):
     This model defines what an individual mapping instance looks like in the final JSON.
     """
 
-    pre_mapped: Allele | CisPhasedBlock
-    post_mapped: Allele | CisPhasedBlock
+    pre_mapped: CisPhasedBlock | Allele
+    post_mapped: CisPhasedBlock | Allele
     mavedb_id: StrictStr
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
     score: float | None
