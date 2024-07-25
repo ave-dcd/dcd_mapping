@@ -7,40 +7,28 @@ Data sources/handlers include:
 * the `VRS-Python Translator tool <https://github.com/ga4gh/vrs-python>`_
 * the UniProt web API
 """
+
 import logging
 import os
-from pathlib import Path
 
 import polars as pl
 import requests
 from biocommons.seqrepo import SeqRepo
 from biocommons.seqrepo.seqaliasdb.seqaliasdb import sqlite3
 from cool_seq_tool.app import (
-    LRG_REFSEQGENE_PATH,
-    MANE_SUMMARY_PATH,
-    SEQREPO_ROOT_DIR,
-    TRANSCRIPT_MAPPINGS_PATH,
-    UTA_DB_URL,
     CoolSeqTool,
 )
 from cool_seq_tool.handlers.seqrepo_access import SeqRepoAccess
-from cool_seq_tool.mappers import (
-    AlignmentMapper,
-    ExonGenomicCoordsMapper,
-    ManeTranscript,
-)
 from cool_seq_tool.schemas import TranscriptPriority
-from cool_seq_tool.sources.mane_transcript_mappings import ManeTranscriptMappings
-from cool_seq_tool.sources.transcript_mappings import TranscriptMappings
-from cool_seq_tool.sources.uta_database import UtaDatabase
-from ga4gh.core._internal.models import Extension, Gene
-from ga4gh.vrs._internal.models import (
+from ga4gh.core.domain_models import Gene
+from ga4gh.core.entity_models import Extension
+from ga4gh.vrs.dataproxy import SeqRepoDataProxy
+from ga4gh.vrs.extras.translator import AlleleTranslator
+from ga4gh.vrs.models import (
     Allele,
     LiteralSequenceExpression,
     SequenceLocation,
 )
-from ga4gh.vrs.dataproxy import SeqRepoDataProxy, coerce_namespace
-from ga4gh.vrs.extras.translator import AlleleTranslator
 from gene.database import create_db
 from gene.query import QueryHandler
 from gene.schemas import MatchType, SourceName
@@ -78,75 +66,14 @@ class CoolSeqToolBuilder:
     def __new__(cls) -> CoolSeqTool:
         """Provide ``CoolSeqTool`` instance. Construct it if unavailable.
 
-        This class temporarily includes some very obnoxious reimplementations of
-        CoolSeqTool classes due to some changes introduced in VRS-Python 2a6. We should
-        try to clean them up.
-
         :return: singleton instance of CoolSeqTool
         """
-
-        class _AugmentedSeqRepoAccess(SeqRepoAccess):
-            def derive_refget_accession(self, ac: str) -> str | None:
-                if ac is None:
-                    return None
-
-                if ":" not in ac[1:]:
-                    # always coerce the namespace if none provided
-                    ac = coerce_namespace(ac)
-
-                refget_accession = None
-                try:
-                    aliases = self.translate_sequence_identifier(ac, namespace="ga4gh")
-                except KeyError:
-                    _logger.error("KeyError when getting refget accession: %s", ac)
-                else:
-                    if aliases:
-                        refget_accession = aliases[0].split("ga4gh:")[-1]
-
-                return refget_accession
-
-        class _AugmentedCoolSeqTool(CoolSeqTool):
-            def __init__(
-                self,
-                transcript_file_path: Path = TRANSCRIPT_MAPPINGS_PATH,
-                lrg_refseqgene_path: Path = LRG_REFSEQGENE_PATH,
-                mane_data_path: Path = MANE_SUMMARY_PATH,
-                db_url: str = UTA_DB_URL,
-                sr: SeqRepo | None = None,
-            ) -> None:
-                if not sr:
-                    sr = SeqRepo(root_dir=SEQREPO_ROOT_DIR)
-                self.seqrepo_access = _AugmentedSeqRepoAccess(sr)
-                self.transcript_mappings = TranscriptMappings(
-                    transcript_file_path=transcript_file_path,
-                    lrg_refseqgene_path=lrg_refseqgene_path,
-                )
-                self.mane_transcript_mappings = ManeTranscriptMappings(
-                    mane_data_path=mane_data_path
-                )
-                self.uta_db = UtaDatabase(db_url=db_url)
-                self.alignment_mapper = AlignmentMapper(
-                    self.seqrepo_access, self.transcript_mappings, self.uta_db
-                )
-                self.mane_transcript = ManeTranscript(
-                    self.seqrepo_access,
-                    self.transcript_mappings,
-                    self.mane_transcript_mappings,
-                    self.uta_db,
-                )
-                self.ex_g_coords_mapper = ExonGenomicCoordsMapper(
-                    self.seqrepo_access,
-                    self.uta_db,
-                    self.mane_transcript,
-                    self.mane_transcript_mappings,
-                )
-
         if not hasattr(cls, "instance"):
             root_dir = os.environ.get(
                 "SEQREPO_ROOT_DIR", "/usr/local/share/seqrepo/latest"
             )
             sr = SeqRepo(root_dir, writeable=True)
-            cls.instance = _AugmentedCoolSeqTool(sr=sr)
+            cls.instance = CoolSeqTool(sr=sr)
 
         return cls.instance
 
@@ -393,7 +320,7 @@ def check_seqrepo() -> None:
     if not sr.sr["NC_000001.11"][780000:780020]:
         raise DataLookupError
     try:
-        conn = sr.sr.aliases._db
+        conn = sr.sr.aliases._db  # noqa: SLF001
         cursor = conn.cursor()
         cursor.execute("CREATE TABLE IF NOT EXISTS test_table (id INTEGER PRIMARY KEY)")
         cursor.execute("INSERT INTO test_table (id) VALUES (1)")
@@ -426,7 +353,7 @@ def get_chromosome_identifier(chromosome: str) -> str:
             f"{assembly}:{chromosome}", target_namespaces="refseq"
         )
         for ac in tmp_acs:
-            acs.append(ac.split("refseq:")[-1])
+            acs.append(ac.split("refseq:")[-1])  # noqa: PERF401
     if not acs:
         raise KeyError
 
@@ -560,28 +487,27 @@ def get_mane_transcripts(transcripts: list[str]) -> list[ManeDescription]:
 
     mane_df = CoolSeqToolBuilder().mane_transcript_mappings.df
     mane_results = mane_df.filter(pl.col("RefSeq_nuc").is_in(transcripts))
-    mane_data = []
-    for row in mane_results.rows(named=True):
-        mane_data.append(
-            ManeDescription(
-                ncbi_gene_id=row["#NCBI_GeneID"],
-                ensembl_gene_id=row["Ensembl_Gene"],
-                hgnc_gene_id=row["HGNC_ID"],
-                symbol=row["symbol"],
-                name=row["name"],
-                refseq_nuc=row["RefSeq_nuc"],
-                refseq_prot=row["RefSeq_prot"],
-                ensembl_nuc=row["Ensembl_nuc"],
-                ensembl_prot=row["Ensembl_prot"],
-                transcript_priority=TranscriptPriority(
-                    "_".join(row["MANE_status"].lower().split())
-                ),
-                grch38_chr=row["GRCh38_chr"],
-                chr_start=row["chr_start"],
-                chr_end=row["chr_end"],
-                chr_strand=row["chr_strand"],
-            )
+    mane_data = [
+        ManeDescription(
+            ncbi_gene_id=row["#NCBI_GeneID"],
+            ensembl_gene_id=row["Ensembl_Gene"],
+            hgnc_gene_id=row["HGNC_ID"],
+            symbol=row["symbol"],
+            name=row["name"],
+            refseq_nuc=row["RefSeq_nuc"],
+            refseq_prot=row["RefSeq_prot"],
+            ensembl_nuc=row["Ensembl_nuc"],
+            ensembl_prot=row["Ensembl_prot"],
+            transcript_priority=TranscriptPriority(
+                "_".join(row["MANE_status"].lower().split())
+            ),
+            grch38_chr=row["GRCh38_chr"],
+            chr_start=row["chr_start"],
+            chr_end=row["chr_end"],
+            chr_strand=row["chr_strand"],
         )
+        for row in mane_results.rows(named=True)
+    ]
     mane_data.sort(key=_sort_mane_result)
     return mane_data
 

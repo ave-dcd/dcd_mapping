@@ -1,4 +1,5 @@
 """Align MaveDB target sequences to a human reference genome."""
+
 import logging
 import os
 import subprocess
@@ -115,9 +116,9 @@ def _run_blat(
     bin_name = os.environ["BLAT_BIN_PATH"] if "BLAT_BIN_PATH" in os.environ else "blat"  # noqa: SIM401
     command = f"{bin_name} {reference_genome_file} {target_args} -minScore=20 {query_file} {out_file}"
     _logger.debug("Running BLAT command: %s", command)
-    result = subprocess.run(  # noqa: UP022
+    result = subprocess.run(  # noqa: UP022 S602
         command,
-        shell=True,  # noqa: S602
+        shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )

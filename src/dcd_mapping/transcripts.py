@@ -1,4 +1,5 @@
 """Select best reference sequence."""
+
 import logging
 import re
 
@@ -233,12 +234,14 @@ def _offset_target_sequence(metadata: ScoresetMetadata, records: list[ScoreRow])
 
     err_locs = []
     protein_sequence = Seq(metadata.target_sequence).translate(table="1")
-    for i in range(len(protein_sequence)):
+    err_locs = [
+        i
+        for i in range(len(protein_sequence))
         if (
             str(i) in amino_acids_by_position
             and amino_acids_by_position[str(i)] != protein_sequence[i - 1]
-        ):
-            err_locs.append(i)
+        )
+    ]
     if len(err_locs) == 0:
         return 0
 

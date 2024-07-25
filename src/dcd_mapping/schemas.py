@@ -1,12 +1,11 @@
 """Provide class definitions for commonly-used information objects."""
+
 from enum import Enum
 from typing import Any, Literal
 
 from cool_seq_tool.schemas import AnnotationLayer, Strand, TranscriptPriority
-from ga4gh.vrs._internal.models import Allele, Haplotype
+from ga4gh.vrs.models import Allele, CisPhasedBlock
 from pydantic import BaseModel, StrictBool, StrictInt, StrictStr
-
-from dcd_mapping import vrs_v1_schemas
 
 
 class TargetSequenceType(str, Enum):
@@ -145,8 +144,8 @@ class MappedScore(BaseModel):
     accession_id: StrictStr
     annotation_layer: AnnotationLayer
     score: str | None
-    pre_mapped: Allele | Haplotype
-    post_mapped: Allele | Haplotype
+    pre_mapped: Allele | CisPhasedBlock
+    post_mapped: Allele | CisPhasedBlock
 
 
 class ScoreAnnotation(BaseModel):
@@ -155,10 +154,8 @@ class ScoreAnnotation(BaseModel):
     This model defines what an individual mapping instance looks like in the final JSON.
     """
 
-    pre_mapped: vrs_v1_schemas.VariationDescriptor | vrs_v1_schemas.Haplotype
-    post_mapped: vrs_v1_schemas.VariationDescriptor | vrs_v1_schemas.Haplotype
-    pre_mapped_2_0: Allele | Haplotype | None = None
-    post_mapped_2_0: Allele | Haplotype | None = None
+    pre_mapped: CisPhasedBlock | Allele
+    post_mapped: CisPhasedBlock | Allele
     mavedb_id: StrictStr
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
     score: float | None
