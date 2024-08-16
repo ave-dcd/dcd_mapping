@@ -229,7 +229,7 @@ def _get_vrs_1_3_haplotype_id(cpb: CisPhasedBlock) -> str:
     ]
     serialized_allele_ids = ",".join([f'"{a_id}"' for a_id in allele_ids])
     serialized_haplotype = f'{{"members":[{serialized_allele_ids}],"type":"Haplotype"}}'
-    return f"ga4gh:VH.{sha512t24u(serialized_haplotype.encode("ascii"))}"
+    return f"ga4gh:VH.{sha512t24u(serialized_haplotype.encode('ascii'))}"
 
 
 def _annotate_cpb_mapping(
