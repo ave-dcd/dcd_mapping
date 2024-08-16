@@ -51,10 +51,10 @@ def test_2_a_2(get_fixtures, mock_seqrepo_access: MagicMock):  # noqa: ARG001
 
     for actual, expected in zip(annotate_result, expected_list, strict=False):
         pre_1_3_id = next(
-            [e for e in actual.pre_mapped.extensions if e.name == "vrs_v1.3_id"]
+            e for e in actual.pre_mapped.extensions if e.name == "vrs_v1.3_id"
         ).value
         assert pre_1_3_id == expected["pre_1_3_id"]
         post_1_3_id = next(
-            [e for e in actual.post_mapped.extensions if e.name == "vrs_v1.3_id"]
+            e for e in actual.post_mapped.extensions if e.name == "vrs_v1.3_id"
         ).value
         assert post_1_3_id == expected["post_1_3_id"]
