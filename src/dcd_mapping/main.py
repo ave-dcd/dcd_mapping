@@ -3,6 +3,7 @@
 import logging
 import os
 import subprocess
+from importlib.metadata import version
 from pathlib import Path
 
 import click
@@ -42,8 +43,9 @@ async def _check_data_prereqs(silent: bool) -> None:
         await check_uta()
     except Exception:
         success = False
+        cst_version = version("cool-seq-tool")
         _emit_info(
-            "* UTA appears to be unavailable. Check the logs for more information. For troubleshooting, we recommend checking the UTA readme (https://github.com/biocommons/uta?tab=readme-ov-file#installing-uta-locally) and the Cool-Seq-Tool installation instructions (https://coolseqtool.readthedocs.io/0.6.0/install.html#set-up-uta). Remember that the UTA connection is configurable via a libpq URI provided under the environment variable UTA_DB_URL (see Cool-Seq-Tool docs: https://coolseqtool.readthedocs.io/0.6.0/usage.html#environment-configuration) -- otherwise, by default it attempts a connection to `postgresql://uta_admin:uta@localhost:5433/uta/uta_20210129b`.",
+            f"* UTA appears to be unavailable. Check the logs for more information. For troubleshooting, we recommend checking the UTA readme (https://github.com/biocommons/uta?tab=readme-ov-file#installing-uta-locally) and the Cool-Seq-Tool installation instructions (https://coolseqtool.readthedocs.io/{cst_version}/install.html#set-up-uta). Remember that the UTA connection is configurable via a libpq URI provided under the environment variable UTA_DB_URL (see Cool-Seq-Tool docs: https://coolseqtool.readthedocs.io/{cst_version}/usage.html#environment-configuration) -- otherwise, by default it attempts a connection to `postgresql://uta_admin:uta@localhost:5433/uta/uta_20210129b`.",
             silent,
             logging.ERROR,
         )
@@ -60,8 +62,9 @@ async def _check_data_prereqs(silent: bool) -> None:
         check_gene_normalizer()
     except Exception:
         success = False
+        gene_norm_verison = version("gene-normalizer")
         _emit_info(
-            "* Gene Normalizer appears to be unavailable. Check the logs for more information. Note that a data snapshot needs to be acquired, or the data update routine must be called (this should've taken at least a few seconds, if not several minutes). For troubleshooting, review the Gene Normalizer installation instructions and documentation: https://gene-normalizer.readthedocs.io/0.4.1/install.html",
+            f"* Gene Normalizer appears to be unavailable. Check the logs for more information. Note that a data snapshot needs to be acquired, or the data update routine must be called (this should've taken at least a few seconds, if not several minutes). For troubleshooting, review the Gene Normalizer installation instructions and documentation: https://gene-normalizer.readthedocs.io/{gene_norm_verison}/install.html",
             silent,
             logging.ERROR,
         )
