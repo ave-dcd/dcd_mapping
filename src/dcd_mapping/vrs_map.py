@@ -461,7 +461,9 @@ def _get_variation(
         return None
     if len(alleles) == 1:
         return alleles[0]
-    return CisPhasedBlock(members=alleles)
+    cpb = CisPhasedBlock(members=alleles)
+    cpb.id = ga4gh_identify(cpb)
+    return cpb
 
 
 def vrs_map(

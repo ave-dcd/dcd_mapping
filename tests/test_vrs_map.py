@@ -5,7 +5,6 @@ from unittest.mock import MagicMock
 
 import pytest
 from cool_seq_tool.schemas import AnnotationLayer
-from ga4gh.vrs.models import Allele, CisPhasedBlock
 
 from dcd_mapping.mavedb_data import _load_scoreset_records
 from dcd_mapping.schemas import (
@@ -21,42 +20,13 @@ def _assert_correct_vrs_map(
     mapping: MappedScore,
     expected_mappings_data: dict[tuple[str, AnnotationLayer], dict],
 ):
-    """Note that we're testing against VRS 1.3 VA IDs (temporary?)."""
     key = (mapping.accession_id, mapping.annotation_layer)
     assert (
         key in expected_mappings_data
     ), "Score row/layer combination is not in expected mappings"
     expected = expected_mappings_data[key]
-    if isinstance(mapping.pre_mapped, CisPhasedBlock) and isinstance(
-        mapping.post_mapped, CisPhasedBlock
-    ):
-        assert all(
-            len(x) == len(mapping.pre_mapped.members)
-            for x in (
-                mapping.post_mapped.members,
-                expected["pre_mapped"],
-                expected["post_mapped"],
-            )
-        ), "mappings are different lengths"
-        for expected_id in expected["pre_mapped"]:
-            for variant in mapping.pre_mapped.members:
-                if variant.id == expected_id:
-                    break
-            else:
-                pytest.fail(f"Failed to find {expected_id} in pre-mapped variants.")
-        for expected_id in expected["post_mapped"]:
-            for variant in mapping.post_mapped.members:
-                if variant.id == expected_id:
-                    break
-            else:
-                pytest.fail(f"Failed to find {expected_id} in post-mapped variants.")
-    elif isinstance(mapping.pre_mapped, Allele) and isinstance(
-        mapping.post_mapped, Allele
-    ):
-        assert mapping.pre_mapped.id == expected["pre_mapped"]
-        assert mapping.post_mapped.id == expected["post_mapped"]
-    else:
-        pytest.fail("mapping format appears to be broken")
+    assert mapping.pre_mapped.id == expected["pre_mapped"], f"Mismatch in premapped ID for {key}"
+    assert mapping.post_mapped.id == expected["post_mapped"], f"Mismatch in postmapped ID for {key}"
 
 
 @pytest.fixture()
@@ -85,40 +55,20 @@ def test_2_a_2(
     records, metadata, align_result, tx_result = get_fixtures(urn)
     expected_mappings_data = {
         ("urn:mavedb:00000002-a-2#1", AnnotationLayer.PROTEIN): {
-            "pre_mapped": [
-                "ga4gh:VA.jvd3wir-9AwP7Ay9FWnqqGVxETG9Dl0M",
-                "ga4gh:VA.aKrgTa26FUdF8b4wMk7mwFCZnTQmIe5i",
-            ],
-            "post_mapped": [
-                "ga4gh:VA.-IuFaR_wBHzEQJSdDAoke-r2LRe9jtMQ",
-                "ga4gh:VA.aF9h1d9DvWWGlkhRAbdz1Ni9DQUOXIhL",
-            ],
+            "pre_mapped": "ga4gh:CPB.cbMfkw_9d-HzlhDqccrjoAs-CAvrcv2x",
+            "post_mapped": "ga4gh:CPB.MHaFXDqLIiloPVIVz0MOkaQoBuFhZUCU",
         },
         ("urn:mavedb:00000002-a-2#2679", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.5Jf_a17Q6ySEpDvHr1FR1kmE6L1RWpGK",
-            "post_mapped": "ga4gh:VA.PWfyP7Ktd3L2IT564-h9FVyqv9NvnnEJ",
+            "pre_mapped": "ga4gh:VA.zBQxkMEcRjA7NXhuRTWj34sHQpsHg9y9",
+            "post_mapped": "ga4gh:VA.0SXndf3nJgaSnhoJHW8ePuAmHU8vsHR2",
         },
         ("urn:mavedb:00000002-a-2#3096", AnnotationLayer.PROTEIN): {
-            "pre_mapped": [
-                "ga4gh:VA.A4nh1CUx6gUy0pCePT9RxZQDrY9BzEoa",
-                "ga4gh:VA.H6BdObvEycBGJPqnASVYOPwf9bHboT6w",
-            ],
-            "post_mapped": [
-                "ga4gh:VA.PLOa58Eo06IGBGQbrsOPBpXcuw4mDAFH",
-                "ga4gh:VA.xi7XqR9LSoq0n8B3W2ufPEg12MqEZ3jD",
-            ],
+            "pre_mapped": "ga4gh:CPB.xwtyDegestIYC_1yEPSH0QsXcsHYMDCH",
+            "post_mapped": "ga4gh:CPB.JvOBJmdni3-IVkd102nv3WYdA4u-7wD1",
         },
         ("urn:mavedb:00000002-a-2#26248", AnnotationLayer.PROTEIN): {
-            "pre_mapped": [
-                "ga4gh:VA.M_mxkauLTyizIeufKNmOk9vplL9N8Svn",
-                "ga4gh:VA.krtCaV7JjlvM4esBW0XzUnnsQgixnmyV",
-                "ga4gh:VA.H6BdObvEycBGJPqnASVYOPwf9bHboT6w",
-            ],
-            "post_mapped": [
-                "ga4gh:VA.Z1CFy03R9dyAEfWj_G4dsyRHkj7dbJto",
-                "ga4gh:VA.sr_W-vpBZbM1ItYhaqFw3m_O08EEqtqg",
-                "ga4gh:VA.xi7XqR9LSoq0n8B3W2ufPEg12MqEZ3jD",
-            ],
+            "pre_mapped": "ga4gh:CPB.N9DCpjE8NT04BdI8gRvLtL2UhOek0yDd",
+            "post_mapped": "ga4gh:CPB.t8kUVKGpY62YLP84L5BoZLLoG-c_CiZ3",
         },
     }
 
@@ -153,24 +103,24 @@ def test_41_a_1(
 
     expected_mappings_data = {
         ("urn:mavedb:00000041-a-1#548", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.NJgaCF0JPFERdw9Y7fW4bXkaP1tSa5fv",
-            "post_mapped": "ga4gh:VA.csCB31gWoiiD38TlR35dZnyAI156YWgW",
+            "pre_mapped": "ga4gh:VA.r6eDcCrZ6ENktOQOadid32LgOOri57WU",
+            "post_mapped": "ga4gh:VA.e6KSHAit_F6PNSIGLrkhX15SbO37nBwo",
         },
         ("urn:mavedb:00000041-a-1#50", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.RfNyaPcZg8o9f3YK0qa4Vu3LwBEQdmVf",
-            "post_mapped": "ga4gh:VA.QP9KLxvN6_b7sWeY7L8FBs5XKMxsCiLE",
+            "pre_mapped": "ga4gh:VA.0IGoEHQa1DtpRiJ_M-W0JMkk1Poqbku7",
+            "post_mapped": "ga4gh:VA.K29Syz7w2D-w6daR_Km0322GPOBJ6NMD",
         },
         ("urn:mavedb:00000041-a-1#51", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.sZNa3SNPlv_gU2JSiH7Q03nNT7oFy1NX",
-            "post_mapped": "ga4gh:VA.2kmNV4T4Bp_UAnI002QOfrzd_yqb21vs",
+            "pre_mapped": "ga4gh:VA.9COhg0lOjgBO7IvAOSxu_nsG7ZGoZWe7",
+            "post_mapped": "ga4gh:VA.c-8m280hhcSxHwz2X44g_6GOJ_LHgfWB",
         },
         ("urn:mavedb:00000041-a-1#977", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.h7QtWm0WzlOr0zbB9y4tJOIEUet6VLcB",
-            "post_mapped": "ga4gh:VA.bakDMkeUFIa46_HAwXb7gUjhywggVNIN",
+            "pre_mapped": "ga4gh:VA.ADQgLQLsUzwNsm-NAsev1RHAQfTS-OsB",
+            "post_mapped": "ga4gh:VA.OW_YgI3iubDZhImByYN4Ukb8st_FhNUc",
         },
         ("urn:mavedb:00000041-a-1#52", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.gl5xiWNmwUfEMZe5Aub15HIiztUaizay",
-            "post_mapped": "ga4gh:VA.3Pp5-tRnYkmm8f6qxk06GvTpn81DqiQV",
+            "pre_mapped": "ga4gh:VA.BTiZlgO5clndCeQLggE47uMsO5cJOW2W",
+            "post_mapped": "ga4gh:VA.Q3uQCBSe9xvAf0sZ9RW1VCZ4aG1wfNH1",
         },
     }
 
@@ -205,36 +155,36 @@ def test_99_a_1(
 
     expected_mappings_data = {
         ("urn:mavedb:00000099-a-1#8", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.ES3p2PRZ6Lhial9xnlVxV8uXUbl03ESx",
-            "post_mapped": "ga4gh:VA.ES3p2PRZ6Lhial9xnlVxV8uXUbl03ESx",
+            "pre_mapped": "ga4gh:VA.i8KsTDxUR2ppPw0fEhIkCBpS35RAsBox",
+            "post_mapped": "ga4gh:VA.i8KsTDxUR2ppPw0fEhIkCBpS35RAsBox",
         },
         ("urn:mavedb:00000099-a-1#8", AnnotationLayer.GENOMIC): {
-            "pre_mapped": "ga4gh:VA.dw7KwkqdRsRL5UU55KznGYFqGCK6sWgt",
-            "post_mapped": "ga4gh:VA.T8SkVZHuAF9J23etkAXG2Sz2w2yJMSO4",
+            "pre_mapped": "ga4gh:VA.PlDkRFWzI0iqCkN-LcS-fWI22kn3YZUv",
+            "post_mapped": "ga4gh:VA.mcz8924gSgojiH6DIZleiDUhWZZLNGj9",
         },
         ("urn:mavedb:00000099-a-1#96", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.bu9RmB2kvJiTFKfThhtpYam50_GrIkbx",
-            "post_mapped": "ga4gh:VA.bu9RmB2kvJiTFKfThhtpYam50_GrIkbx",
+            "pre_mapped": "ga4gh:VA.Q0lo7nJCEgenkxQaDmEs44rLaKNXhZA9",
+            "post_mapped": "ga4gh:VA.Q0lo7nJCEgenkxQaDmEs44rLaKNXhZA9",
         },
         ("urn:mavedb:00000099-a-1#96", AnnotationLayer.GENOMIC): {
-            "pre_mapped": "ga4gh:VA.4cQNoG_u6yGDk_GMmVvbYX-8EniN6RKd",
-            "post_mapped": "ga4gh:VA.4-NsddlZX70Jzi7OxSL6KYRe8T-h4rwT",
+            "pre_mapped": "ga4gh:VA.zx0sJRB31AojS7O_OESTwrTmVtoVrfuE",
+            "post_mapped": "ga4gh:VA.ONGOnA8T9qq5kC4mTGXOOeO8JZWOJJjv",
         },
         ("urn:mavedb:00000099-a-1#194", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.eT6tN7HdCmDQnTHuetRHtRZRHPxpO53x",
-            "post_mapped": "ga4gh:VA.eT6tN7HdCmDQnTHuetRHtRZRHPxpO53x",
+            "pre_mapped": "ga4gh:VA.qKONJZJEfWlUKM36sHqm0A5qeJGwIZ5b",
+            "post_mapped": "ga4gh:VA.qKONJZJEfWlUKM36sHqm0A5qeJGwIZ5b",
         },
         ("urn:mavedb:00000099-a-1#194", AnnotationLayer.GENOMIC): {
-            "pre_mapped": "ga4gh:VA.gRO5ANz9hJ6y6NuyzHOzl94b39SAbbIE",
-            "post_mapped": "ga4gh:VA.JSmTABIybCChEE6mmjnPuubOt9eRWj_4",
+            "pre_mapped": "ga4gh:VA.-xZTr5Y325jiEWR0oMuxP-ALmjoXJFuR",
+            "post_mapped": "ga4gh:VA.iT_1RID-2fnNfOo910x3cvRR454xsXYf",
         },
         ("urn:mavedb:00000099-a-1#211", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.MdeuhDWe0mccL5lPkb5J3d_I39m-Zg1R",
-            "post_mapped": "ga4gh:VA.MdeuhDWe0mccL5lPkb5J3d_I39m-Zg1R",
+            "pre_mapped": "ga4gh:VA.w5Ds6DKga_J5c6Pf-qucRLVUQ4wogkNd",
+            "post_mapped": "ga4gh:VA.w5Ds6DKga_J5c6Pf-qucRLVUQ4wogkNd",
         },
         ("urn:mavedb:00000099-a-1#211", AnnotationLayer.GENOMIC): {
-            "pre_mapped": "ga4gh:VA.K4bnyLQ5M3WCmli8lvAqHfqkZuk4KvwP",
-            "post_mapped": "ga4gh:VA.HSfipwsg28LbqwITCawzumz_OWZYu_jM",
+            "pre_mapped": "ga4gh:VA.CZL9iNU04WzGyypEHyq2kkk-7NDGgAZb",
+            "post_mapped": "ga4gh:VA.lPhWnHAhGQ8zNeVXMAoM-XvB6wKLacEc",
         },
     }
     mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
@@ -268,20 +218,20 @@ def test_103_c_1(
 
     expected_mappings_data = {
         ("urn:mavedb:00000103-c-1#376", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.KPfJzFOpDl49yIPqqeF07BsnCsOPbf5Z",
-            "post_mapped": "ga4gh:VA.KPfJzFOpDl49yIPqqeF07BsnCsOPbf5Z",
+            "pre_mapped": "ga4gh:VA.P1WtiqLzNEm5hcxt7RFAjLBxuePK349I",
+            "post_mapped": "ga4gh:VA.P1WtiqLzNEm5hcxt7RFAjLBxuePK349I",
         },
         ("urn:mavedb:00000103-c-1#55", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.AVg1O4zA7DP71z-QZD7-5864A52Cp4RO",
-            "post_mapped": "ga4gh:VA.AVg1O4zA7DP71z-QZD7-5864A52Cp4RO",
+            "pre_mapped": "ga4gh:VA.TUF_eFev40uLySF3P4mrYmJEWFfjBurb",
+            "post_mapped": "ga4gh:VA.TUF_eFev40uLySF3P4mrYmJEWFfjBurb",
         },
         ("urn:mavedb:00000103-c-1#2548", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.4dd3ml7ZuqyoMhwJhMOWi2n1729MtE-6",
-            "post_mapped": "ga4gh:VA.4dd3ml7ZuqyoMhwJhMOWi2n1729MtE-6",
+            "pre_mapped": "ga4gh:VA.PaHvFeQptrtSZp4hXoFRWf29gkL-sppK",
+            "post_mapped": "ga4gh:VA.PaHvFeQptrtSZp4hXoFRWf29gkL-sppK",
         },
         ("urn:mavedb:00000103-c-1#6810", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.H_7xCjw--slTAAKFwP42WCUo1tITw39d",
-            "post_mapped": "ga4gh:VA.H_7xCjw--slTAAKFwP42WCUo1tITw39d",
+            "pre_mapped": "ga4gh:VA.FhEiayb_9YGZm5tuhaWPZ65J9lfhAu8g",
+            "post_mapped": "ga4gh:VA.FhEiayb_9YGZm5tuhaWPZ65J9lfhAu8g",
         },
     }
 
@@ -314,36 +264,36 @@ def test_1_b_2(
 
     expected_mappings_data = {
         ("urn:mavedb:00000001-b-2#444", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.ojIs4GEPbxiMt5E6InnF6k6m9ix_z3SH",
-            "post_mapped": "ga4gh:VA.ojIs4GEPbxiMt5E6InnF6k6m9ix_z3SH",
+            "pre_mapped": "ga4gh:VA.nhMpQonYNSSgvgevysb-Uda6SNeDCsyk",
+            "post_mapped": "ga4gh:VA.nhMpQonYNSSgvgevysb-Uda6SNeDCsyk",
         },
         ("urn:mavedb:00000001-b-2#444", AnnotationLayer.GENOMIC): {
-            "pre_mapped": "ga4gh:VA.1XfnARSJMWLoHTQDJU-m0ZYLUsj-qRNM",
-            "post_mapped": "ga4gh:VA.ifSwfAlXaZWIcTQaXrZv7LCsa6sywRvw",
+            "pre_mapped": "ga4gh:VA.b8AUuR4V1jtBnur0N3uj9PApq3E9QOWX",
+            "post_mapped": "ga4gh:VA.dZH6PLqHSA5sYej27eUKZ4uZ-pvg0_Q5",
         },
         ("urn:mavedb:00000001-b-2#57", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.EwrANE7HrTJ3OidbdJcL4DAfiYiAJ0Zn",
-            "post_mapped": "ga4gh:VA.EwrANE7HrTJ3OidbdJcL4DAfiYiAJ0Zn",
+            "pre_mapped": "ga4gh:VA.D8KWEFUC4TuYrlAvm5oEiJNlm_b9xQHi",
+            "post_mapped": "ga4gh:VA.D8KWEFUC4TuYrlAvm5oEiJNlm_b9xQHi",
         },
         ("urn:mavedb:00000001-b-2#57", AnnotationLayer.GENOMIC): {
-            "pre_mapped": "ga4gh:VA.-zYenjM1Wsuu5Ia06nn856cn4JKEjMwR",
-            "post_mapped": "ga4gh:VA.LODyOWFdnBsGn7dciC-MCSLHCNtoyjaf",
+            "pre_mapped": "ga4gh:VA.C96gWbNLz1q7nKp3voKnd_HGDtyxdpYo",
+            "post_mapped": "ga4gh:VA.EgipN3KmvY9ctrFEsUb2TdBuu48aKX4K",
         },
         ("urn:mavedb:00000001-b-2#2311", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.KQrLWh1WBJNOO7tEkJ7ujkkHCEGGTSCo",
-            "post_mapped": "ga4gh:VA.KQrLWh1WBJNOO7tEkJ7ujkkHCEGGTSCo",
+            "pre_mapped": "ga4gh:VA.9XzpgTxYwD1lMoSU50GGXwPoIu1-edmZ",
+            "post_mapped": "ga4gh:VA.9XzpgTxYwD1lMoSU50GGXwPoIu1-edmZ",
         },
         ("urn:mavedb:00000001-b-2#2311", AnnotationLayer.GENOMIC): {
-            "pre_mapped": "ga4gh:VA.kdSdynoQvgoau0GqsUzhduF7riQVvx5-",
-            "post_mapped": "ga4gh:VA.LdKB-BHsNMueerA0u4ngGU1oxK2oBDHs",
+            "pre_mapped": "ga4gh:VA.dh-HALPan94lHNjVY7hMWIrKvshx0sHb",
+            "post_mapped": "ga4gh:VA.dY_6FNTOFoK1HvXlrqJDY-ewtdtOscnA",
         },
         ("urn:mavedb:00000001-b-2#2312", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.ZdHxEMecv2kdYzRJz5iaqiS5qUd05Wim",
-            "post_mapped": "ga4gh:VA.ZdHxEMecv2kdYzRJz5iaqiS5qUd05Wim",
+            "pre_mapped": "ga4gh:VA.wTdGy4fTirXhl0_TnE-0CoxtUz4q5t8j",
+            "post_mapped": "ga4gh:VA.wTdGy4fTirXhl0_TnE-0CoxtUz4q5t8j",
         },
         ("urn:mavedb:00000001-b-2#2312", AnnotationLayer.GENOMIC): {
-            "pre_mapped": "ga4gh:VA.pkEhKe6fG7eWaUTA7DJG2v-zggeP5N1m",
-            "post_mapped": "ga4gh:VA.R4iEL0X_2Mr4o4cmuLE4AW_UrTotjZ8M",
+            "pre_mapped": "ga4gh:VA.FmoBwbceLJMI6D4U7Bt1qrBh66_oYAui",
+            "post_mapped": "ga4gh:VA.H5m4fvz0i6fjkyTYkMsbQkYXmQK5dZUW",
         },
     }
 
