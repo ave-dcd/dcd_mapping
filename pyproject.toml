@@ -36,6 +36,7 @@ dependencies = [
     "pydantic~=2.0",
     "python-dotenv",
     "setuptools>=68.0",  # tmp -- ensure 3.12 compatibility
+    "canonicaljson",
 ]
 dynamic = ["version"]
 

@@ -20,7 +20,12 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from dcd_mapping.schemas import AlignmentResult, ScoresetMetadata, TxSelectResult
+from dcd_mapping.schemas import (
+    AlignmentResult,
+    MappedScore,
+    ScoresetMetadata,
+    TxSelectResult,
+)
 
 FIXTURE_DATA_DIR = Path(__file__).parents[0].resolve() / "fixtures"
 
@@ -72,6 +77,17 @@ def transcript_results_fixture(fixture_data_dir: Path):
     for urn, result in data.items():
         formatted_result = TxSelectResult(**result)
         results[urn] = formatted_result
+    return results
+
+
+@pytest.fixture(scope="session")
+def mapped_scores_fixture(fixture_data_dir: Path):
+    fixture_file = fixture_data_dir / "mapped_scores.json"
+    with fixture_file.open() as f:
+        data = json.load(f)
+    results = {}
+    for urn, scores in data.items():
+        results[urn] = [MappedScore(**score) for score in scores]
     return results
 
 
@@ -146,6 +162,12 @@ def mock_seqrepo_access(mocker: MagicMock):
             ("ga4gh:SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7", 193, 194): "D",
             ("ga4gh:SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7", 194, 195): "Q",
             ("ga4gh:SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7", 195, 196): "T",
+            ("NP_001123617.1", 191, 192): "H",
+            ("NP_001123617.1", 179, 180): "A",
+            ("NP_001123617.1", 194, 195): "Q",
+            ("NP_001123617.1", 182, 183): "S",
+            ("NP_001123617.1", 193, 194): "D",
+            ("NP_001123617.1", 195, 196): "T",
         }
         return calls[(identifier, start, end)]
 
@@ -203,4 +225,5 @@ def mock_seqrepo_access(mocker: MagicMock):
     mock_seqrepo_access.translate_identifier.side_effect = _translate_identifier
     mocker.patch("dcd_mapping.vrs_map.get_seqrepo", return_value=mock_seqrepo_access)
     mocker.patch("dcd_mapping.lookup.get_seqrepo", return_value=mock_seqrepo_access)
+    mocker.patch("dcd_mapping.annotate.get_seqrepo", return_value=mock_seqrepo_access)
     return mock_seqrepo_access

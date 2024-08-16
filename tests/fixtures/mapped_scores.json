@@ -1,0 +1,370 @@
+{
+  "urn:mavedb:00000002-a-2": [
+    {
+      "accession_id": "urn:mavedb:00000002-a-2#1",
+      "annotation_layer": "p",
+      "score": "-2.195822360043693",
+      "pre_mapped": {
+        "id": "ga4gh:CPB.cbMfkw_9d-HzlhDqccrjoAs-CAvrcv2x",
+        "type": "CisPhasedBlock",
+        "digest": "cbMfkw_9d-HzlhDqccrjoAs-CAvrcv2x",
+        "members": [
+          {
+            "id": "ga4gh:VA.ipFeNxeivPeLH8LEMZdNnBGEEg74ltd_",
+            "type": "Allele",
+            "digest": "ipFeNxeivPeLH8LEMZdNnBGEEg74ltd_",
+            "location": {
+              "type": "SequenceLocation",
+              "digest": "2dnzgLLahCeidgRyyp96yCr0UGz7Rlzo",
+              "sequenceReference": {
+                "type": "SequenceReference",
+                "refgetAccession": "SQ.-1zvs4OMc7npphYxRnz-0lO69ueqop8R"
+              },
+              "start": 22,
+              "end": 23
+            },
+            "state": {
+              "type": "LiteralSequenceExpression",
+              "sequence": "D"
+            }
+          },
+          {
+            "id": "ga4gh:VA.k_0ZuFU52Moi5F4CBxSdaWp4hQ7Qsx7L",
+            "type": "Allele",
+            "digest": "k_0ZuFU52Moi5F4CBxSdaWp4hQ7Qsx7L",
+            "location": {
+              "type": "SequenceLocation",
+              "digest": "OlTSodugWwEf6XBwm4xvmkejr6P7T38t",
+              "sequenceReference": {
+                "type": "SequenceReference",
+                "refgetAccession": "SQ.-1zvs4OMc7npphYxRnz-0lO69ueqop8R"
+              },
+              "start": 10,
+              "end": 11
+            },
+            "state": {
+              "type": "LiteralSequenceExpression",
+              "sequence": "G"
+            }
+          }
+        ]
+      },
+      "post_mapped": {
+        "id": "ga4gh:CPB.MHaFXDqLIiloPVIVz0MOkaQoBuFhZUCU",
+        "type": "CisPhasedBlock",
+        "digest": "MHaFXDqLIiloPVIVz0MOkaQoBuFhZUCU",
+        "members": [
+          {
+            "id": "ga4gh:VA.Tw1DFaYJ6yIeXGpOdUsW1ee3kz4wZP7C",
+            "type": "Allele",
+            "digest": "Tw1DFaYJ6yIeXGpOdUsW1ee3kz4wZP7C",
+            "location": {
+              "type": "SequenceLocation",
+              "digest": "vCJ6m_SI9wpX0i0Rpd0Z5WFsA0xpHGaf",
+              "sequenceReference": {
+                "type": "SequenceReference",
+                "refgetAccession": "SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7"
+              },
+              "start": 191,
+              "end": 192
+            },
+            "state": {
+              "type": "LiteralSequenceExpression",
+              "sequence": "D"
+            }
+          },
+          {
+            "id": "ga4gh:VA.bs1PTQI51w0yDfXS--wYGp4UcihE1jY9",
+            "type": "Allele",
+            "digest": "bs1PTQI51w0yDfXS--wYGp4UcihE1jY9",
+            "location": {
+              "type": "SequenceLocation",
+              "digest": "AJJjdCX4TcLvY3svEaa92GGMJyeJEPcr",
+              "sequenceReference": {
+                "type": "SequenceReference",
+                "refgetAccession": "SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7"
+              },
+              "start": 179,
+              "end": 180
+            },
+            "state": {
+              "type": "LiteralSequenceExpression",
+              "sequence": "G"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "accession_id": "urn:mavedb:00000002-a-2#2679",
+      "annotation_layer": "p",
+      "score": "-1.8006447618878303",
+      "pre_mapped": {
+        "id": "ga4gh:VA.zBQxkMEcRjA7NXhuRTWj34sHQpsHg9y9",
+        "type": "Allele",
+        "digest": "zBQxkMEcRjA7NXhuRTWj34sHQpsHg9y9",
+        "location": {
+          "type": "SequenceLocation",
+          "digest": "DCetC1wsts3jtZ2aRoLjAa8sEfAuL1Kl",
+          "sequenceReference": {
+            "type": "SequenceReference",
+            "refgetAccession": "SQ.-1zvs4OMc7npphYxRnz-0lO69ueqop8R"
+          },
+          "start": 25,
+          "end": 26
+        },
+        "state": {
+          "type": "LiteralSequenceExpression",
+          "sequence": "X"
+        }
+      },
+      "post_mapped": {
+        "id": "ga4gh:VA.0SXndf3nJgaSnhoJHW8ePuAmHU8vsHR2",
+        "type": "Allele",
+        "digest": "0SXndf3nJgaSnhoJHW8ePuAmHU8vsHR2",
+        "location": {
+          "type": "SequenceLocation",
+          "digest": "xWMAl18MZRGCnzhVuMEJcmSZYcI4tDuT",
+          "sequenceReference": {
+            "type": "SequenceReference",
+            "refgetAccession": "SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7"
+          },
+          "start": 194,
+          "end": 195
+        },
+        "state": {
+          "type": "LiteralSequenceExpression",
+          "sequence": "X"
+        }
+      }
+    },
+    {
+      "accession_id": "urn:mavedb:00000002-a-2#3096",
+      "annotation_layer": "p",
+      "score": "-0.06470918003032197",
+      "pre_mapped": {
+        "id": "ga4gh:CPB.xwtyDegestIYC_1yEPSH0QsXcsHYMDCH",
+        "type": "CisPhasedBlock",
+        "digest": "xwtyDegestIYC_1yEPSH0QsXcsHYMDCH",
+        "members": [
+          {
+            "id": "ga4gh:VA.KooNb-sePQzEjsN93SXhtuBMIqAxcrc5",
+            "type": "Allele",
+            "digest": "KooNb-sePQzEjsN93SXhtuBMIqAxcrc5",
+            "location": {
+              "type": "SequenceLocation",
+              "digest": "qbVxCcY8LftzSjrc7oMRc9HUN28shJR7",
+              "sequenceReference": {
+                "type": "SequenceReference",
+                "refgetAccession": "SQ.-1zvs4OMc7npphYxRnz-0lO69ueqop8R"
+              },
+              "start": 13,
+              "end": 14
+            },
+            "state": {
+              "type": "LiteralSequenceExpression",
+              "sequence": "R"
+            }
+          },
+          {
+            "id": "ga4gh:VA.LmNpf1xuBLHZm___Xx3HcgKgB8tWYZ7z",
+            "type": "Allele",
+            "digest": "LmNpf1xuBLHZm___Xx3HcgKgB8tWYZ7z",
+            "location": {
+              "type": "SequenceLocation",
+              "digest": "yPGEyy12lmMATK4HSzXL5Nvf73asldOG",
+              "sequenceReference": {
+                "type": "SequenceReference",
+                "refgetAccession": "SQ.-1zvs4OMc7npphYxRnz-0lO69ueqop8R"
+              },
+              "start": 24,
+              "end": 25
+            },
+            "state": {
+              "type": "LiteralSequenceExpression",
+              "sequence": "X"
+            }
+          }
+        ]
+      },
+      "post_mapped": {
+        "id": "ga4gh:CPB.JvOBJmdni3-IVkd102nv3WYdA4u-7wD1",
+        "type": "CisPhasedBlock",
+        "digest": "JvOBJmdni3-IVkd102nv3WYdA4u-7wD1",
+        "members": [
+          {
+            "id": "ga4gh:VA.lYhysKPqo4yhnGfESQ8rkXZ5YCfqSRCo",
+            "type": "Allele",
+            "digest": "lYhysKPqo4yhnGfESQ8rkXZ5YCfqSRCo",
+            "location": {
+              "type": "SequenceLocation",
+              "digest": "I-2syjlVlQOg9AV2LDrIMTITZ3Ox8mEy",
+              "sequenceReference": {
+                "type": "SequenceReference",
+                "refgetAccession": "SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7"
+              },
+              "start": 182,
+              "end": 183
+            },
+            "state": {
+              "type": "LiteralSequenceExpression",
+              "sequence": "R"
+            }
+          },
+          {
+            "id": "ga4gh:VA.TranlLn-bZMDwYtjDVeBFS08itDq_KSZ",
+            "type": "Allele",
+            "digest": "TranlLn-bZMDwYtjDVeBFS08itDq_KSZ",
+            "location": {
+              "type": "SequenceLocation",
+              "digest": "dypJYNZtPi1P475DfI2tyVqRTWyPKLrd",
+              "sequenceReference": {
+                "type": "SequenceReference",
+                "refgetAccession": "SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7"
+              },
+              "start": 193,
+              "end": 194
+            },
+            "state": {
+              "type": "LiteralSequenceExpression",
+              "sequence": "X"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "accession_id": "urn:mavedb:00000002-a-2#26248",
+      "annotation_layer": "p",
+      "score": "-2.108552505131139",
+      "pre_mapped": {
+        "id": "ga4gh:CPB.N9DCpjE8NT04BdI8gRvLtL2UhOek0yDd",
+        "type": "CisPhasedBlock",
+        "digest": "N9DCpjE8NT04BdI8gRvLtL2UhOek0yDd",
+        "members": [
+          {
+            "id": "ga4gh:VA.LmNpf1xuBLHZm___Xx3HcgKgB8tWYZ7z",
+            "type": "Allele",
+            "digest": "LmNpf1xuBLHZm___Xx3HcgKgB8tWYZ7z",
+            "location": {
+              "type": "SequenceLocation",
+              "digest": "yPGEyy12lmMATK4HSzXL5Nvf73asldOG",
+              "sequenceReference": {
+                "type": "SequenceReference",
+                "refgetAccession": "SQ.-1zvs4OMc7npphYxRnz-0lO69ueqop8R"
+              },
+              "start": 24,
+              "end": 25
+            },
+            "state": {
+              "type": "LiteralSequenceExpression",
+              "sequence": "X"
+            }
+          },
+          {
+            "id": "ga4gh:VA.OQ1gOMGCM2e7niyxbcTUWVI38PtAUli8",
+            "type": "Allele",
+            "digest": "OQ1gOMGCM2e7niyxbcTUWVI38PtAUli8",
+            "location": {
+              "type": "SequenceLocation",
+              "digest": "LBGGiwT-VCLZOOsnjTlPLmNMbD2wg9lt",
+              "sequenceReference": {
+                "type": "SequenceReference",
+                "refgetAccession": "SQ.-1zvs4OMc7npphYxRnz-0lO69ueqop8R"
+              },
+              "start": 26,
+              "end": 27
+            },
+            "state": {
+              "type": "LiteralSequenceExpression",
+              "sequence": "A"
+            }
+          },
+          {
+            "id": "ga4gh:VA.iviEhA2kAAPla4s9lxqw7ImzFhPcYLaG",
+            "type": "Allele",
+            "digest": "iviEhA2kAAPla4s9lxqw7ImzFhPcYLaG",
+            "location": {
+              "type": "SequenceLocation",
+              "digest": "DCetC1wsts3jtZ2aRoLjAa8sEfAuL1Kl",
+              "sequenceReference": {
+                "type": "SequenceReference",
+                "refgetAccession": "SQ.-1zvs4OMc7npphYxRnz-0lO69ueqop8R"
+              },
+              "start": 25,
+              "end": 26
+            },
+            "state": {
+              "type": "LiteralSequenceExpression",
+              "sequence": "P"
+            }
+          }
+        ]
+      },
+      "post_mapped": {
+        "id": "ga4gh:CPB.t8kUVKGpY62YLP84L5BoZLLoG-c_CiZ3",
+        "type": "CisPhasedBlock",
+        "digest": "t8kUVKGpY62YLP84L5BoZLLoG-c_CiZ3",
+        "members": [
+          {
+            "id": "ga4gh:VA.TranlLn-bZMDwYtjDVeBFS08itDq_KSZ",
+            "type": "Allele",
+            "digest": "TranlLn-bZMDwYtjDVeBFS08itDq_KSZ",
+            "location": {
+              "type": "SequenceLocation",
+              "digest": "dypJYNZtPi1P475DfI2tyVqRTWyPKLrd",
+              "sequenceReference": {
+                "type": "SequenceReference",
+                "refgetAccession": "SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7"
+              },
+              "start": 193,
+              "end": 194
+            },
+            "state": {
+              "type": "LiteralSequenceExpression",
+              "sequence": "X"
+            }
+          },
+          {
+            "id": "ga4gh:VA.BUI_Ia9OVLwX6QLGt2Y9HUzDV9IcbEQv",
+            "type": "Allele",
+            "digest": "BUI_Ia9OVLwX6QLGt2Y9HUzDV9IcbEQv",
+            "location": {
+              "type": "SequenceLocation",
+              "digest": "xPR2hBBmeitQAU-4XU251GOfuMgiArGe",
+              "sequenceReference": {
+                "type": "SequenceReference",
+                "refgetAccession": "SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7"
+              },
+              "start": 195,
+              "end": 196
+            },
+            "state": {
+              "type": "LiteralSequenceExpression",
+              "sequence": "A"
+            }
+          },
+          {
+            "id": "ga4gh:VA.9fOF_Xu9R5qqHj9IB60k8aeqsgOgVV5Q",
+            "type": "Allele",
+            "digest": "9fOF_Xu9R5qqHj9IB60k8aeqsgOgVV5Q",
+            "location": {
+              "type": "SequenceLocation",
+              "digest": "xWMAl18MZRGCnzhVuMEJcmSZYcI4tDuT",
+              "sequenceReference": {
+                "type": "SequenceReference",
+                "refgetAccession": "SQ.sv5egNzqN5koJQH6w0M4tIK9tEDEfJl7"
+              },
+              "start": 194,
+              "end": 195
+            },
+            "state": {
+              "type": "LiteralSequenceExpression",
+              "sequence": "P"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

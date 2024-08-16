@@ -11,6 +11,7 @@ import hgvs.parser
 import hgvs.posedit
 import hgvs.sequencevariant
 from Bio.SeqUtils import seq3
+from canonicaljson import encode_canonical_json
 from cool_seq_tool.schemas import AnnotationLayer
 from ga4gh.core import sha512t24u
 from ga4gh.core.entity_models import Extension, Syntax
@@ -223,13 +224,16 @@ def _annotate_allele_mapping(
 
 
 def _get_vrs_1_3_haplotype_id(cpb: CisPhasedBlock) -> str:
-    allele_ids = [
-        ga4gh_identify(a, as_version=PrevVrsVersion.V1_3).replace("ga4gh:VA.", "")
-        for a in cpb.members
-    ]
-    serialized_allele_ids = ",".join([f'"{a_id}"' for a_id in allele_ids])
-    serialized_haplotype = f'{{"members":[{serialized_allele_ids}],"type":"Haplotype"}}'
-    return f"ga4gh:VH.{sha512t24u(serialized_haplotype.encode('ascii'))}"
+    allele_ids = sorted(
+        [
+            ga4gh_identify(a, as_version=PrevVrsVersion.V1_3).replace("ga4gh:VA.", "")
+            for a in cpb.members
+        ]
+    )
+    haplotype = {"members": allele_ids, "type": "Haplotype"}
+    canonical_json = encode_canonical_json(haplotype)
+
+    return f"ga4gh:VH.{sha512t24u(canonical_json)}"
 
 
 def _annotate_cpb_mapping(
