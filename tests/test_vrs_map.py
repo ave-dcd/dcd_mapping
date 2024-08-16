@@ -25,8 +25,12 @@ def _assert_correct_vrs_map(
         key in expected_mappings_data
     ), "Score row/layer combination is not in expected mappings"
     expected = expected_mappings_data[key]
-    assert mapping.pre_mapped.id == expected["pre_mapped"], f"Mismatch in premapped ID for {key}"
-    assert mapping.post_mapped.id == expected["post_mapped"], f"Mismatch in postmapped ID for {key}"
+    assert (
+        mapping.pre_mapped.id == expected["pre_mapped"]
+    ), f"Mismatch in premapped ID for {key}"
+    assert (
+        mapping.post_mapped.id == expected["post_mapped"]
+    ), f"Mismatch in postmapped ID for {key}"
 
 
 @pytest.fixture()
