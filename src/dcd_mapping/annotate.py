@@ -11,18 +11,18 @@ import hgvs.parser
 import hgvs.posedit
 import hgvs.sequencevariant
 from Bio.SeqUtils import seq3
+from canonicaljson import encode_canonical_json
 from cool_seq_tool.schemas import AnnotationLayer
 from ga4gh.core import sha512t24u
-from ga4gh.core._internal.models import Extension
-from ga4gh.vrs._internal.models import (
+from ga4gh.core.entity_models import Extension, Syntax
+from ga4gh.core.identifiers import PrevVrsVersion, ga4gh_identify
+from ga4gh.vrs.models import (
     Allele,
+    CisPhasedBlock,
     Expression,
-    Haplotype,
     LiteralSequenceExpression,
-    Syntax,
 )
 
-from dcd_mapping import vrs_v1_schemas
 from dcd_mapping.lookup import (
     get_chromosome_identifier,
     get_chromosome_identifier_from_vrs_id,
@@ -47,74 +47,10 @@ from dcd_mapping.schemas import (
 _logger = logging.getLogger(__name__)
 
 
-def _allele_to_v1_allele(allele: Allele) -> vrs_v1_schemas.Allele:
-    """Convert VRS 2.0 allele to VRS 1.3 allele.
-
-    :param allele: VRS 2.0a allele
-    :return: equivalent VRS 1.3 allele
-    """
-    start = allele.location.start
-    end = allele.location.end
-    sequence_id = f"ga4gh:{allele.location.sequenceReference.refgetAccession}"  # type: ignore
-    location_raw = f'{{"end":{{"type":"Number","value":{end}}},"sequence_id":"{sequence_id.split(".")[1]}","start":{{"type":"Number","value":{start}}},"type":"SequenceLocation"}}'
-    location_id = sha512t24u(location_raw.encode("ascii"))
-    sequence = "" if not allele.state.sequence else allele.state.sequence.root
-    allele_raw = f'{{"location":"{location_id}","state":{{"sequence":"{sequence}","type":"LiteralSequenceExpression"}},"type":"Allele"}}'
-    allele_id = sha512t24u(allele_raw.encode("ascii"))
-
-    return vrs_v1_schemas.Allele(
-        id=f"ga4gh:VA.{allele_id}",
-        location=vrs_v1_schemas.SequenceLocation(
-            id=location_id,
-            sequence_id=sequence_id,
-            interval=vrs_v1_schemas.SequenceInterval(
-                start=vrs_v1_schemas.Number(value=start, type="Number"),
-                end=vrs_v1_schemas.Number(value=end, type="Number"),
-            ),
-        ),
-        state=vrs_v1_schemas.LiteralSequenceExpression(sequence=sequence),
+def _get_vrs_1_3_ext(allele: Allele) -> Extension:
+    return Extension(
+        name="vrs_v1.3_id", value=ga4gh_identify(allele, as_version=PrevVrsVersion.V1_3)
     )
-
-
-def _allele_to_vod(allele: Allele) -> vrs_v1_schemas.VariationDescriptor:
-    """Convert VRS 2.0 allele to comparable VRSATILE VariationDescriptor.
-
-    Some allele properties aren't available in the 1.3 allele, so we have to lift them
-    up to the VariationDescriptor.
-    """
-    allele_v1 = _allele_to_v1_allele(allele)
-    if allele.expressions:
-        original_expression = allele.expressions[0]
-        expressions = [
-            vrs_v1_schemas.Expression(
-                syntax=original_expression.syntax,
-                value=original_expression.value,
-                syntax_version=None,
-            )
-        ]
-    else:
-        expressions = []
-    return vrs_v1_schemas.VariationDescriptor(
-        id=allele_v1.id,
-        variation=allele_v1,
-        type="VariationDescriptor",
-        expressions=expressions,
-        vrs_ref_allele_seq=allele.extensions[0].value,
-        extensions=[],
-    )
-
-
-def _haplotype_to_haplotype_1_3(haplotype: Haplotype) -> vrs_v1_schemas.Haplotype:
-    """Convert VRS 2.0 Haplotype to VRS 1.3 Haplotype.
-
-    :param haplotype: VRS 2.0 haplotype
-    :return: VRS 1.3 haplotype that contains VRSATILE variation descriptors (not alleles)
-    """
-    members = []
-    allele: Allele
-    for allele in haplotype.members:  # type: ignore
-        members.append(_allele_to_vod(allele))
-    return vrs_v1_schemas.Haplotype(members=members)
 
 
 def _offset_allele_ref_seq(ss: str, start: int, end: int) -> tuple[int, int]:
@@ -158,7 +94,7 @@ def _get_vrs_ref_allele_seq(
         ref = sr.get_sequence(seq, start, end)
         if ref is None:
             raise ValueError
-    return Extension(type="Extension", name="vrs_ref_allele_seq", value=ref)
+    return Extension(name="vrs_ref_allele_seq", value=ref)
 
 
 def _get_hgvs_string(allele: Allele, accession: str) -> tuple[str, Syntax]:
@@ -244,12 +180,15 @@ def _annotate_allele_mapping(
     tx_results: TxSelectResult | None,
     metadata: ScoresetMetadata,
 ) -> ScoreAnnotationWithLayer:
-    """Perform annotations and create VRS 1.3 equivalents for allele mappings."""
+    """Perform annotations for allele mappings."""
     pre_mapped: Allele = mapped_score.pre_mapped
     post_mapped: Allele = mapped_score.post_mapped
 
     # get vrs_ref_allele_seq for pre-mapped variants
-    pre_mapped.extensions = [_get_vrs_ref_allele_seq(pre_mapped, metadata, tx_results)]
+    pre_mapped.extensions = [
+        _get_vrs_ref_allele_seq(pre_mapped, metadata, tx_results),
+        _get_vrs_1_3_ext(pre_mapped),
+    ]
 
     # Determine reference sequence
     if mapped_score.annotation_layer == AnnotationLayer.GENOMIC:
@@ -269,35 +208,46 @@ def _annotate_allele_mapping(
     sequence_id = f"ga4gh:{loc.sequenceReference.refgetAccession}"
     ref = sr.get_sequence(sequence_id, loc.start, loc.end)
     post_mapped.extensions = [
-        Extension(type="Extension", name="vrs_ref_allele_seq", value=ref)
+        Extension(name="vrs_ref_allele_seq", value=ref),
+        _get_vrs_1_3_ext(post_mapped),
     ]
     hgvs_string, syntax = _get_hgvs_string(post_mapped, accession)
     post_mapped.expressions = [Expression(syntax=syntax, value=hgvs_string)]
 
-    pre_mapped_vod = _allele_to_vod(pre_mapped)
-    post_mapped_vod = _allele_to_vod(post_mapped)
-
     return ScoreAnnotationWithLayer(
-        pre_mapped=pre_mapped_vod,
-        post_mapped=post_mapped_vod,
-        pre_mapped_2_0=pre_mapped,
-        post_mapped_2_0=post_mapped,
+        pre_mapped=pre_mapped,
+        post_mapped=post_mapped,
         mavedb_id=mapped_score.accession_id,
         score=float(mapped_score.score) if mapped_score.score else None,
         annotation_layer=mapped_score.annotation_layer,
     )
 
 
-def _annotate_haplotype_mapping(
+def _get_vrs_1_3_haplotype_id(cpb: CisPhasedBlock) -> str:
+    allele_ids = sorted(
+        [
+            ga4gh_identify(a, as_version=PrevVrsVersion.V1_3).replace("ga4gh:VA.", "")
+            for a in cpb.members
+        ]
+    )
+    haplotype = {"members": allele_ids, "type": "Haplotype"}
+    canonical_json = encode_canonical_json(haplotype)
+
+    return f"ga4gh:VH.{sha512t24u(canonical_json)}"
+
+
+def _annotate_cpb_mapping(
     mapping: MappedScore, tx_results: TxSelectResult | None, metadata: ScoresetMetadata
 ) -> ScoreAnnotationWithLayer:
-    """Perform annotations and create VRS 1.3 equivalents for haplotype mappings."""
-    pre_mapped: Haplotype = mapping.pre_mapped  # type: ignore
-    post_mapped: Haplotype = mapping.post_mapped  # type: ignore
+    """Perform annotations and create VRS 1.3 equivalents for CisPhasedBlock mappings."""
+    pre_mapped: CisPhasedBlock = mapping.pre_mapped  # type: ignore
+    post_mapped: CisPhasedBlock = mapping.post_mapped  # type: ignore
     # get vrs_ref_allele_seq for pre-mapped variants
     for allele in pre_mapped.members:
-        allele.extensions = [_get_vrs_ref_allele_seq(allele, metadata, tx_results)]
-
+        allele.extensions = [
+            _get_vrs_ref_allele_seq(allele, metadata, tx_results),
+            _get_vrs_1_3_ext(allele),
+        ]
     # Determine reference sequence
     if mapping.annotation_layer == AnnotationLayer.GENOMIC:
         sequence_id = (
@@ -317,21 +267,24 @@ def _annotate_haplotype_mapping(
     for allele in post_mapped.members:
         loc = allele.location
         sequence_id = f"ga4gh:{loc.sequenceReference.refgetAccession}"
-        ref = sr.get_sequence(sequence_id, loc.start, loc.end)  # TODO type issues??
+        ref = sr.get_sequence(sequence_id, loc.start, loc.end)
         allele.extensions = [
-            Extension(type="Extension", name="vrs_ref_allele_seq", value=ref)
+            Extension(name="vrs_ref_allele_seq", value=ref),
+            _get_vrs_1_3_ext(allele),
         ]
         hgvs, syntax = _get_hgvs_string(allele, accession)
         allele.expressions = [Expression(syntax=syntax, value=hgvs)]
 
-    pre_mapped_converted = _haplotype_to_haplotype_1_3(pre_mapped)
-    post_mapped_converted = _haplotype_to_haplotype_1_3(post_mapped)
+    pre_mapped.extensions = [
+        Extension(name="vrs_v1.3_id", value=_get_vrs_1_3_haplotype_id(pre_mapped))
+    ]
+    post_mapped.extensions = [
+        Extension(name="vrs_v1.3_id", value=_get_vrs_1_3_haplotype_id(post_mapped))
+    ]
 
     return ScoreAnnotationWithLayer(
-        pre_mapped=pre_mapped_converted,
-        post_mapped=post_mapped_converted,
-        pre_mapped_2_0=pre_mapped,
-        post_mapped_2_0=post_mapped,
+        pre_mapped=pre_mapped,
+        post_mapped=post_mapped,
         mavedb_id=mapping.accession_id,
         score=float(mapping.score) if mapping.score is not None else None,
         annotation_layer=mapping.annotation_layer,
@@ -361,11 +314,11 @@ def annotate(
     """
     score_annotations = []
     for mapped_score in mapped_scores:
-        if isinstance(mapped_score.pre_mapped, Haplotype) and isinstance(
-            mapped_score.post_mapped, Haplotype
+        if isinstance(mapped_score.pre_mapped, CisPhasedBlock) and isinstance(
+            mapped_score.post_mapped, CisPhasedBlock
         ):
             score_annotations.append(
-                _annotate_haplotype_mapping(mapped_score, tx_results, metadata)
+                _annotate_cpb_mapping(mapped_score, tx_results, metadata)
             )
         elif isinstance(mapped_score.pre_mapped, Allele) and isinstance(
             mapped_score.post_mapped, Allele
@@ -464,7 +417,6 @@ def save_mapped_output_json(
     mappings: list[ScoreAnnotationWithLayer],
     align_result: AlignmentResult,
     tx_output: TxSelectResult | None,
-    include_vrs_2: bool = False,
     output_path: Path | None = None,
 ) -> Path:
     """Save mapping output for a score set in a JSON file
@@ -473,7 +425,6 @@ def save_mapped_output_json(
     :param mave_vrs_mappings: A dictionary of VrsObject1_x objects
     :param align_result: Alignment information for a score set
     :param tx_output: Transcript output for a score set
-    :param include_vrs_2: if true, also include VRS 2.0 mappings
     :param output_path: specific location to save output to. Default to
         <dcd_mapping_data_dir>/urn:mavedb:00000XXX-X-X_mapping_<ISO8601 datetime>.json
     :return: output location
@@ -486,11 +437,12 @@ def save_mapped_output_json(
     mapped_reference_sequence = _get_mapped_reference_sequence(
         preferred_layer, tx_output, align_result
     )
-    mapped_scores: list[ScoreAnnotation] = []
-    for m in mappings:
-        if m.annotation_layer == preferred_layer:
-            # drop annotation layer from mapping object
-            mapped_scores.append(ScoreAnnotation(**m.model_dump()))
+    mapped_scores: list[ScoreAnnotation] = [
+        # drop annotation layer from mapping object
+        ScoreAnnotation(**m.model_dump())
+        for m in mappings
+        if m.annotation_layer == preferred_layer
+    ]
 
     output = ScoresetMapping(
         metadata=metadata,
@@ -499,20 +451,14 @@ def save_mapped_output_json(
         mapped_scores=mapped_scores,
     )
 
-    if not include_vrs_2:
-        for m in output.mapped_scores:
-            m.pre_mapped_2_0 = None
-            m.post_mapped_2_0 = None
-
     if not output_path:
         now = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
         output_path = LOCAL_STORE_PATH / f"{urn}_mapping_{now}.json"
 
     _logger.info("Saving mapping output to %s", output_path)
-    with output_path.open("w") as file:
-        json.dump(
-            json.loads(output.model_dump_json(exclude_unset=True, exclude_none=True)),
-            file,
-            indent=4,
-        )
+    with output_path.open("w") as f:
+        # temporarily using BaseModel.model_dump() -- should use .model_dump_json()
+        # once fix to serializer is made in VRS-Python
+        json.dump(output.model_dump(exclude_none=True), f, indent=4)
+
     return output_path

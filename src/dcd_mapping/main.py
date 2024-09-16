@@ -1,7 +1,9 @@
 """Provide core MaveDB mapping methods."""
+
 import logging
 import os
 import subprocess
+from importlib.metadata import version
 from pathlib import Path
 
 import click
@@ -41,8 +43,9 @@ async def _check_data_prereqs(silent: bool) -> None:
         await check_uta()
     except Exception:
         success = False
+        cst_version = version("cool-seq-tool")
         _emit_info(
-            "* UTA appears to be unavailable. Check the logs for more information. For troubleshooting, we recommend checking the UTA readme (https://github.com/biocommons/uta?tab=readme-ov-file#installing-uta-locally) and the Cool-Seq-Tool installation instructions (https://coolseqtool.readthedocs.io/0.4.0-dev3/install.html#set-up-uta). Remember that the UTA connection is configurable via a libpq URI provided under the environment variable UTA_DB_URL (see Cool-Seq-Tool docs: https://coolseqtool.readthedocs.io/0.4.0-dev3/usage.html#environment-configuration) -- otherwise, by default it attempts a connection to `postgresql://uta_admin:uta@localhost:5433/uta/uta_20210129b`.",
+            f"* UTA appears to be unavailable. Check the logs for more information. For troubleshooting, we recommend checking the UTA readme (https://github.com/biocommons/uta?tab=readme-ov-file#installing-uta-locally) and the Cool-Seq-Tool installation instructions (https://coolseqtool.readthedocs.io/{cst_version}/install.html#set-up-uta). Remember that the UTA connection is configurable via a libpq URI provided under the environment variable UTA_DB_URL (see Cool-Seq-Tool docs: https://coolseqtool.readthedocs.io/{cst_version}/usage.html#environment-configuration) -- otherwise, by default it attempts a connection to `postgresql://uta_admin:uta@localhost:5433/uta/uta_20210129b`.",
             silent,
             logging.ERROR,
         )
@@ -59,16 +62,17 @@ async def _check_data_prereqs(silent: bool) -> None:
         check_gene_normalizer()
     except Exception:
         success = False
+        gene_norm_verison = version("gene-normalizer")
         _emit_info(
-            "* Gene Normalizer appears to be unavailable. Check the logs for more information. Note that a data snapshot needs to be acquired, or the data update routine must be routine (this should've taken at least a few seconds, if not several minutes). For troubleshooting, review the Gene Normalizer installation instructions and documentation: https://gene-normalizer.readthedocs.io/0.3.0-dev1/install.html",
+            f"* Gene Normalizer appears to be unavailable. Check the logs for more information. Note that a data snapshot needs to be acquired, or the data update routine must be called (this should've taken at least a few seconds, if not several minutes). For troubleshooting, review the Gene Normalizer installation instructions and documentation: https://gene-normalizer.readthedocs.io/{gene_norm_verison}/install.html",
             silent,
             logging.ERROR,
         )
     try:
         configured_blat_bin = os.environ.get("BLAT_BIN_PATH")
         if configured_blat_bin:
-            result = subprocess.run(  # noqa: ASYNC101
-                configured_blat_bin,  # noqa: S603
+            result = subprocess.run(  # noqa: ASYNC221 S603
+                configured_blat_bin,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
@@ -87,8 +91,8 @@ async def _check_data_prereqs(silent: bool) -> None:
                     logging.ERROR,
                 )
         else:
-            result = subprocess.run(  # noqa: ASYNC101
-                "blat",  # noqa: S603 S607
+            result = subprocess.run(  # noqa: S603 ASYNC221
+                "blat",  # noqa: S607
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
@@ -122,18 +126,20 @@ async def map_scoreset(
     metadata: ScoresetMetadata,
     records: list[ScoreRow],
     output_path: Path | None = None,
-    include_vrs_2: bool = False,
     silent: bool = True,
+    check_data_prereqs: bool = True,
 ) -> None:
     """Given information about a MAVE experiment, map to VRS and save output as JSON.
 
     :param metadata: salient data gathered from scoreset on MaveDB
     :param records: experiment scoring results
     :param output_path: optional path to save output at
-    :param include_vrs_2: if true, include VRS 2.0 mappings in output JSON
-    :param silent: if True, suppress console information output
+    :param silent: if ``True``, suppress console information output
+    :param check_data_prereqs: if ``True``, check for external data availability
+        before performing mapping
     """
-    await _check_data_prereqs(silent)
+    if check_data_prereqs:
+        await _check_data_prereqs(silent)
 
     _emit_info(f"Performing alignment for {metadata.urn}...", silent)
     try:
@@ -181,7 +187,6 @@ async def map_scoreset(
         vrs_results,
         alignment_result,
         transcript,
-        include_vrs_2,
         output_path,
     )
     _emit_info(f"Annotated scores saved to: {final_output}.", silent)
@@ -190,14 +195,12 @@ async def map_scoreset(
 async def map_scoreset_urn(
     urn: str,
     output_path: Path | None = None,
-    include_vrs_2: bool = False,
     silent: bool = True,
 ) -> None:
     """Perform end-to-end mapping for a scoreset.
 
     :param urn: identifier for a scoreset.
     :param output_path: optional path to save output at
-    :param include_vrs_2: if true, include VRS 2.0 mappings in output JSON
     :param silent: if True, suppress console information output
     """
     try:
@@ -208,4 +211,4 @@ async def map_scoreset_urn(
         _logger.critical(msg)
         click.echo(f"Error: {msg}")
         raise e
-    await map_scoreset(metadata, records, output_path, include_vrs_2, silent)
+    await map_scoreset(metadata, records, output_path, silent)

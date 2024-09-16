@@ -1,4 +1,5 @@
 """Test `dcd_mapping.resources` module."""
+
 import json
 import shutil
 from pathlib import Path

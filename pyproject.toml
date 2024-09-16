@@ -29,13 +29,14 @@ dependencies = [
     "biopython",
     "tqdm",
     "click",
-    "cool-seq-tool==0.4.0.dev3",
-    "ga4gh.vrs==2.0.0-a6",
+    "cool-seq-tool~=0.6.0",
+    "ga4gh.vrs==2.0.0-a10",
     # probably easiest to just include pg dependency group even if it's not always necessary
-    "gene-normalizer[pg]==0.3.0-dev1",
+    "gene-normalizer[pg]~=0.4.1",
     "pydantic~=2.0",
     "python-dotenv",
     "setuptools>=68.0",  # tmp -- ensure 3.12 compatibility
+    "canonicaljson",
 ]
 dynamic = ["version"]
 
@@ -164,7 +165,8 @@ ignore = [
 # ANN102 - missing-type-cls
 # S101 - assert
 # B011 - assert-false
-"tests/*" = ["ANN001", "ANN2", "ANN102", "S101", "B011", "D103"]
+# INP001 - implicit-namespace-package
+"tests/*" = ["ANN001", "ANN2", "ANN102", "S101", "B011", "D103", "INP001"]
 
 [tool.ruff.format]
 docstring-code-format = true
