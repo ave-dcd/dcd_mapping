@@ -154,7 +154,8 @@ def _get_blat_output(metadata: ScoresetMetadata, silent: bool) -> QueryResult:
         if metadata.target_sequence_type == TargetSequenceType.PROTEIN:
             target_args = "-q=prot -t=dnax"
         else:
-            target_args = ""
+            if metadata.target_gene_category != "PROTEIN_CODING":
+                target_args = ""
         process_result = _run_blat(target_args, query_file, "/dev/stdout", silent)
         out_file = _write_blat_output_tempfile(process_result)
 
