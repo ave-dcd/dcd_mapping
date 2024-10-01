@@ -237,12 +237,23 @@ def _map_protein_coding(
         psequence_id = gsequence_id = store_sequence(sequence)
 
     variations: list[MappedScore] = []
+
+    # Select variant type to keep
+    if "urn:mavedb:000000097-a-1" in records[0].accession:
+        preferred_layer = AnnotationLayer.PROTEIN
+    else:
+        preferred_layer = AnnotationLayer.PROTEIN
+        for row in records:
+            if row.hgvs_nt != "NA":
+                preferred_layer = AnnotationLayer.GENOMIC
+
     for row in records:
-        hgvs_pro_mappings = _map_protein_coding_pro(
-            row, align_result, psequence_id, transcript
-        )
-        if hgvs_pro_mappings:
-            variations.append(hgvs_pro_mappings)
+        if preferred_layer == AnnotationLayer.PROTEIN:
+            hgvs_pro_mappings = _map_protein_coding_pro(
+                row, align_result, psequence_id, transcript
+            )
+            if hgvs_pro_mappings:
+                variations.append(hgvs_pro_mappings)
         if not _hgvs_nt_is_valid(row.hgvs_nt):
             continue
         hgvs_strings = _create_hgvs_strings(

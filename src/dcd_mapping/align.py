@@ -13,7 +13,11 @@ from Bio.SearchIO import read as read_blat
 from Bio.SearchIO._model import Hit, QueryResult
 from cool_seq_tool.schemas import Strand
 
-from dcd_mapping.lookup import get_chromosome_identifier, get_gene_location
+from dcd_mapping.lookup import (
+    _get_normalized_gene_response,
+    get_chromosome_identifier,
+    get_gene_location,
+)
 from dcd_mapping.mavedb_data import (
     LOCAL_STORE_PATH,
 )
@@ -27,6 +31,7 @@ from dcd_mapping.schemas import (
     ScoresetMetadata,
     SequenceRange,
     TargetSequenceType,
+    TargetType,
 )
 
 __all__ = ["align"]
@@ -159,6 +164,8 @@ def _get_blat_output(metadata: ScoresetMetadata, silent: bool) -> QueryResult:
         query_file = _build_query_file(metadata, Path(query_file.name))
         if metadata.target_sequence_type == TargetSequenceType.PROTEIN:
             target_args = "-q=prot -t=dnax"
+        elif metadata.target_gene_category == TargetType.PROTEIN_CODING:
+            target_args = "-q=dnax -t=dnax"
         else:
             target_args = ""
         process_result = _run_blat(target_args, query_file, "/dev/stdout", silent)
@@ -166,15 +173,9 @@ def _get_blat_output(metadata: ScoresetMetadata, silent: bool) -> QueryResult:
 
         try:
             output = read_blat(out_file, "blat-psl")
-        except ValueError:
-            target_args = "-q=dnax -t=dnax"
-            process_result = _run_blat(target_args, query_file, "/dev/stdout", silent)
-            out_file = _write_blat_output_tempfile(process_result)
-            try:
-                output = read_blat(out_file, "blat-psl")
-            except ValueError as e:
-                msg = f"Unable to run successful BLAT on {metadata.urn}"
-                raise AlignmentError(msg) from e
+        except ValueError as e:
+            msg = f"Unable to run successful BLAT on {metadata.urn}"
+            raise AlignmentError(msg) from e
 
     return output
 
@@ -268,7 +269,17 @@ def _get_best_match(output: QueryResult, metadata: ScoresetMetadata) -> Alignmen
     best_hit = _get_best_hit(output, metadata.urn, chromosome)
     best_hsp = _get_best_hsp(best_hit, metadata.urn, location)
 
-    strand = Strand.POSITIVE if best_hsp[0].query_strand == 1 else Strand.NEGATIVE
+    strand = None
+    if metadata.target_gene_category == TargetType.PROTEIN_CODING:
+        strand_value = None
+        gene_output = _get_normalized_gene_response(metadata)
+        for extension in gene_output.extensions:
+            if extension.name == "strand":
+                strand_value = extension.value
+                break
+        strand = Strand.POSITIVE if strand_value == "+" else Strand.NEGATIVE
+    else:
+        strand = Strand.POSITIVE if best_hsp[0].query_strand == 1 else Strand.NEGATIVE
     coverage = 100 * (best_hsp.query_end - best_hsp.query_start) / output.seq_len
     identity = best_hsp.ident_pct
     chrom = best_hsp.hit_id
