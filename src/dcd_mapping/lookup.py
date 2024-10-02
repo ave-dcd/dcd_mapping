@@ -222,7 +222,11 @@ def get_gene_symbol(metadata: ScoresetMetadata) -> str | None:
 
     # try taking the first word in the target name
     if metadata.target_gene_name:
-        parsed_name = metadata.target_gene_name.split(" ")[0]
+        parsed_name = ""
+        if "_" in metadata.target_gene_name:
+            parsed_name = metadata.target_gene_name.split("_")[0]
+        else:
+            parsed_name = metadata.target_gene_name.split(" ")[0]
         return _get_hgnc_symbol(parsed_name)
     return None
 
@@ -255,7 +259,11 @@ def _get_normalized_gene_response(
 
     # try taking the first word in the target name
     if metadata.target_gene_name:
-        parsed_name = metadata.target_gene_name.split(" ")[0]
+        parsed_name = ""
+        if "_" in metadata.target_gene_name:
+            parsed_name = metadata.target_gene_name.split("_")[0]
+        else:
+            parsed_name = metadata.target_gene_name.split(" ")[0]
         gene_descriptor = _normalize_gene(parsed_name)
         if gene_descriptor:
             return gene_descriptor

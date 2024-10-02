@@ -158,33 +158,17 @@ def test_99_a_1(
     records, metadata, align_result, tx_result = get_fixtures(urn)
 
     expected_mappings_data = {
-        ("urn:mavedb:00000099-a-1#8", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.i8KsTDxUR2ppPw0fEhIkCBpS35RAsBox",
-            "post_mapped": "ga4gh:VA.i8KsTDxUR2ppPw0fEhIkCBpS35RAsBox",
-        },
         ("urn:mavedb:00000099-a-1#8", AnnotationLayer.GENOMIC): {
             "pre_mapped": "ga4gh:VA.PlDkRFWzI0iqCkN-LcS-fWI22kn3YZUv",
             "post_mapped": "ga4gh:VA.mcz8924gSgojiH6DIZleiDUhWZZLNGj9",
-        },
-        ("urn:mavedb:00000099-a-1#96", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.Q0lo7nJCEgenkxQaDmEs44rLaKNXhZA9",
-            "post_mapped": "ga4gh:VA.Q0lo7nJCEgenkxQaDmEs44rLaKNXhZA9",
         },
         ("urn:mavedb:00000099-a-1#96", AnnotationLayer.GENOMIC): {
             "pre_mapped": "ga4gh:VA.zx0sJRB31AojS7O_OESTwrTmVtoVrfuE",
             "post_mapped": "ga4gh:VA.ONGOnA8T9qq5kC4mTGXOOeO8JZWOJJjv",
         },
-        ("urn:mavedb:00000099-a-1#194", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.qKONJZJEfWlUKM36sHqm0A5qeJGwIZ5b",
-            "post_mapped": "ga4gh:VA.qKONJZJEfWlUKM36sHqm0A5qeJGwIZ5b",
-        },
         ("urn:mavedb:00000099-a-1#194", AnnotationLayer.GENOMIC): {
             "pre_mapped": "ga4gh:VA.-xZTr5Y325jiEWR0oMuxP-ALmjoXJFuR",
             "post_mapped": "ga4gh:VA.iT_1RID-2fnNfOo910x3cvRR454xsXYf",
-        },
-        ("urn:mavedb:00000099-a-1#211", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.w5Ds6DKga_J5c6Pf-qucRLVUQ4wogkNd",
-            "post_mapped": "ga4gh:VA.w5Ds6DKga_J5c6Pf-qucRLVUQ4wogkNd",
         },
         ("urn:mavedb:00000099-a-1#211", AnnotationLayer.GENOMIC): {
             "pre_mapped": "ga4gh:VA.CZL9iNU04WzGyypEHyq2kkk-7NDGgAZb",
@@ -193,7 +177,7 @@ def test_99_a_1(
     }
     mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
     assert mappings is not None
-    assert len(mappings) == 8  # includes protein and genomic for all 4 rows
+    assert len(mappings) == 4
 
     for m in mappings:
         _assert_correct_vrs_map(m, expected_mappings_data)
@@ -267,33 +251,17 @@ def test_1_b_2(
     assert mappings is not None
 
     expected_mappings_data = {
-        ("urn:mavedb:00000001-b-2#444", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.nhMpQonYNSSgvgevysb-Uda6SNeDCsyk",
-            "post_mapped": "ga4gh:VA.nhMpQonYNSSgvgevysb-Uda6SNeDCsyk",
-        },
         ("urn:mavedb:00000001-b-2#444", AnnotationLayer.GENOMIC): {
             "pre_mapped": "ga4gh:VA.b8AUuR4V1jtBnur0N3uj9PApq3E9QOWX",
             "post_mapped": "ga4gh:VA.dZH6PLqHSA5sYej27eUKZ4uZ-pvg0_Q5",
-        },
-        ("urn:mavedb:00000001-b-2#57", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.D8KWEFUC4TuYrlAvm5oEiJNlm_b9xQHi",
-            "post_mapped": "ga4gh:VA.D8KWEFUC4TuYrlAvm5oEiJNlm_b9xQHi",
         },
         ("urn:mavedb:00000001-b-2#57", AnnotationLayer.GENOMIC): {
             "pre_mapped": "ga4gh:VA.C96gWbNLz1q7nKp3voKnd_HGDtyxdpYo",
             "post_mapped": "ga4gh:VA.EgipN3KmvY9ctrFEsUb2TdBuu48aKX4K",
         },
-        ("urn:mavedb:00000001-b-2#2311", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.9XzpgTxYwD1lMoSU50GGXwPoIu1-edmZ",
-            "post_mapped": "ga4gh:VA.9XzpgTxYwD1lMoSU50GGXwPoIu1-edmZ",
-        },
         ("urn:mavedb:00000001-b-2#2311", AnnotationLayer.GENOMIC): {
             "pre_mapped": "ga4gh:VA.dh-HALPan94lHNjVY7hMWIrKvshx0sHb",
             "post_mapped": "ga4gh:VA.dY_6FNTOFoK1HvXlrqJDY-ewtdtOscnA",
-        },
-        ("urn:mavedb:00000001-b-2#2312", AnnotationLayer.PROTEIN): {
-            "pre_mapped": "ga4gh:VA.wTdGy4fTirXhl0_TnE-0CoxtUz4q5t8j",
-            "post_mapped": "ga4gh:VA.wTdGy4fTirXhl0_TnE-0CoxtUz4q5t8j",
         },
         ("urn:mavedb:00000001-b-2#2312", AnnotationLayer.GENOMIC): {
             "pre_mapped": "ga4gh:VA.FmoBwbceLJMI6D4U7Bt1qrBh66_oYAui",
@@ -303,7 +271,7 @@ def test_1_b_2(
 
     mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
     assert mappings is not None
-    assert len(mappings) == 8
+    assert len(mappings) == 4
     for m in mappings:
         _assert_correct_vrs_map(m, expected_mappings_data)
 
