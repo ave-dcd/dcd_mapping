@@ -214,10 +214,13 @@ def _annotate_allele_mapping(
     hgvs_string, syntax = _get_hgvs_string(post_mapped, accession)
     post_mapped.expressions = [Expression(syntax=syntax, value=hgvs_string)]
 
+    namespace = metadata.urn
+    val = mapped_score.accession_id.split("#")[1]
+
     return ScoreAnnotationWithLayer(
         pre_mapped=pre_mapped,
         post_mapped=post_mapped,
-        mavedb_id=mapped_score.accession_id,
+        mavedb_id=f"{namespace}#{val}",
         score=float(mapped_score.score) if mapped_score.score else None,
         annotation_layer=mapped_score.annotation_layer,
     )
@@ -282,10 +285,13 @@ def _annotate_cpb_mapping(
         Extension(name="vrs_v1.3_id", value=_get_vrs_1_3_haplotype_id(post_mapped))
     ]
 
+    namespace = metadata.urn
+    val = mapping.accession_id.split("#")[1]
+
     return ScoreAnnotationWithLayer(
         pre_mapped=pre_mapped,
         post_mapped=post_mapped,
-        mavedb_id=mapping.accession_id,
+        mavedb_id=f"{namespace}#{val}",
         score=float(mapping.score) if mapping.score is not None else None,
         annotation_layer=mapping.annotation_layer,
     )
