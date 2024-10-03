@@ -169,6 +169,7 @@ async def map_scoreset(
         for row in records:
             if row.hgvs_nt != "NA":
                 preferred_layer = AnnotationLayer.GENOMIC
+                break
 
     if preferred_layer == AnnotationLayer.PROTEIN:
         try:

@@ -34,7 +34,7 @@ def _assert_correct_vrs_map(
 
 
 @pytest.fixture()
-def get_fixtures(
+def get_fixtures_protein(
     fixture_data_dir: Path,
     scoreset_metadata_fixture: dict[str, ScoresetMetadata],
     align_result_fixture: dict[str, AlignmentResult],
@@ -50,13 +50,28 @@ def get_fixtures(
 
     return _get_fixtures
 
+@pytest.fixture()
+def get_fixtures_genomic(
+    fixture_data_dir: Path,
+    scoreset_metadata_fixture: dict[str, ScoresetMetadata],
+    align_result_fixture: dict[str, AlignmentResult],
+):
+    def _get_fixtures(urn: str):
+        return (
+            _load_scoreset_records(fixture_data_dir / f"{urn}_scores.csv"),
+            scoreset_metadata_fixture[urn],
+            align_result_fixture[urn],
+        )
+
+    return _get_fixtures
+
 
 def test_2_a_2(
-    get_fixtures,
+    get_fixtures_protein,
     mock_seqrepo_access: MagicMock,
 ):
     urn = "urn:mavedb:00000002-a-2"
-    records, metadata, align_result, tx_result = get_fixtures(urn)
+    records, metadata, align_result, tx_result = get_fixtures_protein(urn)
     expected_mappings_data = {
         ("urn:mavedb:00000002-a-2#1", AnnotationLayer.PROTEIN): {
             "pre_mapped": "ga4gh:CPB.cbMfkw_9d-HzlhDqccrjoAs-CAvrcv2x",
@@ -99,11 +114,11 @@ def test_2_a_2(
 
 
 def test_41_a_1(
-    get_fixtures,
+    get_fixtures_protein,
     mock_seqrepo_access: MagicMock,
 ):
     urn = "urn:mavedb:00000041-a-1"
-    records, metadata, align_result, tx_result = get_fixtures(urn)
+    records, metadata, align_result, tx_result = get_fixtures_protein(urn)
 
     expected_mappings_data = {
         ("urn:mavedb:00000041-a-1#548", AnnotationLayer.PROTEIN): {
@@ -151,11 +166,11 @@ def test_41_a_1(
 
 
 def test_99_a_1(
-    get_fixtures,
+    get_fixtures_genomic,
     mock_seqrepo_access: MagicMock,
 ):
     urn = "urn:mavedb:00000099-a-1"
-    records, metadata, align_result, tx_result = get_fixtures(urn)
+    records, metadata, align_result = get_fixtures_genomic(urn)
 
     expected_mappings_data = {
         ("urn:mavedb:00000099-a-1#8", AnnotationLayer.GENOMIC): {
@@ -175,7 +190,7 @@ def test_99_a_1(
             "post_mapped": "ga4gh:VA.lPhWnHAhGQ8zNeVXMAoM-XvB6wKLacEc",
         },
     }
-    mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
+    mappings = vrs_map(metadata, align_result, records, transcript=None)
     assert mappings is not None
     assert len(mappings) == 4
 
@@ -183,10 +198,6 @@ def test_99_a_1(
         _assert_correct_vrs_map(m, expected_mappings_data)
 
     store_calls = [
-        (
-            "MNGTEGPNFYVPFSNATGVVRSPFEYPQYYLAEPWQFSMLAAYMFLLIVLGFPINFLTLYVTVQHKKLRTPLNYILLNLAVADLFMVLGGFTSTLYTSLHGYFVFGPTGCNLEGFFATLGGEIALWSLVVLAIERYVVVCKPMSNFRFGENHAIMGVAFTWVMALACAAPPLAGWSRYIPEGLQCSCGIDYYTLKPEVNNESFVIYMFVVHFTIPMIIIFFCYGQLVFTVKEAAAQQQESATTQKAEKEVTRMVIIMVIAFLICWVPYASVAFYIFTHQGSNFGPIFMTIPAFFAKSAAIYNPVIYIMMNKQFRNCMLTTICCGKNPLGDDEASATVSKTETSQVAPA",
-            [{"namespace": "ga4gh", "alias": "SQ.kntF3MvVMQFzU94f0QegL_ktmT5f2Dk9"}],
-        ),
         (
             "ATGAATGGCACAGAAGGCCCTAACTTCTACGTGCCCTTCTCCAATGCGACGGGTGTGGTACGCAGCCCCTTCGAGTACCCACAGTACTACCTGGCTGAGCCATGGCAGTTCTCCATGCTGGCCGCCTACATGTTTCTGCTGATCGTGCTGGGCTTCCCCATCAACTTCCTCACGCTCTACGTCACCGTCCAGCACAAGAAGCTGCGCACGCCTCTCAACTACATCCTGCTCAACCTAGCCGTGGCTGACCTCTTCATGGTCCTAGGTGGCTTCACCAGCACCCTCTACACCTCTCTGCATGGATACTTCGTCTTCGGGCCCACAGGATGCAATTTGGAGGGCTTCTTTGCCACCCTGGGCGGTGAAATTGCCCTGTGGTCCTTGGTGGTCCTGGCCATCGAGCGGTACGTGGTGGTGTGTAAGCCCATGAGCAACTTCCGCTTCGGGGAGAACCATGCCATCATGGGCGTTGCCTTCACCTGGGTCATGGCGCTGGCCTGCGCCGCACCCCCACTCGCCGGCTGGTCCAGGTACATCCCCGAGGGCCTGCAGTGCTCGTGTGGAATCGACTACTACACGCTCAAGCCGGAGGTCAACAACGAGTCTTTTGTCATCTACATGTTCGTGGTCCACTTCACCATCCCCATGATTATCATCTTTTTCTGCTATGGGCAGCTCGTCTTCACCGTCAAGGAGGCCGCTGCCCAGCAGCAGGAGTCAGCCACCACACAGAAGGCAGAGAAGGAGGTCACCCGCATGGTCATCATCATGGTCATCGCTTTCCTGATCTGCTGGGTGCCCTACGCCAGCGTGGCATTCTACATCTTCACCCACCAGGGCTCCAACTTCGGTCCCATCTTCATGACCATCCCAGCGTTCTTTGCCAAGAGCGCCGCCATCTACAACCCTGTCATCTATATCATGATGAACAAGCAGTTCCGGAACTGCATGCTCACCACCATCTGCTGCGGCAAGAACCCACTGGGTGACGATGAGGCCTCTGCTACCGTGTCCAAGACGGAGACGAGCCAGGTGGCCCCGGCCTAA",
             [{"namespace": "ga4gh", "alias": "SQ.RtClQI6dD3uj5T-DyOr9P9_-sYR2aHJX"}],
@@ -198,11 +209,11 @@ def test_99_a_1(
 
 
 def test_103_c_1(
-    get_fixtures,
+    get_fixtures_protein,
     mock_seqrepo_access: MagicMock,
 ):
     urn = "urn:mavedb:00000103-c-1"
-    records, metadata, align_result, tx_result = get_fixtures(urn)
+    records, metadata, align_result, tx_result = get_fixtures_protein(urn)
 
     expected_mappings_data = {
         ("urn:mavedb:00000103-c-1#376", AnnotationLayer.PROTEIN): {
@@ -241,13 +252,13 @@ def test_103_c_1(
 
 
 def test_1_b_2(
-    get_fixtures,
+    get_fixtures_genomic,
     mock_seqrepo_access: MagicMock,
 ):
     urn = "urn:mavedb:00000001-b-2"
-    records, metadata, align_result, tx_result = get_fixtures(urn)
+    records, metadata, align_result = get_fixtures_genomic(urn)
 
-    mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
+    mappings = vrs_map(metadata, align_result, records)
     assert mappings is not None
 
     expected_mappings_data = {
@@ -269,7 +280,7 @@ def test_1_b_2(
         },
     }
 
-    mappings = vrs_map(metadata, align_result, records, transcript=tx_result)
+    mappings = vrs_map(metadata, align_result, records, transcript=None)
     assert mappings is not None
     assert len(mappings) == 4
     for m in mappings:
@@ -277,16 +288,8 @@ def test_1_b_2(
 
     store_calls = [
         (
-            "MSDQEAKPSTEDLGDKKEGEYIKLKVIGQDSSEIHFKVKMTTHLKKLKESYCQRQGVPMNSLRFLFEGQRIADNHTPKELGMEEEDVIEVYQEQTGGHSTV",
-            [{"namespace": "ga4gh", "alias": "SQ.VkCzFNsbifqfq61Mud6oGmz0ID6CLIip"}],
-        ),
-        (
             "ATGTCTGACCAGGAGGCAAAACCTTCAACTGAGGACTTGGGGGATAAGAAGGAAGGTGAATATATTAAACTCAAAGTCATTGGACAGGATAGCAGTGAGATTCACTTCAAAGTGAAAATGACAACACATCTCAAGAAACTCAAAGAATCATACTGTCAAAGACAGGGTGTTCCAATGAATTCACTCAGGTTTCTCTTTGAGGGTCAGAGAATTGCTGATAATCATACTCCAAAAGAACTGGGAATGGAGGAAGAAGATGTGATTGAAGTTTATCAGGAACAAACGGGGGGTCATTCAACAGTTTAG",
             [{"namespace": "ga4gh", "alias": "SQ.i1KiGldkfULl1XcEI-XBwhiM7x3PK5Xk"}],
-        ),
-        (
-            "MSDQEAKPSTEDLGDKKEGEYIKLKVIGQDSSEIHFKVKMTTHLKKLKESYCQRQGVPMNSLRFLFEGQRIADNHTPKELGMEEEDVIEVYQEQTGGHSTV",
-            [{"namespace": "ga4gh", "alias": "SQ.VkCzFNsbifqfq61Mud6oGmz0ID6CLIip"}],
         ),
         (
             "ATGTCTGACCAGGAGGCAAAACCTTCAACTGAGGACTTGGGGGATAAGAAGGAAGGTGAATATATTAAACTCAAAGTCATTGGACAGGATAGCAGTGAGATTCACTTCAAAGTGAAAATGACAACACATCTCAAGAAACTCAAAGAATCATACTGTCAAAGACAGGGTGTTCCAATGAATTCACTCAGGTTTCTCTTTGAGGGTCAGAGAATTGCTGATAATCATACTCCAAAAGAACTGGGAATGGAGGAAGAAGATGTGATTGAAGTTTATCAGGAACAAACGGGGGGTCATTCAACAGTTTAG",
