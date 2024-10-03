@@ -7,6 +7,7 @@ from importlib.metadata import version
 from pathlib import Path
 
 import click
+from cool_seq_tool.schemas import AnnotationLayer
 
 from dcd_mapping.align import AlignmentError, BlatNotFoundError, align
 from dcd_mapping.annotate import annotate, save_mapped_output_json
@@ -156,16 +157,30 @@ async def map_scoreset(
     _emit_info("Alignment complete.", silent)
 
     _emit_info("Selecting reference sequence...", silent)
-    try:
-        transcript = await select_transcript(metadata, records, alignment_result)
-    except TxSelectError as e:
-        _emit_info(
-            f"Transcript selection failed for scoreset {metadata.urn}",
-            silent,
-            logging.ERROR,
-        )
-        raise e
-    _emit_info("Reference selection complete.", silent)
+
+    # We only need to select a transcript if a score set has only protein variants.
+    # If not, this step can be skipped.
+    transcript = None
+    preferred_layer = None
+    if "urn:mavedb:000000097-a-1" in records[0].accession:
+        preferred_layer = AnnotationLayer.PROTEIN
+    else:
+        preferred_layer = AnnotationLayer.PROTEIN
+        for row in records:
+            if row.hgvs_nt != "NA":
+                preferred_layer = AnnotationLayer.GENOMIC
+
+    if preferred_layer == AnnotationLayer.PROTEIN:
+        try:
+            transcript = await select_transcript(metadata, records, alignment_result)
+        except TxSelectError as e:
+            _emit_info(
+                f"Transcript selection failed for scoreset {metadata.urn}",
+                silent,
+                logging.ERROR,
+            )
+            raise e
+        _emit_info("Reference selection complete.", silent)
 
     _emit_info("Mapping to VRS...", silent)
     try:
