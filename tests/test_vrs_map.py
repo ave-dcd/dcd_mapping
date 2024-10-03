@@ -50,6 +50,7 @@ def get_fixtures_protein(
 
     return _get_fixtures
 
+
 @pytest.fixture()
 def get_fixtures_genomic(
     fixture_data_dir: Path,
