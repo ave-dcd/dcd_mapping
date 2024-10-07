@@ -149,6 +149,21 @@ async def get_protein_accession(transcript: str) -> str | None:
     return None
 
 
+async def check_gene_uta(gene: str) -> bool:
+    """Check if an HGNC gene symbol exists in UTA
+
+    :param gene: An HGNC gene symbol
+    :return: True if the gene symbol exists in UTA, False if not
+    """
+    uta = CoolSeqToolBuilder().uta_db
+    query = f"""
+    SELECT DISTINCT HGNC FROM {uta.schema}.tx_exon_aln_v
+    WHERE hgnc = '{gene}'
+    """  # noqa: S608
+    result = await uta.execute_query(query)
+    return bool(result)
+
+
 async def get_transcripts(
     gene_symbol: str, chromosome_ac: str, start: int, end: int
 ) -> list[str]:
@@ -189,7 +204,7 @@ def check_gene_normalizer() -> None:
         raise DataLookupError
 
 
-def _get_hgnc_symbol(term: str) -> str | None:
+async def _get_hgnc_symbol(term: str) -> str | None:
     """Fetch HGNC symbol from gene term.
 
     :param term: gene referent
@@ -200,11 +215,19 @@ def _get_hgnc_symbol(term: str) -> str | None:
     hgnc = result.source_matches.get(SourceName.HGNC)
     if hgnc and len(hgnc.records) > 0:
         # probably fine to just use first match
-        return hgnc.records[0].symbol
+        symbol = hgnc.records[0].symbol
+        uta_status = await check_gene_uta(symbol)
+        if uta_status is True:
+            return symbol
+        # Check if previous symbol occurs in UTA
+        for symbol in hgnc.records[0].previous_symbols:
+            uta_status = await check_gene_uta(symbol)
+            if uta_status is True:
+                return symbol
     return None
 
 
-def get_gene_symbol(metadata: ScoresetMetadata) -> str | None:
+async def get_gene_symbol(metadata: ScoresetMetadata) -> str | None:
     """Acquire HGNC gene symbol given provided metadata from scoreset.
 
     Right now, we use two sources for normalizing:
@@ -216,7 +239,7 @@ def get_gene_symbol(metadata: ScoresetMetadata) -> str | None:
     :return: gene symbol if available
     """
     if metadata.target_uniprot_ref:
-        result = _get_hgnc_symbol(metadata.target_uniprot_ref.id)
+        result = await _get_hgnc_symbol(metadata.target_uniprot_ref.id)
         if result:
             return result
 
@@ -227,7 +250,7 @@ def get_gene_symbol(metadata: ScoresetMetadata) -> str | None:
             parsed_name = metadata.target_gene_name.split("_")[0]
         else:
             parsed_name = metadata.target_gene_name.split(" ")[0]
-        return _get_hgnc_symbol(parsed_name)
+        return await _get_hgnc_symbol(parsed_name)
     return None
 
 
