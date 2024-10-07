@@ -10,6 +10,7 @@ Data sources/handlers include:
 
 import logging
 import os
+import re
 
 import polars as pl
 import requests
@@ -247,10 +248,13 @@ async def get_gene_symbol(metadata: ScoresetMetadata) -> str | None:
     if metadata.target_gene_name:
         parsed_name = ""
         if "_" in metadata.target_gene_name:
-            parsed_name = metadata.target_gene_name.split("_")[0]
-        else:
-            parsed_name = metadata.target_gene_name.split(" ")[0]
-        return await _get_hgnc_symbol(parsed_name)
+            parsed_name = metadata.target_gene_name.split("_")
+        if " " in metadata.target_gene_name:
+            parsed_name = metadata.target_gene_name.split(" ")
+        for word in parsed_name:
+            gene = await _get_hgnc_symbol(word)
+            if gene:
+                return gene
     return None
 
 
@@ -284,14 +288,24 @@ def _get_normalized_gene_response(
     if metadata.target_gene_name:
         parsed_name = ""
         if "_" in metadata.target_gene_name:
-            parsed_name = metadata.target_gene_name.split("_")[0]
-        else:
-            parsed_name = metadata.target_gene_name.split(" ")[0]
-        gene_descriptor = _normalize_gene(parsed_name)
-        if gene_descriptor:
-            return gene_descriptor
+            parsed_name = metadata.target_gene_name.split("_")
+        if " " in metadata.target_gene_name:
+            parsed_name = metadata.target_gene_name.split(" ")
+        for word in parsed_name:
+            word = extract_potential_gene_symbol(word)
+            gene_descriptor = _normalize_gene(word)
+            if gene_descriptor:
+                return gene_descriptor
 
     return None
+
+
+def extract_potential_gene_symbol(word: str) -> str:
+    """Remove paranetheses from a potential gene symbol
+    :param word: A potential gene symbol
+    :return A potential gene symbol with parantheses extracted
+    """
+    return re.sub(r"[(),]", "", word)
 
 
 def _get_genomic_interval(
