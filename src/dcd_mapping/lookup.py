@@ -271,7 +271,7 @@ def _normalize_gene(term: str) -> Gene | None:
     return None
 
 
-def _get_normalized_gene_response(
+def get_normalized_gene_response(
     metadata: ScoresetMetadata,
 ) -> Gene | None:
     """Fetch best normalized concept given available scoreset metadata.
@@ -302,6 +302,7 @@ def _get_normalized_gene_response(
 
 def extract_potential_gene_symbol(word: str) -> str:
     """Remove paranetheses from a potential gene symbol
+
     :param word: A potential gene symbol
     :return A potential gene symbol with parantheses extracted
     """
@@ -345,7 +346,7 @@ def get_gene_location(metadata: ScoresetMetadata) -> GeneLocation | None:
     :param metadata: data given by MaveDB API
     :return: gene location data if available
     """
-    gene_descriptor = _get_normalized_gene_response(metadata)
+    gene_descriptor = get_normalized_gene_response(metadata)
     if not gene_descriptor or not gene_descriptor.extensions:
         return None
 

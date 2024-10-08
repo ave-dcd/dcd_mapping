@@ -14,9 +14,9 @@ from Bio.SearchIO._model import Hit, QueryResult
 from cool_seq_tool.schemas import Strand
 
 from dcd_mapping.lookup import (
-    _get_normalized_gene_response,
     get_chromosome_identifier,
     get_gene_location,
+    get_normalized_gene_response,
 )
 from dcd_mapping.mavedb_data import (
     LOCAL_STORE_PATH,
@@ -272,7 +272,7 @@ def _get_best_match(output: QueryResult, metadata: ScoresetMetadata) -> Alignmen
     strand = None
     if metadata.target_gene_category == TargetType.PROTEIN_CODING:
         strand_value = None
-        gene_output = _get_normalized_gene_response(metadata)
+        gene_output = get_normalized_gene_response(metadata)
         for extension in gene_output.extensions:
             if extension.name == "strand":
                 strand_value = extension.value
