@@ -229,24 +229,25 @@ def _get_best_hit(output: QueryResult, urn: str, chromosome: str | None) -> Hit:
     return best_score_hit
 
 
-def _get_best_hsp(hit: Hit, urn: str, gene_location: GeneLocation | None) -> HSP:
+def _get_best_hsp(hit: Hit, urn: str, gene_location: GeneLocation | None,
+                  output: QueryResult) -> HSP:
     """Retrieve preferred HSP from BLAT Hit object.
 
-    If gene location data is available, prefer the HSP with the least distance
-    between the start of the hit and the start coordinate of the gene. Otherwise,
-    take the HSP with the highest score value.
+    We select the hsp object with the lowest distance from the start of the
+    corresponding gene and the highest BLAT score
 
     :param hit: hit object from BLAT result
     :param urn: scoreset identifier for use in error messages
     :param gene_location: location data acquired by normalizing scoreset metadata
+    :param output: BLAT result object
     :return: Preferred HSP object
     :raise AlignmentError: if hit object appears to be empty (should be impossible)
     """
     best_hsp = None
-    if gene_location and gene_location.start is not None:
-        best_hsp = min(hit, key=lambda hsp: abs(hsp.hit_start - gene_location.start))
-    else:
-        best_hsp = max(hit, key=lambda hsp: hsp.score)
+    hsp_list = sorted(hit, key=lambda hsp:abs(hsp.hit_start - gene_location.start))
+    hsp_list = sorted(hsp_list, key=lambda hsp: (hsp.query_end - hsp.query_start) /
+                   output.seq_len, reverse=True)
+    best_hsp = hsp_list[0] # Select hit with lowest distance from gene and highest score
     if best_hsp is None:
         _logger.error(
             "Unable to get best HSP from hit -- this should be impossible? urn: %s, hit: %s",
@@ -267,7 +268,7 @@ def _get_best_match(output: QueryResult, metadata: ScoresetMetadata) -> Alignmen
     location = get_gene_location(metadata)
     chromosome = location.chromosome if location else None
     best_hit = _get_best_hit(output, metadata.urn, chromosome)
-    best_hsp = _get_best_hsp(best_hit, metadata.urn, location)
+    best_hsp = _get_best_hsp(best_hit, metadata.urn, location, output)
 
     strand = None
     if metadata.target_gene_category == TargetType.PROTEIN_CODING:

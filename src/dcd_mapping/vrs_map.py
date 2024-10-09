@@ -457,7 +457,20 @@ def _get_variation(
 
         # Run ga4gh_identify to assign VA digest
         allele.id = ga4gh_identify(allele)
-        alleles.append(allele)
+
+        # Check if the start of an allele is covered by the alignment block for
+        # genomic variants
+        if layer == AnnotationLayer.GENOMIC:
+            if pre_map:
+                if (allele.location.start >= alignment.query_range.start
+                and allele.location.start < alignment.query_range.end):
+                    alleles.append(allele)
+            else:
+                if (allele.location.start >= alignment.hit_range.start
+                and allele.location.start < alignment.hit_range.end):
+                    alleles.append(allele)
+        else:
+            alleles.append(allele)
 
     if not alleles:
         return None
@@ -492,7 +505,7 @@ def vrs_map(
         _logger.warning(msg)
         return None
 
-    if metadata.target_gene_category == TargetType.PROTEIN_CODING and transcript:
+    if metadata.target_gene_category == TargetType.PROTEIN_CODING:
         return _map_protein_coding(
             metadata,
             records,
