@@ -249,8 +249,10 @@ async def get_gene_symbol(metadata: ScoresetMetadata) -> str | None:
         parsed_name = ""
         if "_" in metadata.target_gene_name:
             parsed_name = metadata.target_gene_name.split("_")
-        if " " in metadata.target_gene_name:
+        elif " " in metadata.target_gene_name:
             parsed_name = metadata.target_gene_name.split(" ")
+        else:
+            parsed_name = [metadata.target_gene_name]
         for word in parsed_name:
             gene = await _get_hgnc_symbol(word)
             if gene:
