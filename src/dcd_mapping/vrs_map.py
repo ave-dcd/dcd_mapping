@@ -465,12 +465,16 @@ def _get_variation(
         # genomic variants
         if layer == AnnotationLayer.GENOMIC:
             if pre_map:
-                if (allele.location.start >= alignment.query_range.start
-                and allele.location.start < alignment.query_range.end):
+                if (
+                    allele.location.start >= alignment.query_range.start
+                    and allele.location.start < alignment.query_range.end
+                ):
                     alleles.append(allele)
             else:
-                if (allele.location.start >= alignment.hit_range.start
-                and allele.location.start < alignment.hit_range.end):
+                if (
+                    allele.location.start >= alignment.hit_range.start
+                    and allele.location.start < alignment.hit_range.end
+                ):
                     alleles.append(allele)
         else:
             alleles.append(allele)

@@ -229,8 +229,9 @@ def _get_best_hit(output: QueryResult, urn: str, chromosome: str | None) -> Hit:
     return best_score_hit
 
 
-def _get_best_hsp(hit: Hit, urn: str, gene_location: GeneLocation | None,
-                  output: QueryResult) -> HSP:
+def _get_best_hsp(
+    hit: Hit, urn: str, gene_location: GeneLocation | None, output: QueryResult
+) -> HSP:
     """Retrieve preferred HSP from BLAT Hit object.
 
     We select the hsp object with the lowest distance from the start of the
@@ -244,10 +245,15 @@ def _get_best_hsp(hit: Hit, urn: str, gene_location: GeneLocation | None,
     :raise AlignmentError: if hit object appears to be empty (should be impossible)
     """
     best_hsp = None
-    hsp_list = sorted(hit, key=lambda hsp:abs(hsp.hit_start - gene_location.start))
-    hsp_list = sorted(hsp_list, key=lambda hsp: (hsp.query_end - hsp.query_start) /
-                   output.seq_len, reverse=True)
-    best_hsp = hsp_list[0] # Select hit with lowest distance from gene and highest score
+    hsp_list = sorted(hit, key=lambda hsp: abs(hsp.hit_start - gene_location.start))
+    hsp_list = sorted(
+        hsp_list,
+        key=lambda hsp: (hsp.query_end - hsp.query_start) / output.seq_len,
+        reverse=True,
+    )
+    best_hsp = hsp_list[
+        0
+    ]  # Select hit with lowest distance from gene and highest score
     if best_hsp is None:
         _logger.error(
             "Unable to get best HSP from hit -- this should be impossible? urn: %s, hit: %s",
