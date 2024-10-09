@@ -32,7 +32,7 @@ _logger = logging.getLogger(__name__)
     "-s",
     is_flag=True,
     default=False,
-    help="Hide console information",
+    help="Suppress output to stdout",
 )
 @click.option(
     "--output",
