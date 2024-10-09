@@ -26,6 +26,14 @@ _logger = logging.getLogger(__name__)
     help="Enable debug logging",
 )
 @click.option(
+    "--hide",
+    "-h",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Hide console information",
+)
+@click.option(
     "--output",
     "-o",
     type=click.Path(path_type=Path),
@@ -35,6 +43,7 @@ _logger = logging.getLogger(__name__)
 def cli(
     urn: str,
     debug: bool,
+    hide: bool,
     output: Path | None,
 ) -> None:
     """Get VRS mapping on preferred transcript for URN.
@@ -52,7 +61,7 @@ def cli(
     )
     _logger.debug("debug logging enabled")
     try:
-        asyncio.run(map_scoreset_urn(urn, output, silent=False))
+        asyncio.run(map_scoreset_urn(urn, output, silent=hide))
     except (
         LookupError,
         AlignmentError,
