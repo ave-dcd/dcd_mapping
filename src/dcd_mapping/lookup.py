@@ -289,8 +289,10 @@ def get_normalized_gene_response(
         parsed_name = ""
         if "_" in metadata.target_gene_name:
             parsed_name = metadata.target_gene_name.split("_")
-        if " " in metadata.target_gene_name:
+        elif " " in metadata.target_gene_name:
             parsed_name = metadata.target_gene_name.split(" ")
+        else:
+            parsed_name = [metadata.target_gene_name]
         for word in parsed_name:
             word = extract_potential_gene_symbol(word)
             gene_descriptor = _normalize_gene(word)
