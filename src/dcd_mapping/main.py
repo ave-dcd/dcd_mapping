@@ -212,12 +212,15 @@ async def map_scoreset_urn(
     urn: str,
     output_path: Path | None = None,
     silent: bool = True,
+    check_data_prereqs: bool = True,
 ) -> None:
     """Perform end-to-end mapping for a scoreset.
 
     :param urn: identifier for a scoreset.
     :param output_path: optional path to save output at
     :param silent: if True, suppress console information output
+    :param check_data_prereqs: if ``True``, check for external data availability
+    before performing mapping
     """
     try:
         metadata = get_scoreset_metadata(urn)
@@ -227,4 +230,4 @@ async def map_scoreset_urn(
         _logger.critical(msg)
         click.echo(f"Error: {msg}")
         raise e
-    await map_scoreset(metadata, records, output_path, silent)
+    await map_scoreset(metadata, records, output_path, silent, check_data_prereqs)

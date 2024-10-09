@@ -226,11 +226,14 @@ def _map_protein_coding(
     :param align_results: The alignment data for a score set
     :return: A list of mappings
     """
+    gsequence_id = ""
+    psequence_id = ""
     if metadata.target_sequence_type == TargetSequenceType.DNA:
-        sequence = str(
-            Seq(metadata.target_sequence).translate(table="1", stop_symbol="")
-        )
-        psequence_id = store_sequence(sequence)
+        if transcript:
+            sequence = str(
+                Seq(metadata.target_sequence).translate(table="1", stop_symbol="")
+            )
+            psequence_id = store_sequence(sequence)
         gsequence_id = store_sequence(metadata.target_sequence)
     else:
         sequence = metadata.target_sequence
