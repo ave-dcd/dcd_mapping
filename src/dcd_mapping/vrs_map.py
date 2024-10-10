@@ -226,23 +226,28 @@ def _map_protein_coding(
     :param align_results: The alignment data for a score set
     :return: A list of mappings
     """
+    gsequence_id = ""
+    psequence_id = ""
     if metadata.target_sequence_type == TargetSequenceType.DNA:
-        sequence = str(
-            Seq(metadata.target_sequence).translate(table="1", stop_symbol="")
-        )
-        psequence_id = store_sequence(sequence)
+        if transcript:
+            sequence = str(
+                Seq(metadata.target_sequence).translate(table="1", stop_symbol="")
+            )
+            psequence_id = store_sequence(sequence)
         gsequence_id = store_sequence(metadata.target_sequence)
     else:
         sequence = metadata.target_sequence
         psequence_id = gsequence_id = store_sequence(sequence)
 
     variations: list[MappedScore] = []
+
     for row in records:
-        hgvs_pro_mappings = _map_protein_coding_pro(
-            row, align_result, psequence_id, transcript
-        )
-        if hgvs_pro_mappings:
-            variations.append(hgvs_pro_mappings)
+        if transcript:
+            hgvs_pro_mappings = _map_protein_coding_pro(
+                row, align_result, psequence_id, transcript
+            )
+            if hgvs_pro_mappings:
+                variations.append(hgvs_pro_mappings)
         if not _hgvs_nt_is_valid(row.hgvs_nt):
             continue
         hgvs_strings = _create_hgvs_strings(
@@ -455,7 +460,24 @@ def _get_variation(
 
         # Run ga4gh_identify to assign VA digest
         allele.id = ga4gh_identify(allele)
-        alleles.append(allele)
+
+        # Check if the start of an allele is covered by the alignment block for
+        # genomic variants
+        if layer == AnnotationLayer.GENOMIC:
+            if pre_map:
+                if (
+                    allele.location.start >= alignment.query_range.start
+                    and allele.location.start < alignment.query_range.end
+                ):
+                    alleles.append(allele)
+            else:
+                if (
+                    allele.location.start >= alignment.hit_range.start
+                    and allele.location.start < alignment.hit_range.end
+                ):
+                    alleles.append(allele)
+        else:
+            alleles.append(allele)
 
     if not alleles:
         return None
@@ -490,7 +512,7 @@ def vrs_map(
         _logger.warning(msg)
         return None
 
-    if metadata.target_gene_category == TargetType.PROTEIN_CODING and transcript:
+    if metadata.target_gene_category == TargetType.PROTEIN_CODING:
         return _map_protein_coding(
             metadata,
             records,

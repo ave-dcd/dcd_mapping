@@ -52,7 +52,7 @@ async def _get_compatible_transcripts(
     else:
         aligned_chrom = align_result.chrom
     chromosome = get_chromosome_identifier(aligned_chrom)
-    gene_symbol = get_gene_symbol(metadata)
+    gene_symbol = await get_gene_symbol(metadata)
     if not gene_symbol:
         raise TxSelectError
     transcript_matches = []

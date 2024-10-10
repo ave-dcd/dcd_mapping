@@ -7,6 +7,7 @@ from importlib.metadata import version
 from pathlib import Path
 
 import click
+from cool_seq_tool.schemas import AnnotationLayer
 
 from dcd_mapping.align import AlignmentError, BlatNotFoundError, align
 from dcd_mapping.annotate import annotate, save_mapped_output_json
@@ -156,16 +157,31 @@ async def map_scoreset(
     _emit_info("Alignment complete.", silent)
 
     _emit_info("Selecting reference sequence...", silent)
-    try:
-        transcript = await select_transcript(metadata, records, alignment_result)
-    except TxSelectError as e:
-        _emit_info(
-            f"Transcript selection failed for scoreset {metadata.urn}",
-            silent,
-            logging.ERROR,
-        )
-        raise e
-    _emit_info("Reference selection complete.", silent)
+
+    # We only need to select a transcript if a score set has only protein variants.
+    # If not, this step can be skipped.
+    transcript = None
+    preferred_layer = None
+    if "urn:mavedb:000000097-a-1" in records[0].accession:
+        preferred_layer = AnnotationLayer.PROTEIN
+    else:
+        preferred_layer = AnnotationLayer.PROTEIN
+        for row in records:
+            if row.hgvs_nt != "NA":
+                preferred_layer = AnnotationLayer.GENOMIC
+                break
+
+    if preferred_layer == AnnotationLayer.PROTEIN:
+        try:
+            transcript = await select_transcript(metadata, records, alignment_result)
+        except TxSelectError as e:
+            _emit_info(
+                f"Transcript selection failed for scoreset {metadata.urn}",
+                silent,
+                logging.ERROR,
+            )
+            raise e
+        _emit_info("Reference selection complete.", silent)
 
     _emit_info("Mapping to VRS...", silent)
     try:
@@ -196,12 +212,15 @@ async def map_scoreset_urn(
     urn: str,
     output_path: Path | None = None,
     silent: bool = True,
+    check_data_prereqs: bool = True,
 ) -> None:
     """Perform end-to-end mapping for a scoreset.
 
     :param urn: identifier for a scoreset.
     :param output_path: optional path to save output at
     :param silent: if True, suppress console information output
+    :param check_data_prereqs: if ``True``, check for external data availability
+    before performing mapping
     """
     try:
         metadata = get_scoreset_metadata(urn)
@@ -211,4 +230,4 @@ async def map_scoreset_urn(
         _logger.critical(msg)
         click.echo(f"Error: {msg}")
         raise e
-    await map_scoreset(metadata, records, output_path, silent)
+    await map_scoreset(metadata, records, output_path, silent, check_data_prereqs)

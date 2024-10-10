@@ -10,6 +10,7 @@ Data sources/handlers include:
 
 import logging
 import os
+import re
 
 import polars as pl
 import requests
@@ -149,6 +150,21 @@ async def get_protein_accession(transcript: str) -> str | None:
     return None
 
 
+async def check_gene_uta(gene: str) -> bool:
+    """Check if an HGNC gene symbol exists in UTA
+
+    :param gene: An HGNC gene symbol
+    :return: True if the gene symbol exists in UTA, False if not
+    """
+    uta = CoolSeqToolBuilder().uta_db
+    query = f"""
+    SELECT DISTINCT HGNC FROM {uta.schema}.tx_exon_aln_v
+    WHERE hgnc = '{gene}'
+    """  # noqa: S608
+    result = await uta.execute_query(query)
+    return bool(result)
+
+
 async def get_transcripts(
     gene_symbol: str, chromosome_ac: str, start: int, end: int
 ) -> list[str]:
@@ -189,7 +205,7 @@ def check_gene_normalizer() -> None:
         raise DataLookupError
 
 
-def _get_hgnc_symbol(term: str) -> str | None:
+async def _get_hgnc_symbol(term: str) -> str | None:
     """Fetch HGNC symbol from gene term.
 
     :param term: gene referent
@@ -200,11 +216,19 @@ def _get_hgnc_symbol(term: str) -> str | None:
     hgnc = result.source_matches.get(SourceName.HGNC)
     if hgnc and len(hgnc.records) > 0:
         # probably fine to just use first match
-        return hgnc.records[0].symbol
+        symbol = hgnc.records[0].symbol
+        uta_status = await check_gene_uta(symbol)
+        if uta_status is True:
+            return symbol
+        # Check if previous symbol occurs in UTA
+        for symbol in hgnc.records[0].previous_symbols:
+            uta_status = await check_gene_uta(symbol)
+            if uta_status is True:
+                return symbol
     return None
 
 
-def get_gene_symbol(metadata: ScoresetMetadata) -> str | None:
+async def get_gene_symbol(metadata: ScoresetMetadata) -> str | None:
     """Acquire HGNC gene symbol given provided metadata from scoreset.
 
     Right now, we use two sources for normalizing:
@@ -216,14 +240,23 @@ def get_gene_symbol(metadata: ScoresetMetadata) -> str | None:
     :return: gene symbol if available
     """
     if metadata.target_uniprot_ref:
-        result = _get_hgnc_symbol(metadata.target_uniprot_ref.id)
+        result = await _get_hgnc_symbol(metadata.target_uniprot_ref.id)
         if result:
             return result
 
     # try taking the first word in the target name
     if metadata.target_gene_name:
-        parsed_name = metadata.target_gene_name.split(" ")[0]
-        return _get_hgnc_symbol(parsed_name)
+        parsed_name = ""
+        if "_" in metadata.target_gene_name:
+            parsed_name = metadata.target_gene_name.split("_")
+        elif " " in metadata.target_gene_name:
+            parsed_name = metadata.target_gene_name.split(" ")
+        else:
+            parsed_name = [metadata.target_gene_name]
+        for word in parsed_name:
+            gene = await _get_hgnc_symbol(word)
+            if gene:
+                return gene
     return None
 
 
@@ -240,7 +273,7 @@ def _normalize_gene(term: str) -> Gene | None:
     return None
 
 
-def _get_normalized_gene_response(
+def get_normalized_gene_response(
     metadata: ScoresetMetadata,
 ) -> Gene | None:
     """Fetch best normalized concept given available scoreset metadata.
@@ -255,12 +288,29 @@ def _get_normalized_gene_response(
 
     # try taking the first word in the target name
     if metadata.target_gene_name:
-        parsed_name = metadata.target_gene_name.split(" ")[0]
-        gene_descriptor = _normalize_gene(parsed_name)
-        if gene_descriptor:
-            return gene_descriptor
+        parsed_name = ""
+        if "_" in metadata.target_gene_name:
+            parsed_name = metadata.target_gene_name.split("_")
+        elif " " in metadata.target_gene_name:
+            parsed_name = metadata.target_gene_name.split(" ")
+        else:
+            parsed_name = [metadata.target_gene_name]
+        for word in parsed_name:
+            word = extract_potential_gene_symbol(word)
+            gene_descriptor = _normalize_gene(word)
+            if gene_descriptor:
+                return gene_descriptor
 
     return None
+
+
+def extract_potential_gene_symbol(word: str) -> str:
+    """Remove paranetheses from a potential gene symbol
+
+    :param word: A potential gene symbol
+    :return A potential gene symbol with parantheses extracted
+    """
+    return re.sub(r"[(),]", "", word)
 
 
 def _get_genomic_interval(
@@ -300,7 +350,7 @@ def get_gene_location(metadata: ScoresetMetadata) -> GeneLocation | None:
     :param metadata: data given by MaveDB API
     :return: gene location data if available
     """
-    gene_descriptor = _get_normalized_gene_response(metadata)
+    gene_descriptor = get_normalized_gene_response(metadata)
     if not gene_descriptor or not gene_descriptor.extensions:
         return None
 
