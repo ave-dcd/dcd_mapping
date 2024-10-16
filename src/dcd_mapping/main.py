@@ -162,7 +162,7 @@ async def map_scoreset(
     # If not, this step can be skipped.
     transcript = None
     preferred_layer = None
-    if "urn:mavedb:000000097-a-1" in records[0].accession:
+    if "urn:mavedb:00000097" in records[0].accession:
         preferred_layer = AnnotationLayer.PROTEIN
     else:
         preferred_layer = AnnotationLayer.PROTEIN
