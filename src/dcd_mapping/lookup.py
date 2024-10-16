@@ -186,7 +186,8 @@ async def get_transcripts(
     SELECT tx_ac
     FROM {uta.schema}.tx_exon_aln_v
     WHERE hgnc = '{gene_symbol}'
-      AND ({start} BETWEEN alt_start_i AND alt_end_i OR {end} BETWEEN alt_start_i AND alt_end_i)
+      AND ({start} BETWEEN alt_start_i AND alt_end_i OR {end} BETWEEN alt_start_i AND
+      alt_end_i OR (alt_start_i >= {start} AND alt_end_i <= {end}))
       AND alt_ac = '{chromosome_ac}'
       AND tx_ac NOT LIKE 'NR_%';
     """  # noqa: S608
