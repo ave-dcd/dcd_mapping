@@ -235,7 +235,8 @@ def _get_best_hsp(
     """Retrieve preferred HSP from BLAT Hit object.
 
     We select the hsp object with the lowest distance from the start of the
-    corresponding gene and the highest BLAT score
+    corresponding gene and the highest BLAT score. We omit the first sorting step
+    when a gene symbol is not associated with a score set
 
     :param hit: hit object from BLAT result
     :param urn: scoreset identifier for use in error messages
@@ -245,7 +246,11 @@ def _get_best_hsp(
     :raise AlignmentError: if hit object appears to be empty (should be impossible)
     """
     best_hsp = None
-    hsp_list = sorted(hit, key=lambda hsp: abs(hsp.hit_start - gene_location.start))
+    hsp_list = (
+        sorted(hit, key=lambda hsp: abs(hsp.hit_start - gene_location.start))
+        if gene_location
+        else hit
+    )
     hsp_list = sorted(
         hsp_list,
         key=lambda hsp: (hsp.query_end - hsp.query_start) / output.seq_len,
