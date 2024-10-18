@@ -288,7 +288,7 @@ def get_normalized_gene_response(
             return gene_descriptor
 
     # try taking the first word in the target name
-    if metadata.target_gene_name:
+    if metadata.target_gene_name and "Minigene" not in metadata.target_gene_name:
         parsed_name = ""
         if "_" in metadata.target_gene_name:
             parsed_name = metadata.target_gene_name.split("_")

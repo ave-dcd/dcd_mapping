@@ -4,6 +4,9 @@ import logging
 import os
 import subprocess
 import tempfile
+from collections import namedtuple
+from itertools import groupby
+from operator import attrgetter
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -246,19 +249,30 @@ def _get_best_hsp(
     :raise AlignmentError: if hit object appears to be empty (should be impossible)
     """
     best_hsp = None
-    hsp_list = (
-        sorted(hit, key=lambda hsp: abs(hsp.hit_start - gene_location.start))
-        if gene_location
-        else hit
-    )
-    hsp_list = sorted(
-        hsp_list,
-        key=lambda hsp: (hsp.query_end - hsp.query_start) / output.seq_len,
-        reverse=True,
-    )
-    best_hsp = hsp_list[
-        0
-    ]  # Select hit with lowest distance from gene and highest score
+    hsp_list = []
+    if gene_location is None:  # If gene data is not present, sort by coverage
+        hsp_list = sorted(
+            hit, key=lambda hsp: (hsp.query_end - hsp.query_start) / output.seq_len
+        )
+        best_hsp = hsp_list[0]
+    else:  # Sort by distance from gene start, than by coverage
+        for hsp in hit:
+            BlatOutput = namedtuple("BlatOutput", ["hsp", "distance", "coverage"])
+            hsp_list.append(
+                BlatOutput(
+                    hsp,
+                    abs(hsp.hit_start - gene_location.start),
+                    (hsp.query_end - hsp.query_start) / output.seq_len,
+                )
+            )
+        hsp_list = sorted(hsp_list, key=attrgetter("distance"))
+        hsp_list_sorted = []
+        for _, group in groupby(hsp_list, key=attrgetter("distance")):
+            sorted_by_coverage = sorted(group, key=attrgetter("coverage"), reverse=True)
+            hsp_list_sorted.append(list(sorted_by_coverage))
+        hsp_list = [item for sublist in hsp_list_sorted for item in sublist]
+
+        best_hsp = hsp_list[0].hsp
     if best_hsp is None:
         _logger.error(
             "Unable to get best HSP from hit -- this should be impossible? urn: %s, hit: %s",

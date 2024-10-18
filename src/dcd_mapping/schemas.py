@@ -145,7 +145,7 @@ class MappedScore(BaseModel):
     annotation_layer: AnnotationLayer
     score: str | None
     pre_mapped: Allele | CisPhasedBlock
-    post_mapped: Allele | CisPhasedBlock
+    post_mapped: Allele | CisPhasedBlock | None
 
 
 class ScoreAnnotation(BaseModel):

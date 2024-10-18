@@ -267,7 +267,7 @@ def _map_protein_coding(
             align_result,
             False,
         )
-        if pre_mapped_genomic is None or post_mapped_genomic is None:
+        if pre_mapped_genomic is None and post_mapped_genomic is None:
             _logger.warning(
                 "Encountered apparently invalid genomic variants in %s: %s",
                 row.accession,
@@ -330,7 +330,7 @@ def _map_regulatory_noncoding(
             False,
             offset=0,
         )
-        if not pre_map_allele or not post_map_allele:
+        if not pre_map_allele and not post_map_allele:
             msg = "Genomic variations missing"
             raise VrsMapError(msg)
         variations.append(
@@ -462,14 +462,10 @@ def _get_variation(
         allele.id = ga4gh_identify(allele)
 
         # Check if the start of an allele is covered by the alignment block for
-        # genomic variants
+        # post-mapped genomic variants
         if layer == AnnotationLayer.GENOMIC:
             if pre_map:
-                if (
-                    allele.location.start >= alignment.query_range.start
-                    and allele.location.start < alignment.query_range.end
-                ):
-                    alleles.append(allele)
+                alleles.append(allele)
             else:
                 if (
                     allele.location.start >= alignment.hit_range.start
