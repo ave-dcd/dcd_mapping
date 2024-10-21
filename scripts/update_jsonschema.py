@@ -1,4 +1,7 @@
-"""Update `schema.json` with latest output schema."""
+"""Update `schema.json` with latest output schema.
+
+% python3 ./scripts/update_jsonschema.py
+"""
 
 import json
 from pathlib import Path
