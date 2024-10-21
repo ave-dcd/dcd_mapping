@@ -167,6 +167,7 @@ ignore = [
 # B011 - assert-false
 # INP001 - implicit-namespace-package
 "tests/*" = ["ANN001", "ANN2", "ANN102", "S101", "B011", "D103", "INP001"]
+"scripts/*" = ["INP001"]
 
 [tool.ruff.format]
 docstring-code-format = true
