@@ -393,6 +393,8 @@ def _get_variation(
     for hgvs_string in hgvs_strings:
         # Generate VRS Allele structure. Set VA digests and SL digests to None
         allele = translate_hgvs_to_vrs(hgvs_string)
+        if allele is None:
+            break
         allele.id = None
         allele.digest = None
         allele.location.id = None
