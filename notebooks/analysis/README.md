@@ -6,7 +6,7 @@ Code for data analysis and figure generation for ["Mapping MAVE data for use in 
 * [`mapping_analysis.ipynb`](mapping_analysis.ipynb): This notebook computes reference sequence concordance across the generated VRS mapping pairs. The notebook also computes the number of unique pre-mapped and post-mapped variants.
 * [`mavedb_scoreset_breakdown.ipynb`](mavedb_scoreset_breakdown.ipynb): This notebook generates the summary statistics that are described in the manuscript.
 
-**Note that these notebooks may not be using the most recent [`release`](https://github.com/ave-dcd/dcd_mapping/tree/0.1.3) of the `dcd_mapping` library** -- they are intended to reflect the state of the code at the time of artifact generation, without any features that have been added since. The included `requirements.txt` file should produce an environment matching this expectation.
+**Note that these notebooks may not be using the most recent [`release`](https://github.com/ave-dcd/dcd_mapping/tree/0.1.3) of the `dcd_mapping` library** -- they are intended to reflect the state of the code at the time of artifact generation (manuscript submission in June 2024), without any features that have been added since. The included `requirements.txt` file should produce an environment matching this expectation.
 
 ## Environment
 
