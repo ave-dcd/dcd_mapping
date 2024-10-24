@@ -288,7 +288,7 @@ def get_normalized_gene_response(
             return gene_descriptor
 
     # try taking the first word in the target name
-    if metadata.target_gene_name:
+    if metadata.target_gene_name and "Minigene" not in metadata.target_gene_name:
         parsed_name = ""
         if "_" in metadata.target_gene_name:
             parsed_name = metadata.target_gene_name.split("_")
@@ -489,7 +489,7 @@ def get_sequence(
 # -------------------------------- VRS-Python -------------------------------- #
 
 
-def translate_hgvs_to_vrs(hgvs: str) -> Allele:
+def translate_hgvs_to_vrs(hgvs: str) -> Allele | None:
     """Convert HGVS variation description to VRS object.
 
     :param hgvs: MAVE-HGVS variation string
@@ -500,7 +500,11 @@ def translate_hgvs_to_vrs(hgvs: str) -> Allele:
         hgvs = hgvs.replace(":c.", ":g.")
 
     tr = TranslatorBuilder(get_seqrepo())
-    allele: Allele = tr.translate_from(hgvs, "hgvs", do_normalize=False)
+    try:
+        allele: Allele = tr.translate_from(hgvs, "hgvs", do_normalize=False)
+    except ValueError as warn:
+        _logger.warning(warn)
+        return None
 
     if (
         not isinstance(allele.location, SequenceLocation)
