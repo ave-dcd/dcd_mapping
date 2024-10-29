@@ -145,7 +145,7 @@ class MappedScore(BaseModel):
     annotation_layer: AnnotationLayer
     score: str | None
     pre_mapped: Allele | CisPhasedBlock
-    post_mapped: Allele | CisPhasedBlock | None
+    post_mapped: Allele | CisPhasedBlock
 
 
 class ScoreAnnotation(BaseModel):
@@ -155,7 +155,7 @@ class ScoreAnnotation(BaseModel):
     """
 
     pre_mapped: CisPhasedBlock | Allele
-    post_mapped: CisPhasedBlock | Allele
+    post_mapped: CisPhasedBlock | Allele | None
     mavedb_id: StrictStr
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
     score: float | None

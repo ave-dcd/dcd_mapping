@@ -53,6 +53,27 @@ def _get_vrs_1_3_ext(allele: Allele) -> Extension:
     )
 
 
+def _get_va_digest(allele: Allele) -> Extension:
+    """Return the VA digest for a pre-mapped allele
+    :param allele: A pre-mapped variant
+    :return A VRS extension reporting the pre-mapped digest
+    """
+    return Extension(name="pre_mapped_digest", value=allele.id)
+
+
+def _is_valid_allele(allele: Allele, align_result: AlignmentResult) -> bool:
+    """Check if a post-mapped allele occurs within the alignment coverage
+    :param allele: A post-mapped allele
+    :param align_result: Alignment data
+    :return True if position occurs in coverage, False if not
+    """
+    return (
+        align_result.query_range.start
+        <= allele.location.start
+        <= align_result.query_range.end
+    )
+
+
 def _offset_allele_ref_seq(ss: str, start: int, end: int) -> tuple[int, int]:
     """Handle known edge cases in start and end coordinates for vrs_ref_allele_seq."""
     if ss.startswith("urn:mavedb:00000060-a-1"):
@@ -179,6 +200,7 @@ def _annotate_allele_mapping(
     mapped_score: MappedScore,
     tx_results: TxSelectResult | None,
     metadata: ScoresetMetadata,
+    align_result: AlignmentResult,
 ) -> ScoreAnnotationWithLayer:
     """Perform annotations for allele mappings."""
     pre_mapped: Allele = mapped_score.pre_mapped
@@ -210,12 +232,19 @@ def _annotate_allele_mapping(
     post_mapped.extensions = [
         Extension(name="vrs_ref_allele_seq", value=ref),
         _get_vrs_1_3_ext(post_mapped),
+        _get_va_digest(pre_mapped),
     ]
     hgvs_string, syntax = _get_hgvs_string(post_mapped, accession)
     post_mapped.expressions = [Expression(syntax=syntax, value=hgvs_string)]
 
     namespace = metadata.urn
     val = mapped_score.accession_id.split("#")[1]
+
+    # Check if post-mapped allele is valid
+    if mapped_score.annotation_layer == AnnotationLayer.GENOMIC:
+        post_mapped = (
+            post_mapped if _is_valid_allele(pre_mapped, align_result) else None
+        )
 
     return ScoreAnnotationWithLayer(
         pre_mapped=pre_mapped,
@@ -240,7 +269,10 @@ def _get_vrs_1_3_haplotype_id(cpb: CisPhasedBlock) -> str:
 
 
 def _annotate_cpb_mapping(
-    mapping: MappedScore, tx_results: TxSelectResult | None, metadata: ScoresetMetadata
+    mapping: MappedScore,
+    tx_results: TxSelectResult | None,
+    metadata: ScoresetMetadata,
+    align_result: AlignmentResult,
 ) -> ScoreAnnotationWithLayer:
     """Perform annotations and create VRS 1.3 equivalents for CisPhasedBlock mappings."""
     pre_mapped: CisPhasedBlock = mapping.pre_mapped  # type: ignore
@@ -267,23 +299,35 @@ def _annotate_cpb_mapping(
         accession = tx_results.np
 
     sr = get_seqrepo()
-    for allele in post_mapped.members:
-        loc = allele.location
+    valid_post_mapped_alleles = []
+    for post_mapped_allele, pre_mapped_allele in zip(
+        post_mapped.members, pre_mapped.members, strict=True
+    ):
+        loc = post_mapped_allele.location
         sequence_id = f"ga4gh:{loc.sequenceReference.refgetAccession}"
         ref = sr.get_sequence(sequence_id, loc.start, loc.end)
-        allele.extensions = [
+        post_mapped_allele.extensions = [
             Extension(name="vrs_ref_allele_seq", value=ref),
-            _get_vrs_1_3_ext(allele),
+            _get_vrs_1_3_ext(post_mapped_allele),
+            _get_va_digest(pre_mapped_allele),
         ]
-        hgvs, syntax = _get_hgvs_string(allele, accession)
-        allele.expressions = [Expression(syntax=syntax, value=hgvs)]
+        hgvs, syntax = _get_hgvs_string(post_mapped_allele, accession)
+        post_mapped_allele.expressions = [Expression(syntax=syntax, value=hgvs)]
+        if mapping.annotation_layer == AnnotationLayer.GENOMIC and _is_valid_allele(
+            pre_mapped_allele, align_result
+        ):
+            valid_post_mapped_alleles.append(post_mapped_allele)
+    post_mapped.members = valid_post_mapped_alleles
 
     pre_mapped.extensions = [
         Extension(name="vrs_v1.3_id", value=_get_vrs_1_3_haplotype_id(pre_mapped))
     ]
-    post_mapped.extensions = [
-        Extension(name="vrs_v1.3_id", value=_get_vrs_1_3_haplotype_id(post_mapped))
-    ]
+    if len(post_mapped.members) >= 2:
+        post_mapped.extensions = [
+            Extension(name="vrs_v1.3_id", value=_get_vrs_1_3_haplotype_id(post_mapped)),
+        ]
+    else:
+        post_mapped = post_mapped.members[0]
 
     namespace = metadata.urn
     val = mapping.accession_id.split("#")[1]
@@ -301,6 +345,7 @@ def annotate(
     mapped_scores: list[MappedScore],
     tx_results: TxSelectResult | None,
     metadata: ScoresetMetadata,
+    align_result: AlignmentResult,
 ) -> list[ScoreAnnotationWithLayer]:
     """Given a list of mappings, add additional contextual data:
 
@@ -316,6 +361,7 @@ def annotate(
     :param vrs_results: in-progress variant mappings
     :param tx_select_results: transcript selection if available
     :param metadata: MaveDB scoreset metadata
+    :param align_result: Alignment data
     :return: annotated mappings objects
     """
     score_annotations = []
@@ -324,13 +370,15 @@ def annotate(
             mapped_score.post_mapped, CisPhasedBlock
         ):
             score_annotations.append(
-                _annotate_cpb_mapping(mapped_score, tx_results, metadata)
+                _annotate_cpb_mapping(mapped_score, tx_results, metadata, align_result)
             )
         elif isinstance(mapped_score.pre_mapped, Allele) and isinstance(
             mapped_score.post_mapped, Allele
         ):
             score_annotations.append(
-                _annotate_allele_mapping(mapped_score, tx_results, metadata)
+                _annotate_allele_mapping(
+                    mapped_score, tx_results, metadata, align_result
+                )
             )
         else:
             ValueError("inconsistent variant structure")
