@@ -21,6 +21,7 @@ from ga4gh.vrs.models import (
     CisPhasedBlock,
     Expression,
     LiteralSequenceExpression,
+    SequenceString,
 )
 
 from dcd_mapping.lookup import (
@@ -115,7 +116,7 @@ def _get_vrs_ref_allele_seq(
         ref = sr.get_sequence(seq, start, end)
         if ref is None:
             raise ValueError
-    return Extension(name="vrs_ref_allele_seq", value=ref)
+    return SequenceString(root=ref)
 
 
 def _get_hgvs_string(allele: Allele, accession: str) -> tuple[str, Syntax]:
@@ -208,9 +209,11 @@ def _annotate_allele_mapping(
 
     # get vrs_ref_allele_seq for pre-mapped variants
     pre_mapped.extensions = [
-        _get_vrs_ref_allele_seq(pre_mapped, metadata, tx_results),
         _get_vrs_1_3_ext(pre_mapped),
     ]
+    pre_mapped.location.sequence = _get_vrs_ref_allele_seq(
+        pre_mapped, metadata, tx_results
+    )
 
     # Determine reference sequence
     if mapped_score.annotation_layer == AnnotationLayer.GENOMIC:
@@ -228,9 +231,10 @@ def _annotate_allele_mapping(
     sr = get_seqrepo()
     loc = mapped_score.post_mapped.location
     sequence_id = f"ga4gh:{loc.sequenceReference.refgetAccession}"
-    ref = sr.get_sequence(sequence_id, loc.start, loc.end)
+    post_mapped.location.sequence = SequenceString(
+        root=sr.get_sequence(sequence_id, loc.start, loc.end)
+    )
     post_mapped.extensions = [
-        Extension(name="vrs_ref_allele_seq", value=ref),
         _get_vrs_1_3_ext(post_mapped),
         _get_va_digest(pre_mapped),
     ]
@@ -245,6 +249,10 @@ def _annotate_allele_mapping(
         post_mapped = (
             post_mapped if _is_valid_allele(pre_mapped, align_result) else None
         )
+
+    # Remove extra digest attributes
+    pre_mapped.digest = None
+    post_mapped.digest = None
 
     return ScoreAnnotationWithLayer(
         pre_mapped=pre_mapped,
@@ -280,9 +288,10 @@ def _annotate_cpb_mapping(
     # get vrs_ref_allele_seq for pre-mapped variants
     for allele in pre_mapped.members:
         allele.extensions = [
-            _get_vrs_ref_allele_seq(allele, metadata, tx_results),
             _get_vrs_1_3_ext(allele),
         ]
+        allele.location.sequence = _get_vrs_ref_allele_seq(allele, metadata, tx_results)
+        allele.digest = None
     # Determine reference sequence
     if mapping.annotation_layer == AnnotationLayer.GENOMIC:
         sequence_id = (
@@ -305,9 +314,10 @@ def _annotate_cpb_mapping(
     ):
         loc = post_mapped_allele.location
         sequence_id = f"ga4gh:{loc.sequenceReference.refgetAccession}"
-        ref = sr.get_sequence(sequence_id, loc.start, loc.end)
+        post_mapped_allele.location.sequence = SequenceString(
+            root=sr.get_sequence(sequence_id, loc.start, loc.end)
+        )
         post_mapped_allele.extensions = [
-            Extension(name="vrs_ref_allele_seq", value=ref),
             _get_vrs_1_3_ext(post_mapped_allele),
             _get_va_digest(pre_mapped_allele),
         ]
@@ -317,6 +327,7 @@ def _annotate_cpb_mapping(
             pre_mapped_allele, align_result
         ):
             valid_post_mapped_alleles.append(post_mapped_allele)
+        post_mapped_allele.digest = None
     post_mapped.members = valid_post_mapped_alleles
 
     pre_mapped.extensions = [

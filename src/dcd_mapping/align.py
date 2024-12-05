@@ -165,9 +165,16 @@ def _get_blat_output(metadata: ScoresetMetadata, silent: bool) -> QueryResult:
     """
     with tempfile.NamedTemporaryFile() as query_file:
         query_file = _build_query_file(metadata, Path(query_file.name))
+        if len(metadata.target_sequence) > 25000:
+            msg = f"Target sequence for {metadata.urn} must have a length <= 25000 to run BLAT"
+            raise AlignmentError(msg)
+
         if metadata.target_sequence_type == TargetSequenceType.PROTEIN:
             target_args = "-q=prot -t=dnax"
-        elif metadata.target_gene_category == TargetType.PROTEIN_CODING:
+        elif (
+            metadata.target_gene_category == TargetType.PROTEIN_CODING
+            and len(metadata.target_sequence) <= 10000
+        ):
             target_args = "-q=dnax -t=dnax"
         else:
             target_args = ""

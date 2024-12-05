@@ -462,7 +462,6 @@ def _get_variation(
 
         # Run ga4gh_identify to assign VA digest
         allele.id = ga4gh_identify(allele)
-        allele.digest = None
         alleles.append(allele)
 
     if not alleles:

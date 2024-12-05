@@ -370,11 +370,7 @@
                     "title": "Version"
                 },
                 "code": {
-                    "allOf": [
-                        {
-                            "$ref": "#/$defs/Code"
-                        }
-                    ],
+                    "$ref": "#/$defs/Code",
                     "description": "A symbol uniquely identifying the concept, as in a syntax defined by the code system. CURIE format is preferred where possible (e.g. 'SO:0000704' is the CURIE form of the Sequence Ontology code for 'gene')."
                 }
             },
@@ -412,19 +408,11 @@
             "description": "A mapping to a concept in a terminology or code system.",
             "properties": {
                 "coding": {
-                    "allOf": [
-                        {
-                            "$ref": "#/$defs/Coding"
-                        }
-                    ],
+                    "$ref": "#/$defs/Coding",
                     "description": "A structured representation of a code for a defined concept in a terminology or code system."
                 },
                 "relation": {
-                    "allOf": [
-                        {
-                            "$ref": "#/$defs/Relation"
-                        }
-                    ],
+                    "$ref": "#/$defs/Relation",
                     "description": "A mapping relation between concepts as defined by the Simple Knowledge Organization System (SKOS)."
                 }
             },
@@ -439,11 +427,7 @@
             "description": "Representation of a variation by a specified nomenclature or syntax for a\nVariation object. Common examples of expressions for the description of molecular\nvariation include the HGVS and ISCN nomenclatures.",
             "properties": {
                 "syntax": {
-                    "allOf": [
-                        {
-                            "$ref": "#/$defs/Syntax"
-                        }
-                    ],
+                    "$ref": "#/$defs/Syntax",
                     "description": "The syntax used to describe the variation. The value should be one of the supported syntaxes."
                 },
                 "value": {
@@ -751,11 +735,7 @@
                     "title": "Mappings"
                 },
                 "sequence": {
-                    "allOf": [
-                        {
-                            "$ref": "#/$defs/SequenceString"
-                        }
-                    ],
+                    "$ref": "#/$defs/SequenceString",
                     "description": "the literal sequence"
                 }
             },
@@ -972,10 +952,10 @@
                 "pre_mapped": {
                     "anyOf": [
                         {
-                            "$ref": "#/$defs/Allele"
+                            "$ref": "#/$defs/CisPhasedBlock"
                         },
                         {
-                            "$ref": "#/$defs/CisPhasedBlock"
+                            "$ref": "#/$defs/Allele"
                         }
                     ],
                     "title": "Pre Mapped"
@@ -983,10 +963,13 @@
                 "post_mapped": {
                     "anyOf": [
                         {
+                            "$ref": "#/$defs/CisPhasedBlock"
+                        },
+                        {
                             "$ref": "#/$defs/Allele"
                         },
                         {
-                            "$ref": "#/$defs/CisPhasedBlock"
+                            "type": "null"
                         }
                     ],
                     "title": "Post Mapped"
