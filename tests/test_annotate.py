@@ -5,7 +5,12 @@ from unittest.mock import MagicMock
 import pytest
 
 from dcd_mapping.annotate import annotate
-from dcd_mapping.schemas import MappedScore, ScoresetMetadata, TxSelectResult
+from dcd_mapping.schemas import (
+    AlignmentResult,
+    MappedScore,
+    ScoresetMetadata,
+    TxSelectResult,
+)
 
 
 @pytest.fixture()
@@ -13,12 +18,14 @@ def get_fixtures(
     scoreset_metadata_fixture: dict[str, ScoresetMetadata],
     transcript_results_fixture: dict[str, TxSelectResult],
     mapped_scores_fixture: dict[str, list[MappedScore]],
+    align_result_fixture: dict[str, AlignmentResult],
 ):
     def _get_fixtures(urn: str):
         return (
             mapped_scores_fixture[urn],
             transcript_results_fixture[urn],
             scoreset_metadata_fixture[urn],
+            align_result_fixture[urn],
         )
 
     return _get_fixtures
@@ -26,9 +33,9 @@ def get_fixtures(
 
 def test_2_a_2(get_fixtures, mock_seqrepo_access: MagicMock):  # noqa: ARG001
     urn = "urn:mavedb:00000002-a-2"
-    mapped_scores, tx_results, metadata = get_fixtures(urn)
+    mapped_scores, tx_results, metadata, align_result = get_fixtures(urn)
 
-    annotate_result = annotate(mapped_scores, tx_results, metadata)
+    annotate_result = annotate(mapped_scores, tx_results, metadata, align_result)
 
     expected_list = [
         {

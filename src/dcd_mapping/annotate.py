@@ -323,7 +323,7 @@ def _annotate_cpb_mapping(
         ]
         hgvs, syntax = _get_hgvs_string(post_mapped_allele, accession)
         post_mapped_allele.expressions = [Expression(syntax=syntax, value=hgvs)]
-        if mapping.annotation_layer == AnnotationLayer.GENOMIC and _is_valid_allele(
+        if mapping.annotation_layer == AnnotationLayer.PROTEIN or _is_valid_allele(
             pre_mapped_allele, align_result
         ):
             valid_post_mapped_alleles.append(post_mapped_allele)
