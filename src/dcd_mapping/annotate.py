@@ -59,7 +59,7 @@ def _get_va_digest(allele: Allele) -> Extension:
     :param allele: A pre-mapped variant
     :return A VRS extension reporting the pre-mapped digest
     """
-    return Extension(name="pre_mapped_digest", value=allele.id)
+    return Extension(name="pre_mapped_id", value=allele.id)
 
 
 def _is_valid_allele(allele: Allele, align_result: AlignmentResult) -> bool:
