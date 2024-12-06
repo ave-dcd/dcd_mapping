@@ -197,7 +197,7 @@ async def map_scoreset(
     _emit_info("VRS mapping complete.", silent)
 
     _emit_info("Annotating metadata and saving to file...", silent)
-    vrs_results = annotate(vrs_results, transcript, metadata)
+    vrs_results = annotate(vrs_results, transcript, metadata, alignment_result)
     final_output = save_mapped_output_json(
         metadata.urn,
         vrs_results,

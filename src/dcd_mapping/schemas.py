@@ -18,9 +18,9 @@ class TargetSequenceType(str, Enum):
 class TargetType(str, Enum):
     """Define target gene types."""
 
-    PROTEIN_CODING = "Protein coding"
-    REGULATORY = "Regulatory"
-    OTHER_NC = "Other noncoding"
+    PROTEIN_CODING = "protein_coding"
+    REGULATORY = "regulatory"
+    OTHER_NC = "other_noncoding"
 
 
 class UniProtRef(BaseModel):
@@ -145,7 +145,7 @@ class MappedScore(BaseModel):
     annotation_layer: AnnotationLayer
     score: str | None
     pre_mapped: Allele | CisPhasedBlock
-    post_mapped: Allele | CisPhasedBlock | None
+    post_mapped: Allele | CisPhasedBlock
 
 
 class ScoreAnnotation(BaseModel):
@@ -155,7 +155,7 @@ class ScoreAnnotation(BaseModel):
     """
 
     pre_mapped: CisPhasedBlock | Allele
-    post_mapped: CisPhasedBlock | Allele
+    post_mapped: CisPhasedBlock | Allele | None
     mavedb_id: StrictStr
     relation: Literal["SO:is_homologous_to"] = "SO:is_homologous_to"
     score: float | None

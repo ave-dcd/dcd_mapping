@@ -462,20 +462,7 @@ def _get_variation(
 
         # Run ga4gh_identify to assign VA digest
         allele.id = ga4gh_identify(allele)
-
-        # Check if the start of an allele is covered by the alignment block for
-        # post-mapped genomic variants
-        if layer == AnnotationLayer.GENOMIC:
-            if pre_map:
-                alleles.append(allele)
-            else:
-                if (
-                    allele.location.start >= alignment.hit_range.start
-                    and allele.location.start < alignment.hit_range.end
-                ):
-                    alleles.append(allele)
-        else:
-            alleles.append(allele)
+        alleles.append(allele)
 
     if not alleles:
         return None
