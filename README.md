@@ -8,7 +8,11 @@
 
 <!-- description -->
 
-This library implements a novel method for mapping [MaveDB scoreset data](https://mavedb.org/) to [GA4GH Variation Representation Specification (VRS 2.0)](https://vrs.ga4gh.org/en/2.x/) objects, enhancing interoperability for genomic medicine applications. See [Arbesfeld et. al. (2023)](https://www.biorxiv.org/content/10.1101/2023.06.20.545702v1) for a preprint edition of the mapping manuscript, or [download the resulting mappings directly](https://mavedb-mapping.s3.us-east-2.amazonaws.com/20241023_mapped_score_sets.tar.gz).
+This library implements a novel method for mapping [MaveDB scoreset data](https://mavedb.org/) to [GA4GH Variation Representation Specification (VRS 2.0)](https://vrs.ga4gh.org/en/2.x/) objects, enhancing interoperability for genomic medicine applications. See [Arbesfeld et. al. (2024)](https://www.biorxiv.org/content/10.1101/2023.06.20.545702) for a preprint edition of the mapping manuscript, or [download the resulting mappings directly](https://mavedb-mapping.s3.us-east-2.amazonaws.com/20241023_mapped_score_sets.tar.gz).
+
+If you make use of this software or the resultant mappings, please cite the manuscript:
+
+> Jeremy A. Arbesfeld, Estelle Y. Da, James S. Stevenson, Kori Kuzma, Anika Paul, Tierra Farris, Benjamin J. Capodanno, Sally B. Grindstaff, Kevin Riehle, Nuno Saraiva-Agostinho, Jordan F. Safer, Aleksandar Milosavljevic, Julia Foreman, Helen V. Firth, Sarah E. Hunt, Sumaiya Iqbal, Melissa S. Cline, Alan F. Rubin, Alex H. Wagner. bioRxiv 2023.06.20.545702; doi: [https://doi.org/10.1101/2023.06.20.545702](https://doi.org/10.1101/2023.06.20.545702)
 
 <!-- /description -->
 
