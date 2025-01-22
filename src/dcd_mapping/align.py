@@ -165,10 +165,6 @@ def _get_blat_output(metadata: ScoresetMetadata, silent: bool) -> QueryResult:
     """
     with tempfile.NamedTemporaryFile() as query_file:
         query_file = _build_query_file(metadata, Path(query_file.name))
-        if len(metadata.target_sequence) > 25000:
-            msg = f"Target sequence for {metadata.urn} must have a length <= 25000 to run BLAT"
-            raise AlignmentError(msg)
-
         if metadata.target_sequence_type == TargetSequenceType.PROTEIN:
             target_args = "-q=prot -t=dnax"
         elif (
@@ -240,7 +236,10 @@ def _get_best_hit(output: QueryResult, urn: str, chromosome: str | None) -> Hit:
 
 
 def _get_best_hsp(
-    hit: Hit, urn: str, gene_location: GeneLocation | None, output: QueryResult
+    hit: Hit,
+    metadata: ScoresetMetadata,
+    gene_location: GeneLocation | None,
+    output: QueryResult,
 ) -> HSP:
     """Retrieve preferred HSP from BLAT Hit object.
 
@@ -262,13 +261,15 @@ def _get_best_hsp(
             hit, key=lambda hsp: (hsp.query_end - hsp.query_start) / output.seq_len
         )
         best_hsp = hsp_list[0]
-    else:  # Sort by distance from gene start, than by coverage
+    else:  # Sort by distance from gene start with respect to strandedness, then by coverage
         for hsp in hit:
             BlatOutput = namedtuple("BlatOutput", ["hsp", "distance", "coverage"])
             hsp_list.append(
                 BlatOutput(
                     hsp,
-                    abs(hsp.hit_start - gene_location.start),
+                    abs(hsp.hit_start - gene_location.start)
+                    if hsp[0].query_strand == 1
+                    else abs(hsp.hit_end - gene_location.end),
                     (hsp.query_end - hsp.query_start) / output.seq_len,
                 )
             )
@@ -283,7 +284,7 @@ def _get_best_hsp(
     if best_hsp is None:
         _logger.error(
             "Unable to get best HSP from hit -- this should be impossible? urn: %s, hit: %s",
-            urn,
+            metadata.urn,
             hit,
         )
         raise AlignmentError
@@ -300,7 +301,7 @@ def _get_best_match(output: QueryResult, metadata: ScoresetMetadata) -> Alignmen
     location = get_gene_location(metadata)
     chromosome = location.chromosome if location else None
     best_hit = _get_best_hit(output, metadata.urn, chromosome)
-    best_hsp = _get_best_hsp(best_hit, metadata.urn, location, output)
+    best_hsp = _get_best_hsp(best_hit, metadata, location, output)
 
     strand = None
     if metadata.target_gene_category == TargetType.PROTEIN_CODING:
