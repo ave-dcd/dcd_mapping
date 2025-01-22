@@ -441,7 +441,11 @@ def _get_variation(
                         allele.location.end = allele.location.start + diff2
                         if "dup" in hgvs_string:
                             allele.state.sequence = SequenceString(
-                                2 * _get_allele_sequence(allele)
+                                str(
+                                    Seq(
+                                        2 * _get_allele_sequence(allele)
+                                    ).reverse_complement()
+                                )
                             )
                         temp_str = str(
                             Seq(str(allele.state.sequence.root)).reverse_complement()
