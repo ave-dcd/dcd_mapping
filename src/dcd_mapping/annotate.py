@@ -337,8 +337,10 @@ def _annotate_cpb_mapping(
         post_mapped.extensions = [
             Extension(name="vrs_v1.3_id", value=_get_vrs_1_3_haplotype_id(post_mapped)),
         ]
-    else:
+    elif len(post_mapped.members) == 1:
         post_mapped = post_mapped.members[0]
+    else:
+        post_mapped = None
 
     namespace = metadata.urn
     val = mapping.accession_id.split("#")[1]
