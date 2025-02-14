@@ -63,8 +63,8 @@ def _get_va_digest(allele: Allele) -> Extension:
 
 
 def _is_valid_allele(allele: Allele, align_result: AlignmentResult) -> bool:
-    """Check if a post-mapped allele occurs within the alignment coverage
-    :param allele: A post-mapped allele
+    """Check if a pre-mapped allele occurs within the alignment coverage
+    :param allele: A pre-mapped allele
     :param align_result: Alignment data
     :return True if position occurs in coverage, False if not
     """
