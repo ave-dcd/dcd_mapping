@@ -18,9 +18,9 @@ class TargetSequenceType(str, Enum):
 class TargetType(str, Enum):
     """Define target gene types."""
 
-    PROTEIN_CODING = "protein_coding"
-    REGULATORY = "regulatory"
-    OTHER_NC = "other_noncoding"
+    PROTEIN_CODING = "Protein coding"
+    REGULATORY = "Regulatory"
+    OTHER_NC = "Other noncoding"
 
 
 class UniProtRef(BaseModel):

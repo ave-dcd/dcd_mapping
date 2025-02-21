@@ -166,7 +166,7 @@
     "targetGenes": [
       {
         "name": "BRCA1 translation start through RING domain",
-        "category": "protein_coding",
+        "category": "Protein coding",
         "externalIdentifiers": [
           {
             "identifier": {
