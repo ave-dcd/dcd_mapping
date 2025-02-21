@@ -252,7 +252,8 @@ def _annotate_allele_mapping(
 
     # Remove extra digest attributes
     pre_mapped.digest = None
-    post_mapped.digest = None
+    if post_mapped:
+        post_mapped.digest = None
 
     return ScoreAnnotationWithLayer(
         pre_mapped=pre_mapped,
