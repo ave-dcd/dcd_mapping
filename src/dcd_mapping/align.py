@@ -270,8 +270,6 @@ def _get_best_hsp(
                 BlatOutput(
                     hsp,
                     abs(hsp.hit_start - gene_location.start),
-                    # if hsp[0].query_strand == 1
-                    # else hsp.hit_end - gene_location.end,
                     (hsp.query_end - hsp.query_start) / output.seq_len,
                 )
             )
