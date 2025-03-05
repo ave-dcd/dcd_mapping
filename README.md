@@ -8,7 +8,7 @@
 
 <!-- description -->
 
-This library implements a novel method for mapping [MaveDB scoreset data](https://mavedb.org/) to [GA4GH Variation Representation Specification (VRS 2.0)](https://vrs.ga4gh.org/en/2.x/) objects, enhancing interoperability for genomic medicine applications. See [Arbesfeld et. al. (2024)](https://www.biorxiv.org/content/10.1101/2023.06.20.545702) for a preprint edition of the mapping manuscript, or [download the resulting mappings directly](https://mavedb-mapping.s3.us-east-2.amazonaws.com/20241023_mapped_score_sets.tar.gz).
+This library implements a novel method for mapping [MaveDB scoreset data](https://mavedb.org/) to [GA4GH Variation Representation Specification (VRS 2.0)](https://vrs.ga4gh.org/en/2.x/) objects, enhancing interoperability for genomic medicine applications. See [Arbesfeld et. al. (2024)](https://www.biorxiv.org/content/10.1101/2023.06.20.545702) for a preprint edition of the mapping manuscript, or [download the resulting mappings directly](https://mavedb-mapping.s3.us-east-2.amazonaws.com/mappings_20250220.tar.gz).
 
 If you make use of this software or the resultant mappings, please cite the manuscript:
 

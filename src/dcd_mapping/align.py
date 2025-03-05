@@ -258,18 +258,18 @@ def _get_best_hsp(
     hsp_list = []
     if gene_location is None:  # If gene data is not present, sort by coverage
         hsp_list = sorted(
-            hit, key=lambda hsp: (hsp.query_end - hsp.query_start) / output.seq_len
+            hit,
+            key=lambda hsp: (hsp.query_end - hsp.query_start) / output.seq_len,
+            reverse=True,
         )
         best_hsp = hsp_list[0]
-    else:  # Sort by distance from gene start with respect to strandedness, then by coverage
+    else:  # Sort by distance from gene start, then by coverage
         for hsp in hit:
             BlatOutput = namedtuple("BlatOutput", ["hsp", "distance", "coverage"])
             hsp_list.append(
                 BlatOutput(
                     hsp,
-                    abs(hsp.hit_start - gene_location.start)
-                    if hsp[0].query_strand == 1
-                    else abs(hsp.hit_end - gene_location.end),
+                    abs(hsp.hit_start - gene_location.start),
                     (hsp.query_end - hsp.query_start) / output.seq_len,
                 )
             )
